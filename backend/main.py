@@ -29,9 +29,9 @@ from pydantic import BaseModel
 # ---------------------------------------------------------------------------
 
 OPENAI_API_KEY         = os.environ.get("OPENAI_API_KEY", "")
-NOTEBOOKLM_NOTEBOOK_ID = os.environ.get("NOTEBOOKLM_NOTEBOOK_ID", "101c21c5-2cd9-43c0-9dac-464e14f21aa0")
+# NOTEBOOKLM_NOTEBOOK_ID = os.environ.get("NOTEBOOKLM_NOTEBOOK_ID", "101c21c5-2cd9-43c0-9dac-464e14f21aa0")  $reforma
 BACKEND_API_KEY        = os.environ.get("BACKEND_API_KEY", "")
-# NOTEBOOKLM_NOTEBOOK_ID = os.environ.get("NOTEBOOKLM_NOTEBOOK_ID", "5a83e6e6-8105-4bc4-b371-6d38c59bcade")
+NOTEBOOKLM_NOTEBOOK_ID = os.environ.get("NOTEBOOKLM_NOTEBOOK_ID", "5a83e6e6-8105-4bc4-b371-6d38c59bcade") #smart
 
 HISTORY_LIMIT      = 0
 NOTEBOOKLM_TIMEOUT = 60
