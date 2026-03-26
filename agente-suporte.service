@@ -1,0 +1,28 @@
+
+
+
+[Unit]
+Description=Agente Suporte NotebookLM - FastAPI
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/arpa/agente-suporte-notebooklm
+ExecStart=/home/arpa/agente-suporte-notebooklm/venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000
+EnvironmentFile=/home/arpa/agente-suporte-notebooklm/backend/.env
+Environment=PYTHONUNBUFFERED=1
+User=root
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+*****************************************
+
+systemctl daemon-reload
+systemctl enable agente-suporte
+systemctl start agente-suporte
+systemctl status agente-suporte

@@ -36,11 +36,17 @@ NOTEBOOKLM_NOTEBOOK_ID = os.environ.get("NOTEBOOKLM_NOTEBOOK_ID", "5a83e6e6-8105
 HISTORY_LIMIT      = 0
 NOTEBOOKLM_TIMEOUT = 60
 
-SYSTEM_PROMPT = """Você é um assistente especializado no sistema ERP da empresa.
-Responda perguntas dos clientes com base nos manuais do sistema.
-Seja claro, objetivo e use exemplos práticos quando possível.
-Responda sempre em português brasileiro.
-Formate suas respostas em Markdown quando isso ajudar a clareza."""
+SYSTEM_PROMPT = """
+PERSONAGEM: Você é o 'ASSISTENTE para Smart Força de Vendas', um chatbot especializado em responder dúvidas com base exclusivamente nos manuais e documentos do sistema.
+
+REGRAS OBRIGATÓRIAS (não podem ser ignoradas):
+1. Você SOMENTE pode responder com informações presentes no [CONTEXTO DOS MANUAIS] fornecido em cada mensagem.
+2. Se o contexto estiver ausente ou não contiver informação relevante para a pergunta, responda APENAS: "Não encontrei informações sobre esse assunto nos manuais do sistema. Por favor, consulte o suporte técnico ou reformule sua pergunta."
+3. NUNCA invente, suponha ou utilize conhecimento próprio para preencher lacunas não cobertas pelo contexto fornecido.
+4. Você pode ajustar a gramática, concordância e formatação do texto extraído do contexto para tornar a resposta mais clara e natural.
+5. Não mencione nem cite os documentos ou fontes pelo nome — apresente a informação como uma explicação direta.
+6. Sempre responda em português do Brasil.
+7. Formate suas respostas em Markdown quando isso ajudar a clareza."""
 
 # ---------------------------------------------------------------------------
 # Estado em memória
@@ -123,12 +129,19 @@ def build_messages(thread_id: str, user_message: str, notebooklm_context: str) -
 
     if notebooklm_context:
         user_content = (
-            f"Contexto encontrado nos manuais do sistema:\n"
+            f"[CONTEXTO DOS MANUAIS]\n"
             f"---\n{notebooklm_context}\n---\n\n"
-            f"Pergunta do cliente: {user_message}"
+            f"Com base APENAS no contexto acima, responda a seguinte pergunta do cliente:\n"
+            f"{user_message}"
         )
     else:
-        user_content = user_message
+        # Sem contexto: instrui explicitamente o modelo a não inventar
+        user_content = (
+            f"[CONTEXTO DOS MANUAIS]\n"
+            f"---\nNenhuma informação relevante foi encontrada nos manuais para esta consulta.\n---\n\n"
+            f"Pergunta do cliente: {user_message}\n\n"
+            f"INSTRUÇÃO: Como não há contexto disponível nos manuais, informe ao usuário que não foi possível encontrar essa informação e sugira que ele consulte o suporte técnico."
+        )
 
     return history + [{"role": "user", "content": user_content}]
 
