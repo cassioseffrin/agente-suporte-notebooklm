@@ -33,7 +33,7 @@ OPENAI_API_KEY         = os.environ.get("OPENAI_API_KEY", "")
 BACKEND_API_KEY        = os.environ.get("BACKEND_API_KEY", "")
 NOTEBOOKLM_NOTEBOOK_ID = os.environ.get("NOTEBOOKLM_NOTEBOOK_ID", "5a83e6e6-8105-4bc4-b371-6d38c59bcade") #smart
 
-HISTORY_LIMIT      = 0
+HISTORY_LIMIT      = 10   # últimas N mensagens enviadas ao OpenAI (5 turnos)
 NOTEBOOKLM_TIMEOUT = 60
 
 SYSTEM_PROMPT = """
@@ -48,11 +48,27 @@ REGRAS OBRIGATÓRIAS (não podem ser ignoradas):
 6. Sempre responda em português do Brasil.
 7. Formate suas respostas em Markdown quando isso ajudar a clareza."""
 
+# Prompt exclusivo para reescrita de consulta — NÃO responde ao usuário,
+# apenas produz uma pergunta autocontida para ser enviada ao NotebookLM.
+QUERY_REWRITE_PROMPT = """
+Você é um assistente especializado em preparar consultas para um sistema de busca em manuais.
+
+Sua ÚNICA tarefa é reescrever a última pergunta do usuário em uma consulta AUTOCONTIDA e ESPECÍFICA,
+incorporando o contexto necessário do histórico da conversa quando a pergunta for vaga, incompleta
+ou fizer referência a algo mencionado antes (ex: "isso", "o passo 2", "aquele campo", "pode detalhar?").
+
+REGRAS OBRIGATÓRIAS:
+1. Retorne APENAS a pergunta reescrita — sem explicações, sem prefixos, sem aspas.
+2. Se a pergunta já for clara e autocontida, retorne-a exatamente como está.
+3. A pergunta reescrita deve ser em português do Brasil.
+4. Jamais invente informações — use somente o que está no histórico fornecido.
+5. A pergunta deve ser objetiva e adequada para busca em manuais técnicos."""
+
 # ---------------------------------------------------------------------------
 # Estado em memória
 # ---------------------------------------------------------------------------
 
-sessions: dict[str, list[dict]] = defaultdict(list)
+sessions: dict[str, list[dict[str, str]]] = defaultdict(list)
 
 # ---------------------------------------------------------------------------
 # App
@@ -124,6 +140,50 @@ async def query_notebooklm(user_message: str) -> str:
         return ""
 
 
+async def rewrite_query_with_context(thread_id: str, user_message: str) -> str:
+    """Usa o OpenAI + histórico da thread para expandir perguntas ambíguas
+    em consultas autocontidas antes de enviar ao NotebookLM.
+    Retorna a pergunta original se não houver histórico ou se já for clara."""
+    history = sessions[thread_id][-HISTORY_LIMIT:]
+
+    # Sem histórico = pergunta já é autocontida, não precisa reescrever
+    if not history:
+        return user_message
+
+    # Formata o histórico recente como contexto para o rewriter
+    history_text = "\n".join(
+        f"{msg['role'].upper()}: {msg['content']}"
+        for msg in history
+    )
+
+    try:
+        result = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            max_tokens=256,
+            temperature=0,
+            messages=[
+                {"role": "system", "content": QUERY_REWRITE_PROMPT},
+                {
+                    "role": "user",
+                    "content": (
+                        f"[HISTÓRICO DA CONVERSA]\n{history_text}\n\n"
+                        f"[PERGUNTA ATUAL DO USUÁRIO]\n{user_message}\n\n"
+                        f"Reescreva a pergunta atual de forma autocontida:"
+                    )
+                }
+            ]
+        )
+        rewritten = result.choices[0].message.content.strip()
+        if rewritten and rewritten != user_message:
+            print(f"[query-rewrite] original: {user_message!r}")
+            print(f"[query-rewrite] reescrita: {rewritten!r}")
+        return rewritten or user_message
+
+    except Exception as e:
+        print(f"[query-rewrite] erro (usando original): {e}")
+        return user_message
+
+
 def build_messages(thread_id: str, user_message: str, notebooklm_context: str) -> list[dict]:
     history = sessions[thread_id][-HISTORY_LIMIT:]
 
@@ -170,13 +230,16 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     if thread_id not in sessions:
         sessions[thread_id] = []
 
-    # 1. NotebookLM — busca contexto nos manuais
-    notebooklm_context = await query_notebooklm(user_message)
+    # 1. Query Rewriting — expande perguntas vagas usando histórico da thread
+    search_query = await rewrite_query_with_context(thread_id, user_message)
 
-    # 2. Monta histórico + contexto injetado
+    # 2. NotebookLM — busca contexto nos manuais com a query expandida
+    notebooklm_context = await query_notebooklm(search_query)
+
+    # 3. Monta histórico + contexto injetado (usa mensagem original do usuário)
     messages = build_messages(thread_id, user_message, notebooklm_context)
 
-    # 3. OpenAI gpt-4o-mini
+    # 4. OpenAI gpt-4o-mini — formata resposta com base no contexto do NotebookLM
     try:
         response = await openai_client.chat.completions.create(
             model="gpt-4o-mini",
@@ -189,11 +252,11 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         print(f"[openai] erro: {e}")
         raise HTTPException(status_code=500, detail="Erro ao gerar resposta")
 
-    # 4. Histórico — salva mensagem original (sem contexto injetado)
+    # 5. Histórico — salva mensagem original do usuário (não a query reescrita)
     sessions[thread_id].append({"role": "user",      "content": user_message})
     sessions[thread_id].append({"role": "assistant", "content": assistant_text})
 
-    # 5. Retorna no formato que o Flutter já espera
+    # 6. Retorna no formato que o Flutter já espera
     return {
         "content": [assistant_text],
         "images":  []
