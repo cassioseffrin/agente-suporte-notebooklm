@@ -855,6 +855,54 @@ async def get_thread_messages(
             conn.close()
 
 
+@app.delete("/thread/{thread_id}")
+async def delete_thread(
+    thread_id: str,
+    authorization: str = Header(None)
+):
+    """
+    Exclui uma thread e todos os seus chats associados.
+    """
+    verify_api_key(authorization)
+
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                # Busca os IDs dos chats desta thread
+                cur.execute(
+                    "SELECT chat_id FROM chat_thread WHERE thread_id = %s",
+                    (thread_id,)
+                )
+                chat_ids = [row[0] for row in cur.fetchall()]
+
+                if chat_ids:
+                    # Remove os vínculos na tabela chat_thread
+                    cur.execute(
+                        "DELETE FROM chat_thread WHERE thread_id = %s",
+                        (thread_id,)
+                    )
+                    # Remove os registros de chat
+                    cur.execute(
+                        "DELETE FROM chat WHERE id = ANY(%s)",
+                        (chat_ids,)
+                    )
+
+                # Remove a thread
+                cur.execute("DELETE FROM thread WHERE id = %s", (thread_id,))
+
+        # Remove da sessão em memória, se existir
+        sessions.pop(thread_id, None)
+
+        return {"status": "deleted", "thread_id": thread_id}
+    except Exception as e:
+        print(f"[delete_thread] Erro: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao excluir thread.")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+
 # ---------------------------------------------------------------------------
 # Limpeza de sessões ociosas (> 2h)
 # ---------------------------------------------------------------------------

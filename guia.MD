@@ -49,6 +49,19 @@ journalctl -u agente-suporte -n 50
 
 
 kill -9 $(lsof -t -i :8000)
+
+
+
+pra atualizar em prolducao
+
+
+source venv/bin/activate
+pip install -r backend/requirements.txt
+export $(cat .env | xargs)
+systemctl restart agente-suporte
+journalctl -u agente-suporte -f
+
+
 # Adicionar (use o python do venv, não do sistema):
 0 6 * * * /opt/erp-agent/venv/bin/python /opt/erp-agent/auth_manager.py \
     --mac-host 192.168.1.50 \
