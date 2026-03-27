@@ -48,7 +48,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 journalctl -u agente-suporte -n 50 
 
 
-
+kill -9 $(lsof -t -i :8000)
 # Adicionar (use o python do venv, não do sistema):
 0 6 * * * /opt/erp-agent/venv/bin/python /opt/erp-agent/auth_manager.py \
     --mac-host 192.168.1.50 \
