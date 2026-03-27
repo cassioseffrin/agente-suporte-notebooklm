@@ -41,14 +41,14 @@ mv /home/postgres/storage_state.json ~/.notebooklm/
 source venv/bin/activate
 cd backend
 export $(cat .env | xargs)
-uvicorn main:app --host 0.0.0.0 --port 8000
+kill -9 $(lsof -t -i :8000) &&  uvicorn main:app --host 0.0.0.0 --port 8000
 
 
 
 journalctl -u agente-suporte -n 50 
 
 
-kill -9 $(lsof -t -i :8000)
+
 
 
 

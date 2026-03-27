@@ -75,9 +75,28 @@ def ensure_tables():
                     system_prompt TEXT,
                     email        TEXT,
                     overview     TEXT,
+                    sort_order   INTEGER     DEFAULT 0,
+                    active       BOOLEAN     DEFAULT TRUE,
                     creation     TIMESTAMP   NOT NULL DEFAULT NOW(),
                     modification TIMESTAMP   NOT NULL DEFAULT NOW()
                 );
+                """)
+                cur.execute("""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'agent' AND column_name = 'sort_order'
+                    ) THEN
+                        ALTER TABLE agent ADD COLUMN sort_order INTEGER DEFAULT 0;
+                    END IF;
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'agent' AND column_name = 'active'
+                    ) THEN
+                        ALTER TABLE agent ADD COLUMN active BOOLEAN DEFAULT TRUE;
+                    END IF;
+                END $$;
                 """)
                 cur.execute("""
                 CREATE TABLE IF NOT EXISTS "user" (
@@ -510,7 +529,7 @@ async def get_agents():
     try:
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT id, name, title FROM agent ORDER BY title ASC;")
+                cur.execute("SELECT id, name, title, sort_order FROM agent WHERE active = TRUE ORDER BY sort_order ASC;")
                 rows = cur.fetchall()
                 # Removemos datetime objectos caso existissem, mas select é só id, name, title
                 return {"agents": rows}
