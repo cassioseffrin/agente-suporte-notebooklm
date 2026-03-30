@@ -704,7 +704,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
             model="gpt-4o-mini",
             max_tokens=10240,
             messages=[{"role": "system", "content": agent_system_prompt or "Você é um assistente útil."}] + messages,
-            timeout=60.0
+            timeout=120.0
         )
         assistant_text = response.choices[0].message.content
 
