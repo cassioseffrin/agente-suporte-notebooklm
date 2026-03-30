@@ -764,6 +764,192 @@ async def health():
     return {"status": "ok", "sessions_ativas": len(sessions)}
 
 
+@app.get("/refreshAuth")
+async def refresh_auth():
+    """
+    Renova a autenticação do NotebookLM via auth_manager.
+    Lê as variáveis MAC_HOST e MAC_USER do ambiente.
+    """
+    import importlib.util, sys
+    from pathlib import Path as _Path
+
+    auth_manager_path = _Path(__file__).parent / "auth_manager.py"
+    spec = importlib.util.spec_from_file_location("auth_manager", auth_manager_path)
+    auth_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(auth_module)
+
+    mac_host = os.environ.get("MAC_HOST")
+    mac_user = os.environ.get("MAC_USER")
+
+    try:
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None,
+            lambda: auth_module.check_and_renew(mac_host=mac_host, mac_user=mac_user)
+        )
+        return {"status": "ok", "renewed": result}
+    except SystemExit:
+        raise HTTPException(status_code=500, detail="Renovação de autenticação falhou. Intervenção manual necessária.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao renovar autenticação: {e}")
+
+
+@app.get("/dashboard/chats-per-user")
+async def dashboard_chats_per_user(days: int = 30):
+    """
+    Retorna o número de chats por usuário nos últimos N dias (padrão 30).
+    Top 10 usuários com mais chats. Agrupa por usuário e por dia.
+    """
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Top 10 users by total chats in the period
+                cur.execute("""
+                    SELECT u.name, u.email, DATE(c.created_at) as day, COUNT(*) as total
+                    FROM chat c
+                    JOIN "user" u ON u.id = c.user_id
+                    WHERE c.origem = 'usuario'
+                      AND c.created_at >= NOW() - INTERVAL '%s days'
+                    GROUP BY u.name, u.email, DATE(c.created_at)
+                    ORDER BY day ASC, total DESC;
+                """, (days,))
+                rows = cur.fetchall()
+
+                # Identify top 10 users by total volume
+                cur.execute("""
+                    SELECT u.name, u.email, COUNT(*) as total
+                    FROM chat c
+                    JOIN "user" u ON u.id = c.user_id
+                    WHERE c.origem = 'usuario'
+                      AND c.created_at >= NOW() - INTERVAL '%s days'
+                    GROUP BY u.name, u.email
+                    ORDER BY total DESC
+                    LIMIT 10;
+                """, (days,))
+                top_users = [{"name": r["name"] or r["email"], "email": r["email"], "total": r["total"]} for r in cur.fetchall()]
+
+        # Build series per user (daily data)
+        from collections import defaultdict as _dd
+        user_daily: dict = _dd(lambda: _dd(int))
+        for row in rows:
+            label = row["name"] or row["email"]
+            day_str = row["day"].isoformat() if hasattr(row["day"], "isoformat") else str(row["day"])
+            user_daily[label][day_str] += row["total"]
+
+        top_labels = [u["name"] or u["email"] for u in top_users]
+
+        # Collect all days in range
+        all_days = sorted({
+            (row["day"].isoformat() if hasattr(row["day"], "isoformat") else str(row["day"]))
+            for row in rows
+        })
+
+        series = []
+        for label in top_labels:
+            series.append({
+                "name": label,
+                "data": [user_daily[label].get(d, 0) for d in all_days]
+            })
+
+        return {
+            "categories": all_days,
+            "series": series,
+            "top_users": top_users,
+        }
+    except Exception as e:
+        print(f"[dashboard] Erro: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao buscar dados do dashboard.")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+
+@app.get("/agents/all")
+async def get_agents_all():
+    """Retorna todos os agentes com todos os campos (para edição no dashboard)."""
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT id, title, name, system_prompt, email, overview,
+                           sort_order, active, creation, modification
+                    FROM agent
+                    ORDER BY sort_order ASC, title ASC;
+                """)
+                rows = cur.fetchall()
+                agents = []
+                for r in rows:
+                    agents.append({
+                        "id": r["id"],
+                        "title": r["title"],
+                        "name": r["name"],
+                        "system_prompt": r["system_prompt"],
+                        "email": r["email"],
+                        "overview": r["overview"],
+                        "sort_order": r["sort_order"],
+                        "active": r["active"],
+                        "creation": r["creation"].isoformat() if r["creation"] else None,
+                        "modification": r["modification"].isoformat() if r["modification"] else None,
+                    })
+                return {"agents": agents}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar agentes: {e}")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+
+class AgentUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    name: Optional[str] = None
+    system_prompt: Optional[str] = None
+    email: Optional[str] = None
+    overview: Optional[str] = None
+    sort_order: Optional[int] = None
+    active: Optional[bool] = None
+
+
+@app.put("/agents/{agent_id}")
+async def update_agent(agent_id: str, request: AgentUpdateRequest):
+    """Atualiza campos de um agente pelo ID."""
+    from typing import Any as _Any
+    fields: dict[str, _Any] = {k: v for k, v in request.dict().items() if v is not None}
+    if not fields:
+        raise HTTPException(status_code=400, detail="Nenhum campo para atualizar.")
+
+    fields["modification"] = datetime.utcnow()
+    set_clause = ", ".join(f"{k} = %({k})s" for k in fields)
+    fields["agent_id"] = agent_id
+
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(f"""
+                    UPDATE agent SET {set_clause}
+                    WHERE id = %(agent_id)s
+                    RETURNING id, title, name, system_prompt, email, overview,
+                              sort_order, active, creation, modification;
+                """, fields)
+                row = cur.fetchone()
+                if not row:
+                    raise HTTPException(status_code=404, detail="Agente não encontrado.")
+                return {
+                    **dict(row),
+                    "creation": row["creation"].isoformat() if row["creation"] else None,
+                    "modification": row["modification"].isoformat() if row["modification"] else None,
+                }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar agente: {e}")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+
 # ---------------------------------------------------------------------------
 # Consultas de Histórico
 # ---------------------------------------------------------------------------
