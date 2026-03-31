@@ -864,6 +864,113 @@ async def dashboard_chats_per_user(days: int = 30):
         if 'conn' in locals() and conn:
             conn.close()
 
+@app.get("/dashboard/chats-per-agent")
+async def dashboard_chats_per_agent(days: int = 30):
+    """
+    Retorna o número de atendimentos por agente nos últimos N dias.
+    Agrupa por agente e por dia.
+    """
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT a.title as name, DATE(c.created_at) as day, COUNT(*) as total
+                    FROM chat c
+                    JOIN agent a ON a.id = c.agent_id
+                    WHERE c.origem = 'usuario'
+                      AND c.created_at >= NOW() - INTERVAL '%s days'
+                    GROUP BY a.title, DATE(c.created_at)
+                    ORDER BY day ASC;
+                """, (days,))
+                rows = cur.fetchall()
+
+                cur.execute("""
+                    SELECT a.title as name, COUNT(*) as total
+                    FROM chat c
+                    JOIN agent a ON a.id = c.agent_id
+                    WHERE c.origem = 'usuario'
+                      AND c.created_at >= NOW() - INTERVAL '%s days'
+                    GROUP BY a.title
+                    ORDER BY total DESC;
+                """, (days,))
+                agents = [{"name": r["name"], "total": r["total"]} for r in cur.fetchall()]
+
+        from collections import defaultdict as _dd
+        agent_daily: dict = _dd(lambda: _dd(int))
+        for row in rows:
+            label = row["name"]
+            day_str = row["day"].isoformat() if hasattr(row["day"], "isoformat") else str(row["day"])
+            agent_daily[label][day_str] += row["total"]
+
+        all_labels = [a["name"] for a in agents]
+
+        all_days = sorted({
+            (row["day"].isoformat() if hasattr(row["day"], "isoformat") else str(row["day"]))
+            for row in rows
+        })
+
+        series = []
+        for label in all_labels:
+            series.append({
+                "name": label,
+                "data": [agent_daily[label].get(d, 0) for d in all_days]
+            })
+
+        return {
+            "categories": all_days,
+            "series": series,
+            "agents": agents,
+        }
+    except Exception as e:
+        print(f"[dashboard] Erro: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao buscar dados do dashboard por agente.")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+@app.get("/dashboard/feedback-per-agent")
+async def dashboard_feedback_per_agent(days: int = 30):
+    """
+    Retorna a média de avaliação (feedback_rating) por agente nos últimos N dias.
+    """
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT a.title as name, 
+                           ROUND(AVG(ct.feedback_rating), 1) as avg_rating, 
+                           COUNT(ct.feedback_rating) as total_ratings
+                    FROM chat_thread ct
+                    JOIN chat c ON c.id = ct.chat_id
+                    JOIN agent a ON a.id = c.agent_id
+                    WHERE ct.feedback_rating IS NOT NULL
+                      AND c.created_at >= NOW() - INTERVAL '%s days'
+                      AND a.active = TRUE
+                    GROUP BY a.title
+                    ORDER BY avg_rating DESC, total_ratings DESC;
+                """, (days,))
+                feedbacks = cur.fetchall()
+
+        categories = [r["name"] for r in feedbacks]
+        series = [{
+            "name": "Média de Estrelas",
+            "data": [float(r["avg_rating"]) for r in feedbacks]
+        }]
+        
+        return {
+            "categories": categories,
+            "series": series,
+            "feedbacks": feedbacks
+        }
+    except Exception as e:
+        print(f"[dashboard] Erro feedback: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao buscar avaliação dos agentes.")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
 
 @app.get("/agents/all")
 async def get_agents_all():
