@@ -818,16 +818,17 @@ async def dashboard_chats_per_user(days: int = 30):
 
                 # Identify top 10 users by total volume
                 cur.execute("""
-                    SELECT u.name, u.email, COUNT(*) as total
+                    SELECT u.name, u.email, COUNT(DISTINCT c.id) as total, ROUND(AVG(ct.feedback_rating), 1) as avg_rating
                     FROM chat c
                     JOIN "user" u ON u.id = c.user_id
+                    LEFT JOIN chat_thread ct ON ct.chat_id = c.id
                     WHERE c.origem = 'usuario'
                       AND c.created_at >= NOW() - INTERVAL '%s days'
                     GROUP BY u.name, u.email
                     ORDER BY total DESC
                     LIMIT 10;
                 """, (days,))
-                top_users = [{"name": r["name"] or r["email"], "email": r["email"], "total": r["total"]} for r in cur.fetchall()]
+                top_users = [{"name": r["name"] or r["email"], "email": r["email"], "total": r["total"], "avg_rating": float(r["avg_rating"]) if r["avg_rating"] is not None else None} for r in cur.fetchall()]
 
         # Build series per user (daily data)
         from collections import defaultdict as _dd
