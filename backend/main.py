@@ -818,16 +818,27 @@ async def dashboard_chats_per_user(days: int = 30):
 
                 # Identify top 10 users by total volume
                 cur.execute("""
-                    SELECT u.name, u.email, COUNT(DISTINCT c.id) as total, ROUND(AVG(ct.feedback_rating), 1) as avg_rating
-                    FROM chat c
-                    JOIN "user" u ON u.id = c.user_id
-                    LEFT JOIN chat_thread ct ON ct.chat_id = c.id
-                    WHERE c.origem = 'usuario'
-                      AND c.created_at >= NOW() - INTERVAL '%s days'
-                    GROUP BY u.name, u.email
-                    ORDER BY total DESC
+                    WITH user_totals AS (
+                        SELECT u.id, u.name, u.email, COUNT(DISTINCT c.id) as total
+                        FROM chat c
+                        JOIN "user" u ON u.id = c.user_id
+                        WHERE c.origem = 'usuario'
+                          AND c.created_at >= NOW() - INTERVAL '%s days'
+                        GROUP BY u.id, u.name, u.email
+                    ),
+                    user_feedbacks AS (
+                        SELECT c.user_id, AVG(ct.feedback_rating) as avg_rating
+                        FROM chat_thread ct
+                        JOIN chat c ON c.id = ct.chat_id
+                        WHERE c.created_at >= NOW() - INTERVAL '%s days'
+                        GROUP BY c.user_id
+                    )
+                    SELECT t.name, t.email, t.total, ROUND(f.avg_rating, 1) as avg_rating
+                    FROM user_totals t
+                    LEFT JOIN user_feedbacks f ON f.user_id = t.id
+                    ORDER BY t.total DESC
                     LIMIT 10;
-                """, (days,))
+                """, (days, days))
                 top_users = [{"name": r["name"] or r["email"], "email": r["email"], "total": r["total"], "avg_rating": float(r["avg_rating"]) if r["avg_rating"] is not None else None} for r in cur.fetchall()]
 
         # Build series per user (daily data)
@@ -1086,9 +1097,11 @@ async def get_history(
                     return {"threads": [], "total": 0, "page": page, "limit": limit}
                 user_id = user_row["id"]
 
-                # Retorna dados das threads, incluindo a data da primeira mensagem...
+                # Retorna dados das threads, incluindo a data da primeira mensagem e feedback_rating...
                 cur.execute("""
-                    SELECT t.id as thread_id, t.subject, a.name as agent_name, a.title as agent_title, MIN(c.created_at) as created_at
+                    SELECT t.id as thread_id, t.subject, a.name as agent_name, a.title as agent_title,
+                           MIN(c.created_at) as created_at,
+                           MAX(ct.feedback_rating) as feedback_rating
                     FROM thread t
                     JOIN chat_thread ct ON ct.thread_id = t.id
                     JOIN chat c ON ct.chat_id = c.id
