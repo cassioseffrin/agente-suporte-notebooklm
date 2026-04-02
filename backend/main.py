@@ -176,7 +176,14 @@ def ensure_tables():
                     END IF;
                 END $$;
                 """)
-        print("[DB] Tabelas agent, user, chat, thread e chat_thread verificadas/criadas com sucesso.")
+                cur.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id SERIAL PRIMARY KEY,
+                    login VARCHAR(255) UNIQUE NOT NULL,
+                    senha VARCHAR(255) NOT NULL
+                );
+                """)
+        print("[DB] Tabelas agent, user, users, chat, thread e chat_thread verificadas/criadas com sucesso.")
     except Exception as e:
         print("[DB] Erro ao criar tabelas:", e)
     finally:
@@ -240,6 +247,10 @@ class ChatRequest(BaseModel):
     threadId: str
     message: str
     assistantName: Optional[str] = "SMART"
+
+class LoginRequest(BaseModel):
+    login: str
+    senha: str
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -357,6 +368,26 @@ def build_messages(thread_id: str, user_message: str, notebooklm_context: str) -
 # ---------------------------------------------------------------------------
 # Rotas
 # ---------------------------------------------------------------------------
+
+@app.post("/login")
+async def login(request: LoginRequest):
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("SELECT id, login FROM users WHERE login = %s AND senha = %s", (request.login, request.senha))
+                user = cur.fetchone()
+                if user:
+                    return {"status": "ok", "user": {"id": user["id"], "login": user["login"]}}
+                else:
+                    raise HTTPException(status_code=401, detail="Credenciais incorretas")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro no servidor: {e}")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
 
 @app.get("/createNewThread")
 async def create_new_thread(
