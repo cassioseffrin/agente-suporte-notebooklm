@@ -67,3 +67,21 @@ journalctl -u agente-suporte -f
     --mac-host 192.168.1.50 \
     --mac-user seunome \
     >> /var/log/notebooklm_auth.log 2>&1
+
+
+
+
+arpasistemas@Arpas-Mac-mini ~ % cd dev/agentes-suporte-ia 
+(venv) arpasistemas@Arpas-Mac-mini agentes-suporte-ia % notebooklm login
+Opening browser for Google login...
+Using persistent profile: /Users/arpasistemas/.notebooklm/browser_profile
+
+Instructions:
+1. Complete the Google login in the browser window
+2. Wait until you see the NotebookLM homepage
+3. Press ENTER here to save and close
+
+[Press ENTER when logged in] 
+
+Authentication saved to: /Users/arpasistemas/.notebooklm/storage_state.json
+(venv) arpasistemas@Arpas-Mac-mini agentes-suporte-ia %  cp ~/.notebooklm/storage_state.json  ~/Desktop 
