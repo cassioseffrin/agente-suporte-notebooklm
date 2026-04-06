@@ -573,7 +573,8 @@ async def update_notebooks():
     """
     1. Executa `notebooklm list --json` para obter todos os notebooks.
     2. Para cada notebook, faz INSERT ... ON CONFLICT (id) DO UPDATE na tabela agent.
-    3. Retorna resumo: notebooks encontrados, inseridos e atualizados.
+    3. Notebooks que não estão mais na lista têm active=false (nunca são deletados).
+    4. Retorna resumo: notebooks encontrados, inseridos, atualizados e desativados.
     """
     # --- 1. Chamar CLI ---
     try:
@@ -607,18 +608,19 @@ async def update_notebooks():
 
     # --- 3. Upsert no Postgres ---
     upsert_sql = """
-        INSERT INTO agent (id, title, name, creation, modification)
-        VALUES (%(id)s, %(title)s, %(name)s, %(creation)s, %(modification)s)
+        INSERT INTO agent (id, title, name, creation, modification, active)
+        VALUES (%(id)s, %(title)s, %(name)s, %(creation)s, %(modification)s, TRUE)
         ON CONFLICT (id) DO UPDATE
             SET title        = EXCLUDED.title,
-                modification = EXCLUDED.modification
+                modification = EXCLUDED.modification,
+                active       = TRUE
         RETURNING (xmax = 0) AS inserted;
     """
 
-    inserted_count = 0
-    updated_count  = 0
-    deleted_count  = 0
-    errors         = []
+    inserted_count    = 0
+    updated_count     = 0
+    deactivated_count = 0
+    errors            = []
     valid_ids      = []
     now            = datetime.utcnow()
 
@@ -664,15 +666,16 @@ async def update_notebooks():
                     except Exception as e:
                         errors.append({"id": nb_id, "erro": str(e)})
                 
-                # --- 4. Excluir removidos ---
+                # --- 4. Desativar removidos (soft delete) ---
                 if valid_ids:
-                    # Deletar todos onde o ID não está na lista de IDs válidos
-                    cur.execute("DELETE FROM agent WHERE id != ALL(%s) RETURNING id;", (valid_ids,))
-                    deleted_rows = cur.fetchall()
-                    deleted_count = len(deleted_rows)
-                else:
-                    # Se vier vazio por algum motivo, não seria prudente apagar tudo cego, então podemos omitir
-                    pass
+                    # Marca como inativo os agentes que não vieram na lista atual
+                    cur.execute(
+                        "UPDATE agent SET active = FALSE, modification = %s WHERE id != ALL(%s) AND active = TRUE RETURNING id;",
+                        (now, valid_ids)
+                    )
+                    deactivated_rows = cur.fetchall()
+                    deactivated_count = len(deactivated_rows)
+                # Se valid_ids estiver vazio não desativamos nada (segurança)
     finally:
         conn.close()
 
@@ -681,7 +684,7 @@ async def update_notebooks():
         "total":       len(notebooks),
         "inseridos":   inserted_count,
         "atualizados": updated_count,
-        "removidos":   deleted_count,
+        "desativados": deactivated_count,
         "erros":       errors,
     }
 
