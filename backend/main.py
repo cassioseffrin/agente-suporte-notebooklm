@@ -25,7 +25,7 @@ from dotenv import load_dotenv  # Carregar variáveis do .env
 load_dotenv()
 
 from openai import AsyncOpenAI
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -823,6 +823,84 @@ async def refresh_auth():
         raise HTTPException(status_code=500, detail="Renovação de autenticação falhou. Intervenção manual necessária.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao renovar autenticação: {e}")
+
+
+@app.post("/uploadAuthState")
+async def upload_auth_state(
+    file: UploadFile = File(...),
+):
+    """
+    Recebe o storage_state.json do NotebookLM via upload e salva no servidor.
+    Após salvar, valida executando 'notebooklm list'.
+    """
+
+    from pathlib import Path as _Path
+    import shutil
+
+    # --- 1. Ler conteúdo ---
+    content = await file.read()
+    if len(content) == 0:
+        raise HTTPException(status_code=400, detail="Arquivo vazio.")
+
+    # --- 2. Validar JSON e estrutura mínima ---
+    try:
+        data = json.loads(content)
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=400, detail=f"Arquivo JSON inválido: {e}")
+
+    if not isinstance(data, dict) or "cookies" not in data:
+        raise HTTPException(
+            status_code=400,
+            detail="Estrutura inválida: o arquivo deve conter a chave 'cookies'. "
+                   "Certifique-se de que é o ~/.notebooklm/storage_state.json correto."
+        )
+
+    cookies_count = len(data.get("cookies", []))
+
+    # --- 3. Salvar no servidor (com backup do anterior) ---
+    session_file = _Path.home() / ".notebooklm" / "storage_state.json"
+    session_file.parent.mkdir(parents=True, exist_ok=True)
+
+    if session_file.exists():
+        backup = session_file.with_suffix(".json.bak")
+        shutil.copy2(session_file, backup)
+        print(f"[uploadAuthState] backup salvo em {backup}")
+
+    session_file.write_bytes(content)
+    print(f"[uploadAuthState] storage_state.json atualizado ({len(content)} bytes, {cookies_count} cookies)")
+
+    # --- 4. Validar executando notebooklm list ---
+    valid = False
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "notebooklm", "list",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=30)
+        valid = proc.returncode == 0
+        if not valid:
+            print(f"[uploadAuthState] validação falhou: {stderr.decode()[:200]}")
+        else:
+            print("[uploadAuthState] sessão validada com sucesso.")
+    except asyncio.TimeoutError:
+        print("[uploadAuthState] timeout na validação")
+    except Exception as e:
+        print(f"[uploadAuthState] erro na validação: {e}")
+
+    return {
+        "status": "ok",
+        "saved": True,
+        "valid": valid,
+        "bytes": len(content),
+        "cookies_count": cookies_count,
+        "message": (
+            "✅ Autenticação renovada e validada com sucesso!"
+            if valid else
+            "⚠️ Arquivo salvo, mas a validação falhou. O token pode estar expirado — tente gerar um novo no Mac."
+        ),
+    }
+
 
 
 @app.get("/dashboard/chats-per-user")
