@@ -903,6 +903,93 @@ async def upload_auth_state(
 
 
 
+@app.get("/authStatus")
+async def auth_status():
+    """
+    Verifica o status do storage_state.json do NotebookLM no servidor.
+    Retorna se o arquivo existe, quantos cookies tem, quais expiram e quando.
+    """
+    from pathlib import Path as _Path
+
+    session_file = _Path.home() / ".notebooklm" / "storage_state.json"
+
+    if not session_file.exists():
+        return {
+            "exists": False,
+            "valid": False,
+            "cookies_count": 0,
+            "expires_at": None,
+            "file_age_hours": None,
+            "message": "Arquivo storage_state.json não encontrado no servidor.",
+        }
+
+    try:
+        import stat as _stat
+        raw = session_file.read_bytes()
+        data = json.loads(raw)
+        cookies = data.get("cookies", [])
+        cookies_count = len(cookies)
+
+        # Encontrar a data de expiração mais próxima entre todos os cookies
+        now_ts = datetime.utcnow().timestamp()
+        expires_timestamps = []
+        for c in cookies:
+            exp = c.get("expires")
+            if exp and isinstance(exp, (int, float)) and exp > 0:
+                expires_timestamps.append(exp)
+
+        if expires_timestamps:
+            nearest_expiry_ts = min(expires_timestamps)
+            nearest_expiry = datetime.utcfromtimestamp(nearest_expiry_ts)
+            is_expired = nearest_expiry_ts < now_ts
+            expires_at_iso = nearest_expiry.isoformat() + "Z"
+        else:
+            is_expired = False
+            expires_at_iso = None
+
+        # Idade do arquivo em horas
+        file_mtime = session_file.stat().st_mtime
+        file_age_hours = round((now_ts - file_mtime) / 3600, 1)
+
+        # Validar executando notebooklm list (rápido, timeout curto)
+        valid_session = False
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "notebooklm", "list",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            _, _ = await asyncio.wait_for(proc.communicate(), timeout=20)
+            valid_session = proc.returncode == 0
+        except (asyncio.TimeoutError, FileNotFoundError):
+            valid_session = not is_expired  # fallback: inferir pelo cookie
+
+        if valid_session:
+            message = "✅ Sessão ativa e válida."
+        elif is_expired:
+            message = "⚠️ Token expirado. Renove a autenticação."
+        else:
+            message = "⚠️ Sessão pode estar inválida. Recomenda-se renovar."
+
+        return {
+            "exists": True,
+            "valid": valid_session,
+            "cookies_count": cookies_count,
+            "expires_at": expires_at_iso,
+            "file_age_hours": file_age_hours,
+            "message": message,
+        }
+    except Exception as e:
+        return {
+            "exists": True,
+            "valid": False,
+            "cookies_count": 0,
+            "expires_at": None,
+            "file_age_hours": None,
+            "message": f"Erro ao verificar o arquivo: {e}",
+        }
+
+
 @app.get("/dashboard/chats-per-user")
 async def dashboard_chats_per_user(days: int = 30):
     """
