@@ -1424,7 +1424,8 @@ async def get_thread_messages(
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
-                    SELECT c.id, c.message, c.origem, c.created_at, c.feedback_thumb, c.feedback_text
+                    SELECT c.id, c.message, c.origem, c.created_at, c.feedback_thumb, c.feedback_text,
+                           ct.feedback_rating
                     FROM chat c
                     JOIN chat_thread ct ON ct.chat_id = c.id
                     WHERE ct.thread_id = %s
@@ -1445,6 +1446,7 @@ async def get_thread_messages(
                 "content": m["message"],
                 "feedback_thumb": m["feedback_thumb"],
                 "feedback_text": m["feedback_text"],
+                "feedback_rating": m["feedback_rating"],
             })
             
         return {"messages": formatted_messages}
