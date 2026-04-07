@@ -1065,19 +1065,36 @@ async def dashboard_chats_per_user(days: int = 30):
                         GROUP BY u.id, u.name, u.email
                     ),
                     user_feedbacks AS (
-                        SELECT c.user_id, AVG(ct.feedback_rating) as avg_rating
+                        SELECT c.user_id, AVG(ct.feedback_rating) as avg_rating,
+                               SUM(CASE WHEN c.feedback_thumb = 1 THEN 1 ELSE 0 END) as thumb_up,
+                               SUM(CASE WHEN c.feedback_thumb = -1 THEN 1 ELSE 0 END) as thumb_down
                         FROM chat_thread ct
                         JOIN chat c ON c.id = ct.chat_id
                         WHERE c.created_at >= NOW() - INTERVAL '%s days'
                         GROUP BY c.user_id
                     )
-                    SELECT t.name, t.email, t.total, ROUND(f.avg_rating, 1) as avg_rating
+                    SELECT t.name, t.email, t.total, ROUND(f.avg_rating, 1) as avg_rating, 
+                           f.thumb_up, f.thumb_down
                     FROM user_totals t
                     LEFT JOIN user_feedbacks f ON f.user_id = t.id
                     ORDER BY t.total DESC
                     LIMIT 10;
                 """, (days, days))
-                top_users = [{"name": r["name"] or r["email"], "email": r["email"], "total": r["total"], "avg_rating": float(r["avg_rating"]) if r["avg_rating"] is not None else None} for r in cur.fetchall()]
+                top_users = []
+                for r in cur.fetchall():
+                    up = r["thumb_up"] or 0
+                    down = r["thumb_down"] or 0
+                    total_thumbs = up + down
+                    thumb_avg = round((up / total_thumbs) * 100) if total_thumbs > 0 else None
+                    top_users.append({
+                        "name": r["name"] or r["email"], 
+                        "email": r["email"], 
+                        "total": r["total"], 
+                        "avg_rating": float(r["avg_rating"]) if r["avg_rating"] is not None else None,
+                        "thumb_avg": thumb_avg,
+                        "thumb_up": up,
+                        "thumb_down": down
+                    })
 
         # Build series per user (daily data)
         from collections import defaultdict as _dd
@@ -1191,17 +1208,34 @@ async def dashboard_feedback_per_agent(days: int = 30):
                 cur.execute("""
                     SELECT a.title as name, 
                            ROUND(AVG(ct.feedback_rating), 1) as avg_rating, 
-                           COUNT(ct.feedback_rating) as total_ratings
+                           COUNT(ct.feedback_rating) as total_ratings,
+                           SUM(CASE WHEN c.feedback_thumb = 1 THEN 1 ELSE 0 END) as thumb_up,
+                           SUM(CASE WHEN c.feedback_thumb = -1 THEN 1 ELSE 0 END) as thumb_down
                     FROM chat_thread ct
                     JOIN chat c ON c.id = ct.chat_id
                     JOIN agent a ON a.id = c.agent_id
-                    WHERE ct.feedback_rating IS NOT NULL
+                    WHERE (ct.feedback_rating IS NOT NULL OR c.feedback_thumb IS NOT NULL)
                       AND c.created_at >= NOW() - INTERVAL '%s days'
                       AND a.active = TRUE
                     GROUP BY a.title
                     ORDER BY avg_rating DESC, total_ratings DESC;
                 """, (days,))
-                feedbacks = cur.fetchall()
+                feedbacks_raw = cur.fetchall()
+                
+                feedbacks = []
+                for r in feedbacks_raw:
+                    up = r["thumb_up"] or 0
+                    down = r["thumb_down"] or 0
+                    total = up + down
+                    thumb_avg = round((up / total) * 100) if total > 0 else None
+                    feedbacks.append({
+                        "name": r["name"],
+                        "avg_rating": float(r["avg_rating"]) if r["avg_rating"] is not None else None,
+                        "total_ratings": r["total_ratings"],
+                        "thumb_avg": thumb_avg,
+                        "thumb_up": up,
+                        "thumb_down": down
+                    })
 
         categories = [r["name"] for r in feedbacks]
         series = [{
