@@ -37,7 +37,7 @@ OPENAI_API_KEY         = os.environ.get("OPENAI_API_KEY", "")
 BACKEND_API_KEY        = os.environ.get("BACKEND_API_KEY", "")
 
 HISTORY_LIMIT      = 10   # últimas N mensagens enviadas ao OpenAI (5 turnos)
-NOTEBOOKLM_TIMEOUT = 60
+NOTEBOOKLM_TIMEOUT = 240
 
 # ---------------------------------------------------------------------------
 # PostgreSQL — conexão e helpers
