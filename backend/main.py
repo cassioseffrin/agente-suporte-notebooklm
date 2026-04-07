@@ -141,6 +141,13 @@ def ensure_tables():
                     ) THEN
                         ALTER TABLE chat ADD COLUMN origem VARCHAR(10) DEFAULT 'sistema';
                     END IF;
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'chat' AND column_name = 'feedback_thumb'
+                    ) THEN
+                        ALTER TABLE chat ADD COLUMN feedback_thumb INT;
+                        ALTER TABLE chat ADD COLUMN feedback_text TEXT;
+                    END IF;
                     -- Remover feedback_rating de chat se existir (migrou para chat_thread)
                     IF EXISTS (
                         SELECT 1 FROM information_schema.columns
@@ -609,11 +616,10 @@ async def update_notebooks():
     # --- 3. Upsert no Postgres ---
     upsert_sql = """
         INSERT INTO agent (id, title, name, creation, modification, active)
-        VALUES (%(id)s, %(title)s, %(name)s, %(creation)s, %(modification)s, TRUE)
+        VALUES (%(id)s, %(title)s, %(name)s, %(creation)s, %(modification)s, FALSE)
         ON CONFLICT (id) DO UPDATE
             SET title        = EXCLUDED.title,
-                modification = EXCLUDED.modification,
-                active       = TRUE
+                modification = EXCLUDED.modification
         RETURNING (xmax = 0) AS inserted;
     """
 
@@ -751,6 +757,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     sessions[thread_id].append({"role": "assistant", "content": assistant_text})
 
     # 5b. Persiste no banco as duas mensagens desta interação
+    assistant_chat_id = None
     try:
         conn_hist = get_db_connection()
         with conn_hist:
@@ -772,6 +779,8 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
                             RETURNING id;
                         """, (uid, aid, msg_text, msg_origem))
                         chat_id = cur.fetchone()[0]
+                        if msg_origem == 'agente':
+                            assistant_chat_id = chat_id
                         cur.execute("""
                             INSERT INTO chat_thread (thread_id, chat_id)
                             VALUES (%s, %s);
@@ -789,8 +798,38 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     # 6. Retorna no formato que o Flutter já espera
     return {
         "content": [assistant_text],
-        "images":  []
+        "images":  [],
+        "chat_id": assistant_chat_id
     }
+
+class MessageFeedbackRequest(BaseModel):
+    thumb: int  # 1 ou -1
+    text: Optional[str] = None
+
+@app.put("/chat/{chat_id}/feedback")
+async def update_message_feedback(chat_id: int, request: MessageFeedbackRequest, authorization: str = Header(None)):
+    """Atualiza o feedback da mensagem."""
+    verify_api_key(authorization)
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE chat SET feedback_thumb = %s, feedback_text = %s WHERE id = %s RETURNING id;
+                """, (request.thumb, request.text, chat_id))
+                row = cur.fetchone()
+                if not row:
+                    raise HTTPException(status_code=404, detail="Chat não encontrado")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Erro ao atualizar feedback de mensagem: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao atualizar feedback")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+    return {"status": "ok", "chat_id": chat_id, "thumb": request.thumb}
 
 
 @app.get("/health")
@@ -1351,7 +1390,7 @@ async def get_thread_messages(
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
-                    SELECT c.id, c.message, c.origem, c.created_at
+                    SELECT c.id, c.message, c.origem, c.created_at, c.feedback_thumb, c.feedback_text
                     FROM chat c
                     JOIN chat_thread ct ON ct.chat_id = c.id
                     WHERE ct.thread_id = %s
@@ -1367,8 +1406,11 @@ async def get_thread_messages(
                 continue
             role = "user" if m["origem"] == "usuario" else "assistant"
             formatted_messages.append({
+                "id": m["id"],
                 "role": role,
-                "content": m["message"]
+                "content": m["message"],
+                "feedback_thumb": m["feedback_thumb"],
+                "feedback_text": m["feedback_text"],
             })
             
         return {"messages": formatted_messages}
