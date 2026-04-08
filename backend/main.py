@@ -1033,7 +1033,7 @@ async def auth_status():
 
 
 @app.get("/dashboard/chats-per-user")
-async def dashboard_chats_per_user(days: int = 30):
+async def dashboard_chats_per_user(days: int = 30, limit: int = 10):
     """
     Retorna o número de chats por usuário nos últimos N dias (padrão 30).
     Top 10 usuários com mais chats. Agrupa por usuário e por dia.
@@ -1080,8 +1080,8 @@ async def dashboard_chats_per_user(days: int = 30):
                     FROM user_totals t
                     LEFT JOIN user_feedbacks f ON f.user_id = t.id
                     ORDER BY t.total DESC
-                    LIMIT 10;
-                """, (days, days))
+                    LIMIT %s;
+                """, (days, days, limit))
                 top_users = []
                 for r in cur.fetchall():
                     up = r["thumb_up"] or 0
