@@ -1049,6 +1049,7 @@ async def dashboard_chats_per_user(days: int = 30):
                     JOIN "user" u ON u.id = c.user_id
                     WHERE c.origem = 'usuario'
                       AND c.created_at >= NOW() - INTERVAL '%s days'
+                      AND u.email NOT IN ('admin@test.com')
                     GROUP BY u.name, u.email, DATE(c.created_at)
                     ORDER BY day ASC, total DESC;
                 """, (days,))
@@ -1062,6 +1063,7 @@ async def dashboard_chats_per_user(days: int = 30):
                         JOIN "user" u ON u.id = c.user_id
                         WHERE c.origem = 'usuario'
                           AND c.created_at >= NOW() - INTERVAL '%s days'
+                          AND u.email NOT IN ('admin@test.com')
                         GROUP BY u.id, u.name, u.email
                     ),
                     user_feedbacks AS (
@@ -1145,8 +1147,10 @@ async def dashboard_chats_per_agent(days: int = 30):
                     SELECT a.title as name, DATE(c.created_at) as day, COUNT(*) as total
                     FROM chat c
                     JOIN agent a ON a.id = c.agent_id
+                    JOIN "user" u ON u.id = c.user_id
                     WHERE c.origem = 'usuario'
                       AND c.created_at >= NOW() - INTERVAL '%s days'
+                      AND u.email NOT IN ('admin@test.com')
                     GROUP BY a.title, DATE(c.created_at)
                     ORDER BY day ASC;
                 """, (days,))
@@ -1156,8 +1160,10 @@ async def dashboard_chats_per_agent(days: int = 30):
                     SELECT a.title as name, COUNT(*) as total
                     FROM chat c
                     JOIN agent a ON a.id = c.agent_id
+                    JOIN "user" u ON u.id = c.user_id
                     WHERE c.origem = 'usuario'
                       AND c.created_at >= NOW() - INTERVAL '%s days'
+                      AND u.email NOT IN ('admin@test.com')
                     GROUP BY a.title
                     ORDER BY total DESC;
                 """, (days,))
@@ -1214,9 +1220,11 @@ async def dashboard_feedback_per_agent(days: int = 30):
                     FROM chat_thread ct
                     JOIN chat c ON c.id = ct.chat_id
                     JOIN agent a ON a.id = c.agent_id
+                    JOIN "user" u ON u.id = c.user_id
                     WHERE (ct.feedback_rating IS NOT NULL OR c.feedback_thumb IS NOT NULL)
                       AND c.created_at >= NOW() - INTERVAL '%s days'
                       AND a.active = TRUE
+                      AND u.email NOT IN ('admin@test.com')
                     GROUP BY a.title
                     ORDER BY avg_rating DESC, total_ratings DESC;
                 """, (days,))
