@@ -1240,7 +1240,7 @@ async def dashboard_feedback_per_agent(days: int = 30):
         categories = [r["name"] for r in feedbacks]
         series = [{
             "name": "Média de Estrelas",
-            "data": [float(r["avg_rating"]) for r in feedbacks]
+            "data": [float(r["avg_rating"]) if r["avg_rating"] is not None else None for r in feedbacks]
         }]
         
         return {
