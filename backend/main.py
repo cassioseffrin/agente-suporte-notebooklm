@@ -25,8 +25,9 @@ from dotenv import load_dotenv  # Carregar variáveis do .env
 load_dotenv()
 
 from openai import AsyncOpenAI
-from fastapi import FastAPI, HTTPException, Header, UploadFile, File
+from fastapi import FastAPI, HTTPException, Header, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 # ---------------------------------------------------------------------------
@@ -801,6 +802,166 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         "images":  [],
         "chat_id": assistant_chat_id
     }
+
+
+# ---------------------------------------------------------------------------
+# POST /chat/stream — SSE streaming version for the dashboard
+# ---------------------------------------------------------------------------
+
+@app.post("/chat/stream")
+async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
+    """
+    SSE streaming version of /chat.
+    Emits events: status, token, done, fallback, error.
+    Falls back to raw NotebookLM response if OpenAI generation fails.
+    """
+    verify_api_key(authorization)
+
+    thread_id      = request.threadId
+    user_message   = request.message.strip()
+    assistant_name = request.assistantName or "SMART"
+
+    if not user_message:
+        raise HTTPException(status_code=400, detail="Mensagem vazia")
+
+    agent_info = get_agent_info_by_name(assistant_name)
+    if not agent_info:
+        raise HTTPException(status_code=404, detail=f"Agent '{assistant_name}' não encontrado.")
+
+    agent_notebook_id    = agent_info["id"]
+    agent_system_prompt  = agent_info.get("system_prompt", "Você é um assistente útil.")
+
+    if thread_id not in sessions:
+        sessions[thread_id] = []
+
+    is_first_message = len(sessions[thread_id]) == 0
+
+    def _sse(event: str, data: dict) -> str:
+        """Format a single SSE event."""
+        payload = json.dumps(data, ensure_ascii=False)
+        return f"event: {event}\ndata: {payload}\n\n"
+
+    async def event_generator():
+        nonlocal is_first_message
+
+        # --- Etapa 1: Query Rewriting ---
+        yield _sse("status", {"stage": "rewriting", "detail": "Reescrevendo consulta..."})
+        search_query = await rewrite_query_with_context(thread_id, user_message)
+
+        print(f"\n{'='*50}")
+        print(f"[STREAM] Thread: {thread_id}")
+        print(f"[STREAM] Assistant: {assistant_name}")
+        print(f"[STREAM] Original : {user_message!r}")
+        print(f"[STREAM] Rewritten: {search_query!r}")
+
+        # --- Etapa 2: NotebookLM RAG ---
+        yield _sse("status", {"stage": "searching", "detail": "Buscando nos manuais..."})
+        notebooklm_context = await query_notebooklm(search_query, agent_notebook_id)
+
+        context_preview = notebooklm_context[:200].replace('\n', ' ') + "..." if notebooklm_context else "VAZIO"
+        print(f"[STREAM] Contexto : {context_preview}")
+        print(f"{'='*50}\n")
+
+        has_notebooklm_context = bool(notebooklm_context and notebooklm_context.strip())
+
+        # --- Etapa 3: OpenAI generation (with streaming) ---
+        yield _sse("status", {"stage": "generating", "detail": "Gerando resposta com IA..."})
+
+        messages = build_messages(thread_id, user_message, notebooklm_context)
+        full_messages = [{"role": "system", "content": agent_system_prompt or "Você é um assistente útil."}] + messages
+
+        assistant_text = ""
+        openai_ok = False
+
+        try:
+            stream = await openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                max_tokens=10240,
+                messages=full_messages,
+                timeout=120.0,
+                stream=True,
+            )
+
+            async for chunk in stream:
+                delta = chunk.choices[0].delta if chunk.choices else None
+                if delta and delta.content:
+                    token_text = delta.content
+                    assistant_text += token_text
+                    yield _sse("token", {"text": token_text})
+
+            openai_ok = True
+
+        except Exception as e:
+            print(f"[STREAM openai] erro: {e}")
+            # If OpenAI fails but we have NotebookLM context, use it as fallback
+            if has_notebooklm_context:
+                assistant_text = notebooklm_context
+                yield _sse("fallback", {
+                    "content": notebooklm_context,
+                    "reason": "Não foi possível refinar a resposta com IA. Exibindo resposta direta dos manuais."
+                })
+            else:
+                yield _sse("error", {"detail": "Erro ao gerar resposta. Tente novamente."})
+                return
+
+        # --- Etapa 4: Persistence ---
+        yield _sse("status", {"stage": "saving", "detail": "Salvando..."})
+
+        sessions[thread_id].append({"role": "user",      "content": user_message})
+        sessions[thread_id].append({"role": "assistant", "content": assistant_text})
+
+        assistant_chat_id = None
+        try:
+            conn_hist = get_db_connection()
+            with conn_hist:
+                with conn_hist.cursor() as cur:
+                    cur.execute("""
+                        SELECT c.user_id, c.agent_id FROM chat c
+                        JOIN chat_thread ct ON ct.chat_id = c.id
+                        WHERE ct.thread_id = %s
+                        LIMIT 1;
+                    """, (thread_id,))
+                    row = cur.fetchone()
+                    if row:
+                        uid, aid = row
+                        for msg_text, msg_origem in [(user_message, 'usuario'), (assistant_text, 'agente')]:
+                            cur.execute("""
+                                INSERT INTO chat (user_id, agent_id, message, origem)
+                                VALUES (%s, %s, %s, %s)
+                                RETURNING id;
+                            """, (uid, aid, msg_text, msg_origem))
+                            chat_id = cur.fetchone()[0]
+                            if msg_origem == 'agente':
+                                assistant_chat_id = chat_id
+                            cur.execute("""
+                                INSERT INTO chat_thread (thread_id, chat_id)
+                                VALUES (%s, %s);
+                            """, (thread_id, chat_id))
+        except Exception as e:
+            print(f"[STREAM] Erro ao persistir mensagens: {e}")
+        finally:
+            if 'conn_hist' in locals() and conn_hist:
+                conn_hist.close()
+
+        if is_first_message:
+            asyncio.create_task(generate_and_update_subject(thread_id, user_message, assistant_text))
+
+        # --- Final done event ---
+        yield _sse("done", {
+            "chat_id": assistant_chat_id,
+            "content": assistant_text,
+            "was_fallback": not openai_ok,
+        })
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # crucial for nginx to not buffer SSE
+        },
+    )
 
 class MessageFeedbackRequest(BaseModel):
     thumb: int  # 1 ou -1
