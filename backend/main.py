@@ -805,6 +805,11 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         if 'conn_hist' in locals() and conn_hist:
             conn_hist.close()
 
+    # 5b2. Notificar auditores sobre novas mensagens
+    if assistant_chat_id:
+        _notify_auditor_new_message(thread_id, 0, user_message, 'usuario')
+        _notify_auditor_new_message(thread_id, assistant_chat_id, assistant_text, 'agente')
+
     # 5c. Atualiza subject automaticamente caso seja a primeira mensagem
     if is_first_message:
         asyncio.create_task(generate_and_update_subject(thread_id, user_message, assistant_text))
@@ -955,6 +960,11 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
         finally:
             if 'conn_hist' in locals() and conn_hist:
                 conn_hist.close()
+
+        # Notificar auditores sobre novas mensagens
+        if assistant_chat_id:
+            _notify_auditor_new_message(thread_id, 0, user_message, 'usuario')
+            _notify_auditor_new_message(thread_id, assistant_chat_id, assistant_text, 'agente')
 
         if is_first_message:
             asyncio.create_task(generate_and_update_subject(thread_id, user_message, assistant_text))
@@ -1799,6 +1809,22 @@ def _is_user_online(thread_id: str) -> bool:
     if last_hb is None:
         return False
     return (_time.time() - last_hb) < PRESENCE_TIMEOUT
+
+
+def _notify_auditor_new_message(thread_id: str, chat_id: int, message: str, origem: str):
+    """Notifica auditores conectados sobre nova mensagem na thread."""
+    event = {
+        "type": "new_message",
+        "thread_id": thread_id,
+        "chat_id": chat_id,
+        "message": message,
+        "role": "user" if origem == "usuario" else "assistant" if origem == "agente" else "auditor",
+    }
+    for q in auditor_queues.get(thread_id, []):
+        try:
+            q.put_nowait(event)
+        except asyncio.QueueFull:
+            pass
 
 
 @app.put("/thread/{thread_id}/heartbeat")
