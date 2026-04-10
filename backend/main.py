@@ -1676,6 +1676,99 @@ async def delete_thread(
 
 
 # ---------------------------------------------------------------------------
+# Admin — Auditoria de conversas (todas as threads de todos os usuários)
+# ---------------------------------------------------------------------------
+
+@app.get("/admin/threads")
+async def admin_list_threads(
+    page: int = 1,
+    limit: int = 20,
+    search: str = "",
+    authorization: str = Header(None),
+):
+    """
+    Retorna lista paginada de TODAS as threads (admin audit).
+    Suporta busca por subject, email ou thread_id.
+    """
+    verify_api_key(authorization)
+    offset = (page - 1) * limit
+
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                search_clause = ""
+                params: list = []
+
+                if search.strip():
+                    search_clause = """
+                        AND (
+                            t.subject ILIKE %s
+                            OR u.email ILIKE %s
+                            OR u.name ILIKE %s
+                            OR t.id::text ILIKE %s
+                        )
+                    """
+                    like = f"%{search.strip()}%"
+                    params = [like, like, like, like]
+
+                # Main query — threads with aggregated info
+                query = f"""
+                    SELECT t.id           AS thread_id,
+                           t.subject,
+                           a.name         AS agent_name,
+                           a.title        AS agent_title,
+                           u.name         AS user_name,
+                           u.email        AS user_email,
+                           MIN(c.created_at) AS created_at,
+                           COUNT(DISTINCT c.id) FILTER (WHERE c.message NOT LIKE 'Thread iniciada:%%') AS message_count,
+                           MAX(ct.feedback_rating) AS feedback_rating
+                    FROM thread t
+                    JOIN chat_thread ct ON ct.thread_id = t.id
+                    JOIN chat c         ON ct.chat_id   = c.id
+                    JOIN agent a        ON c.agent_id   = a.id
+                    JOIN "user" u       ON c.user_id    = u.id
+                    WHERE 1=1
+                    {search_clause}
+                    GROUP BY t.id, t.subject, a.name, a.title, u.name, u.email
+                    ORDER BY created_at DESC
+                    LIMIT %s OFFSET %s;
+                """
+                cur.execute(query, params + [limit, offset])
+                threads = cur.fetchall()
+
+                # Total count for pagination
+                count_query = f"""
+                    SELECT COUNT(DISTINCT t.id) AS total
+                    FROM thread t
+                    JOIN chat_thread ct ON ct.thread_id = t.id
+                    JOIN chat c         ON ct.chat_id   = c.id
+                    JOIN agent a        ON c.agent_id   = a.id
+                    JOIN "user" u       ON c.user_id    = u.id
+                    WHERE 1=1
+                    {search_clause};
+                """
+                cur.execute(count_query, params)
+                total = cur.fetchone()["total"]
+
+        return {
+            "threads": threads,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "pages": (total + limit - 1) // limit if limit else 1,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[admin/threads] Erro: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao buscar threads para auditoria.")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+
+# ---------------------------------------------------------------------------
 # Limpeza de sessões ociosas (> 2h)
 # ---------------------------------------------------------------------------
 
