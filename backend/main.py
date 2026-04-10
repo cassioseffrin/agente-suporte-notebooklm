@@ -733,6 +733,9 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         
     is_first_message = len(sessions[thread_id]) == 0
 
+    # Notifica o auditor assim que a mensagem chega (antes da IA pensar)
+    _notify_auditor_new_message(thread_id, 0, user_message, 'usuario')
+
     # 1. Query Rewriting — expande perguntas vagas usando histórico da thread
     search_query = await rewrite_query_with_context(thread_id, user_message)
 
@@ -805,9 +808,8 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         if 'conn_hist' in locals() and conn_hist:
             conn_hist.close()
 
-    # 5b2. Notificar auditores sobre novas mensagens
+    # 5b2. Notificar auditores sobre a resposta da IA
     if assistant_chat_id:
-        _notify_auditor_new_message(thread_id, 0, user_message, 'usuario')
         _notify_auditor_new_message(thread_id, assistant_chat_id, assistant_text, 'agente')
 
     # 5c. Atualiza subject automaticamente caso seja a primeira mensagem
@@ -853,6 +855,9 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
         sessions[thread_id] = []
 
     is_first_message = len(sessions[thread_id]) == 0
+
+    # Notifica o auditor assim que a mensagem chega (antes da IA pensar)
+    _notify_auditor_new_message(thread_id, 0, user_message, 'usuario')
 
     def _sse(event: str, data: dict) -> str:
         """Format a single SSE event."""
@@ -961,9 +966,8 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
             if 'conn_hist' in locals() and conn_hist:
                 conn_hist.close()
 
-        # Notificar auditores sobre novas mensagens
+        # Notificar auditores sobre a resposta da IA
         if assistant_chat_id:
-            _notify_auditor_new_message(thread_id, 0, user_message, 'usuario')
             _notify_auditor_new_message(thread_id, assistant_chat_id, assistant_text, 'agente')
 
         if is_first_message:
