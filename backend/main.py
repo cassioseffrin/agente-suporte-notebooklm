@@ -232,6 +232,16 @@ REGRAS OBRIGATÓRIAS:
 
 sessions: dict[str, list[dict[str, str]]] = defaultdict(list)
 
+# Presença: mapeia thread_id -> timestamp do último heartbeat do usuário
+user_presence: dict[str, float] = {}
+
+# SSE queues: mapeia thread_id -> lista de asyncio.Queue (cada auditor conectado recebe uma)
+# Usado para notificar auditores sobre presença e enviar eventos para o chat do usuário
+auditor_queues: dict[str, list[asyncio.Queue]] = defaultdict(list)
+user_queues: dict[str, list[asyncio.Queue]] = defaultdict(list)
+
+PRESENCE_TIMEOUT = 30  # segundos sem heartbeat = offline
+
 # ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
@@ -255,6 +265,9 @@ class ChatRequest(BaseModel):
     threadId: str
     message: str
     assistantName: Optional[str] = "SMART"
+
+class AuditorMessageRequest(BaseModel):
+    message: str
 
 class LoginRequest(BaseModel):
     login: str
@@ -1608,7 +1621,12 @@ async def get_thread_messages(
         for m in messages:
             if m["message"].startswith("Thread iniciada:"):
                 continue
-            role = "user" if m["origem"] == "usuario" else "assistant"
+            if m["origem"] == "usuario":
+                role = "user"
+            elif m["origem"] == "auditor":
+                role = "auditor"
+            else:
+                role = "assistant"
             formatted_messages.append({
                 "id": m["id"],
                 "role": role,
@@ -1766,6 +1784,258 @@ async def admin_list_threads(
     finally:
         if 'conn' in locals() and conn:
             conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Presença e mensagens do auditor (SSE real-time)
+# ---------------------------------------------------------------------------
+
+import time as _time
+
+
+def _is_user_online(thread_id: str) -> bool:
+    """Verifica se o usuário de uma thread está online (heartbeat recente)."""
+    last_hb = user_presence.get(thread_id)
+    if last_hb is None:
+        return False
+    return (_time.time() - last_hb) < PRESENCE_TIMEOUT
+
+
+@app.put("/thread/{thread_id}/heartbeat")
+async def user_heartbeat(thread_id: str):
+    """
+    Chamado periodicamente pelo chat do usuário para sinalizar que está online.
+    Notifica auditores conectados sobre mudança de presença.
+    """
+    was_online = _is_user_online(thread_id)
+    user_presence[thread_id] = _time.time()
+
+    # Se mudou de offline → online, notificar auditores
+    if not was_online:
+        event = {"type": "presence", "online": True, "thread_id": thread_id}
+        for q in auditor_queues.get(thread_id, []):
+            try:
+                q.put_nowait(event)
+            except asyncio.QueueFull:
+                pass
+
+    return {"status": "ok"}
+
+
+@app.get("/thread/{thread_id}/presence")
+async def thread_presence_sse(thread_id: str, request: Request):
+    """
+    SSE stream para o auditor monitorar presença do usuário em tempo real.
+    Emite eventos: presence (online/offline), auditor_message_sent (confirmação).
+    """
+    queue: asyncio.Queue = asyncio.Queue(maxsize=50)
+    auditor_queues[thread_id].append(queue)
+
+    def _sse(event: str, data: dict) -> str:
+        payload = json.dumps(data, ensure_ascii=False)
+        return f"event: {event}\ndata: {payload}\n\n"
+
+    async def event_stream():
+        try:
+            # Enviar estado inicial de presença
+            yield _sse("presence", {
+                "online": _is_user_online(thread_id),
+                "thread_id": thread_id
+            })
+
+            while True:
+                # Verificar se o request foi desconectado
+                if await request.is_disconnected():
+                    break
+
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=10.0)
+                    yield _sse(event["type"], event)
+                except asyncio.TimeoutError:
+                    # Enviar ping periódico + atualização de presença
+                    yield _sse("presence", {
+                        "online": _is_user_online(thread_id),
+                        "thread_id": thread_id
+                    })
+        finally:
+            # Limpar a queue do auditor quando desconectar
+            if queue in auditor_queues.get(thread_id, []):
+                auditor_queues[thread_id].remove(queue)
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@app.get("/thread/{thread_id}/user-events")
+async def thread_user_events_sse(thread_id: str, request: Request):
+    """
+    SSE stream para o chat do USUÁRIO receber mensagens do auditor em tempo real.
+    O chat do usuário se conecta aqui quando abre a conversa.
+    Emite eventos: auditor_message (mensagem do humano auditor).
+    """
+    queue: asyncio.Queue = asyncio.Queue(maxsize=50)
+    user_queues[thread_id].append(queue)
+
+    # Registrar presença automaticamente quando o SSE conecta
+    user_presence[thread_id] = _time.time()
+    # Notificar auditores que o usuário ficou online
+    for q in auditor_queues.get(thread_id, []):
+        try:
+            q.put_nowait({"type": "presence", "online": True, "thread_id": thread_id})
+        except asyncio.QueueFull:
+            pass
+
+    def _sse(event: str, data: dict) -> str:
+        payload = json.dumps(data, ensure_ascii=False)
+        return f"event: {event}\ndata: {payload}\n\n"
+
+    async def event_stream():
+        try:
+            yield _sse("connected", {"thread_id": thread_id})
+
+            while True:
+                if await request.is_disconnected():
+                    break
+
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=15.0)
+                    yield _sse(event["type"], event)
+                except asyncio.TimeoutError:
+                    # Ping para manter conexão viva + atualizar presença
+                    user_presence[thread_id] = _time.time()
+                    yield _sse("ping", {"ts": _time.time()})
+        finally:
+            # Limpar a queue do usuário
+            if queue in user_queues.get(thread_id, []):
+                user_queues[thread_id].remove(queue)
+            # Marcar como offline e notificar auditores
+            user_presence.pop(thread_id, None)
+            for q in auditor_queues.get(thread_id, []):
+                try:
+                    q.put_nowait({"type": "presence", "online": False, "thread_id": thread_id})
+                except asyncio.QueueFull:
+                    pass
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@app.post("/thread/{thread_id}/auditor-message")
+async def send_auditor_message(
+    thread_id: str,
+    request: AuditorMessageRequest,
+    authorization: str = Header(None),
+):
+    """
+    Permite ao auditor injetar uma mensagem em uma thread.
+    A mensagem é:
+    1. Persistida no banco (origem='auditor')
+    2. Enviada via SSE para o chat do usuário em tempo real
+    """
+    verify_api_key(authorization)
+
+    message_text = request.message.strip()
+    if not message_text:
+        raise HTTPException(status_code=400, detail="Mensagem vazia")
+
+    chat_id = None
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                # Buscar user_id e agent_id da thread
+                cur.execute("""
+                    SELECT c.user_id, c.agent_id FROM chat c
+                    JOIN chat_thread ct ON ct.chat_id = c.id
+                    WHERE ct.thread_id = %s
+                    LIMIT 1;
+                """, (thread_id,))
+                row = cur.fetchone()
+                if not row:
+                    raise HTTPException(status_code=404, detail="Thread não encontrada")
+
+                uid, aid = row
+
+                # Persistir mensagem do auditor
+                cur.execute("""
+                    INSERT INTO chat (user_id, agent_id, message, origem)
+                    VALUES (%s, %s, %s, 'auditor')
+                    RETURNING id;
+                """, (uid, aid, message_text))
+                chat_id = cur.fetchone()[0]
+
+                # Vincular à thread
+                cur.execute("""
+                    INSERT INTO chat_thread (thread_id, chat_id)
+                    VALUES (%s, %s);
+                """, (thread_id, chat_id))
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[auditor-message] Erro ao persistir: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao salvar mensagem")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+    # Enviar via SSE para o chat do usuário
+    event = {
+        "type": "auditor_message",
+        "chat_id": chat_id,
+        "message": message_text,
+        "thread_id": thread_id,
+    }
+    sent_count = 0
+    for q in user_queues.get(thread_id, []):
+        try:
+            q.put_nowait(event)
+            sent_count += 1
+        except asyncio.QueueFull:
+            pass
+
+    # Confirmar para o auditor
+    for q in auditor_queues.get(thread_id, []):
+        try:
+            q.put_nowait({
+                "type": "auditor_message_sent",
+                "chat_id": chat_id,
+                "message": message_text,
+                "delivered": sent_count > 0,
+            })
+        except asyncio.QueueFull:
+            pass
+
+    return {
+        "status": "ok",
+        "chat_id": chat_id,
+        "delivered_to_user": sent_count > 0,
+        "user_online": _is_user_online(thread_id),
+    }
+
+
+@app.get("/thread/{thread_id}/status")
+async def thread_status(thread_id: str, authorization: str = Header(None)):
+    """Retorna o status de presença do usuário em uma thread (polling simples)."""
+    verify_api_key(authorization)
+    return {
+        "thread_id": thread_id,
+        "user_online": _is_user_online(thread_id),
+        "last_heartbeat": user_presence.get(thread_id),
+    }
 
 
 # ---------------------------------------------------------------------------

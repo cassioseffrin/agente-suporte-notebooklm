@@ -3,7 +3,9 @@ sequenceDiagram
     autonumber
 
     actor U as Usuário
-    participant Chat as ChatIA.tsx<br/>(Next.js Dashboard)
+    actor A as Auditor
+    participant Chat as ChatIA.tsx<br/>(Dashboard)
+    participant Audit as ChatAuditList.tsx<br/>(Dashboard)
     participant Backend as Backend FastAPI<br/>(agentes-suporte-ia)
     participant DB as PostgreSQL
     participant NLM as NotebookLM CLI<br/>(subprocess)
@@ -29,12 +31,16 @@ sequenceDiagram
     end
 
     rect rgba(0, 100, 50, 0.4)
-        Note over U,OAI: FASE 2 — Criação da Thread (Sessão)
+        Note over U,OAI: FASE 2 — Criação da Thread e Conexão de Eventos
         Chat->>Backend: GET /createNewThread?agentName=...
         Backend->>Backend: Gera UUID (threadId) e inicializa sessão
         Backend->>DB: UPSERT user
         Backend->>DB: INSERT INTO thread e chat
         Backend-->>Chat: { threadId: "uuid-xxxx" }
+        
+        Chat->>Backend: GET /thread/{threadId}/user-events (Conecta no SSE)
+        Backend->>Backend: Atualiza status de presença para Online
+        Backend-->>Chat: event: connected
         Chat-->>U: Exibe mensagem de boas-vindas
     end
 
@@ -87,6 +93,22 @@ sequenceDiagram
         Backend-->>Chat: event: done { chat_id, content }
         Chat->>Chat: setIsTyping(false)
         Chat-->>U: Exibe resposta final com feedback
+    end
+
+    rect rgba(0, 80, 120, 0.4)
+        Note over A,U: FASE 4 — Auditoria e Intervenção do Suporte
+        A->>Audit: Acessa conversa em andamento
+        Audit->>Backend: GET /thread/{threadId}/presence (Conecta no SSE)
+        Backend-->>Audit: event: presence { online: true }
+        Audit-->>A: Mostra indicador verde "Online"
+        
+        A->>Audit: Digita e envia mensagem para o usuário
+        Audit->>Backend: POST /thread/{threadId}/auditor-message
+        Backend->>DB: Persiste chat com origem='auditor'
+        Backend-->>Chat: Pusheia mensagem por GET /user-events -- event: auditor_message
+        Backend-->>Audit: Retorna status OK
+        
+        Chat-->>U: Renderiza a mensagem do auditor em dourado com ícone humano
     end
 
     rect rgba(100, 0, 0, 0.4)
