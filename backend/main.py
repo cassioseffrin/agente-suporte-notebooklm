@@ -2145,24 +2145,25 @@ async def thread_status(thread_id: str, authorization: str = Header(None)):
 # ---------------------------------------------------------------------------
 
 FAQ_GENERATION_PROMPT = """
-Você é um especialista em criar FAQs claras e objetivas para suporte técnico.
+Você é um especialista em criar FAQs para suporte técnico.
 
-Sua tarefa é analisar a conversa abaixo entre um USUÁRIO, um ASSISTENTE (IA) e um AUDITOR (suporte humano).
+Sua tarefa é analisar a conversa abaixo entre um USUÁRIO, um ASSISTENTE (IA) e um AUDITOR (suporte humano que corrigiu a IA).
 
-REGRAS:
-1. Transforme a conversa em um ou mais pares de Pergunta e Resposta.
-2. A PERGUNTA deve ser baseada na dúvida original do usuário, reescrita de forma clara e genérica.
-3. A RESPOSTA deve priorizar as CORREÇÕES DO AUDITOR. Se o auditor corrigiu a IA, use a versão corrigida.
-4. Se não houve correção do auditor, use a resposta da IA.
-5. Respostas devem ser completas, objetivas e úteis para outros usuários com a mesma dúvida.
-6. Se a conversa cobre múltiplos tópicos distintos, gere múltiplos pares Pergunta/Resposta.
-7. NÃO inclua informações pessoais do usuário (nome, email, etc).
-8. A Resposta DEVE estar em uma NOVA LINHA abaixo da Pergunta.
-9. Separe cada par Pergunta/Resposta com DUAS linhas em branco.
-10. Retorne APENAS no formato abaixo, sem explicações adicionais:
+REGRAS CRÍTICAS:
+1. Gere FAQ APENAS com base nas CORREÇÕES DO AUDITOR. O auditor é a ÚNICA fonte de verdade.
+2. Se o AUDITOR corrigiu a IA, a RESPOSTA da FAQ deve ser baseada EXCLUSIVAMENTE no que o AUDITOR disse, IGNORANDO a resposta original da IA.
+3. A PERGUNTA deve ser a dúvida original do usuário, reescrita de forma clara e genérica.
+4. NÃO gere FAQ para tópicos onde o auditor NÃO interveio. Se a IA respondeu sozinha sem correção do auditor, IGNORE esse trecho.
+5. NÃO gere respostas genéricas como "consulte o suporte" ou "entre em contato". Se a única informação é essa, NÃO inclua na FAQ.
+6. Respostas devem ser OBJETIVAS, DIRETAS e com conteúdo ÚTIL e ACIONÁVEL.
+7. Se a conversa cobre múltiplos tópicos corrigidos pelo auditor, gere múltiplos pares Pergunta/Resposta.
+8. NÃO inclua informações pessoais do usuário (nome, email, etc).
+9. Se o auditor apenas confirmou a resposta da IA sem adicionar informação nova, use a resposta combinada.
+
+FORMATO OBRIGATÓRIO (Resposta SEMPRE em nova linha, 2 linhas em branco entre pares):
 
 Pergunta: [pergunta clara e genérica]
-Resposta: [resposta completa e corrigida]
+Resposta: [resposta baseada EXCLUSIVAMENTE na correção do auditor]
 
 
 Pergunta: [outra pergunta, se aplicável]
@@ -2521,6 +2522,39 @@ async def get_faq_status(
     except Exception as e:
         print(f"[faq-status] Erro: {e}")
         raise HTTPException(status_code=500, detail="Erro ao buscar status")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+
+@app.post("/agent/{agent_id}/reset-faq")
+async def reset_agent_faq(
+    agent_id: str,
+    authorization: str = Header(None),
+):
+    """Limpa a FAQ acumulada de um agente e reseta o flag faq_added em todas as threads."""
+    verify_api_key(authorization)
+
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                # Limpar faq_content do agente
+                cur.execute("UPDATE agent SET faq_content = '' WHERE id = %s;", (agent_id,))
+                # Resetar faq_added em todas as threads deste agente
+                cur.execute("""
+                    UPDATE thread SET faq_added = FALSE
+                    WHERE id IN (
+                        SELECT DISTINCT ct.thread_id
+                        FROM chat_thread ct
+                        JOIN chat c ON ct.chat_id = c.id
+                        WHERE c.agent_id = %s
+                    );
+                """, (agent_id,))
+        return {"status": "ok", "agent_id": agent_id, "message": "FAQ resetada com sucesso"}
+    except Exception as e:
+        print(f"[reset-faq] Erro: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao resetar FAQ: {e}")
     finally:
         if 'conn' in locals() and conn:
             conn.close()
