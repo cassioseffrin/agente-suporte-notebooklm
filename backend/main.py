@@ -2159,6 +2159,12 @@ REGRAS CRÍTICAS:
 7. Se a conversa cobre múltiplos tópicos corrigidos pelo auditor, gere múltiplos pares Pergunta/Resposta.
 8. NÃO inclua informações pessoais do usuário (nome, email, etc).
 9. Se o auditor apenas confirmou a resposta da IA sem adicionar informação nova, use a resposta combinada.
+10. NÃO gere perguntas META sobre o próprio suporte ou processos internos. Exemplos de perguntas IRRELEVANTES que devem ser IGNORADAS:
+    - "A documentação está sendo atualizada?"
+    - "O suporte vai melhorar?"
+    - "A IA vai ser corrigida?"
+    - "Vocês estão revisando a documentação?"
+    Foque APENAS em perguntas técnicas sobre o PRODUTO/SISTEMA que ajudem outros usuários.
 
 FORMATO OBRIGATÓRIO (Resposta SEMPRE em nova linha, 2 linhas em branco entre pares):
 
