@@ -2251,6 +2251,7 @@ async def _delete_faq_sources(notebook_id: str, faq_title: str):
                         "notebooklm", "source", "delete",
                         source_id,
                         "-n", notebook_id,
+                        "-y",  # Skip confirmation
                         stdout=asyncio.subprocess.PIPE,
                         stderr=asyncio.subprocess.PIPE,
                     )
