@@ -51,10 +51,3 @@ Faz sentido? Gostaria de evoluir e salvar essa injeção de verdade local també
 
 
 
-o nome do docs deve estar em 
-
-
-assistentesIA/FAQ-$agent-name
-
-
-ex agent-name = REFORMA_TRIBUTARIA

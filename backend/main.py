@@ -2409,37 +2409,42 @@ async def add_thread_to_faq(
 
     # Acumular FAQ no banco de dados (agent.faq_content)
     existing_faq = agent_row["faq_content"] or ""
-    if existing_faq.strip():
-        raw_full_faq = existing_faq.strip() + "\n\n" + faq_text
+
+    # Limpar títulos antigos acumulados
+    import re
+    existing_clean = re.sub(r'#?\s*FAQ\s*-?\s*Perguntas\s*Frequentes\s*', '', existing_faq).strip()
+
+    if existing_clean:
+        raw_full_faq = existing_clean + "\n\n" + faq_text
     else:
         raw_full_faq = faq_text
 
-    # Formatar tudo garantindo que Resposta e Pergunta estejam bem separadas
-    import re
-    # 1. Colocar 'Resposta:' em nova linha, se colar com algo
-    formatted_faq = re.sub(r'(?i)\s+Resposta:', '\nResposta:', raw_full_faq)
-    # 2. Colocar 'Pergunta:' em nova linha, se colar com algo
-    formatted_faq = re.sub(r'(?i)\s+Pergunta:', '\n\nPergunta:', formatted_faq)
-    # 3. Remover espaços extras no começo/fim das linhas
-    lines = [line.strip() for line in formatted_faq.split('\n')]
-    
-    # 4. Reconstruir garantindo 2 linhas em branco entre os blocos (Pergunta -> Resposta)
-    clean_lines = []
-    for line in lines:
-        if not line:
-            continue
-        if line.lower().startswith("pergunta:"):
-            if clean_lines: # Adicionar espaçamento duplo antes de nova pergunta
-                clean_lines.append("")
-                clean_lines.append("")
-            clean_lines.append(line)
-        elif line.lower().startswith("resposta:"):
-            clean_lines.append(line)
-        else:
-            # Caso seja texto adicional da resposta
-            clean_lines.append(line)
+    # --- Pós-processamento: garantir formatação correta ---
+    # Inserir quebra de linha ANTES de cada "Resposta:" que esteja colado no texto
+    formatted = re.sub(r'(?<!\n)\s*Resposta:', '\nResposta:', raw_full_faq)
+    # Inserir quebra de linha ANTES de cada "Pergunta:" que esteja colado no texto
+    formatted = re.sub(r'(?<!\n)\s*Pergunta:', '\n\nPergunta:', formatted)
 
-    full_faq = "# FAQ - Perguntas Frequentes\n\n" + "\n".join(clean_lines)
+    # Reconstruir linha a linha com espaçamento correto
+    clean_lines = []
+    for line in formatted.split('\n'):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        # Ignorar qualquer linha de título residual
+        if re.match(r'^#?\s*FAQ', stripped, re.IGNORECASE):
+            continue
+        if stripped.lower().startswith("pergunta:"):
+            if clean_lines:  # 2 linhas em branco antes de nova pergunta
+                clean_lines.append("")
+                clean_lines.append("")
+            clean_lines.append(stripped)
+        elif stripped.lower().startswith("resposta:"):
+            clean_lines.append(stripped)  # Resposta na linha seguinte
+        else:
+            clean_lines.append(stripped)
+
+    full_faq = "\n".join(clean_lines)
 
     # Salvar FAQ acumulada no banco
     try:
