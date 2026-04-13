@@ -2436,8 +2436,9 @@ async def add_thread_to_faq(
         if re.match(r'^#?\s*FAQ', stripped, re.IGNORECASE):
             continue
         if stripped.lower().startswith("pergunta:"):
-            if clean_lines:  # 2 linhas em branco antes de nova pergunta
+            if clean_lines:  # Separador visual entre pares de FAQ
                 clean_lines.append("")
+                clean_lines.append("---")
                 clean_lines.append("")
             clean_lines.append(stripped)
         elif stripped.lower().startswith("resposta:"):
