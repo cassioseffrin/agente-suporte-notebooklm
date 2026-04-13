@@ -224,7 +224,8 @@ REGRAS OBRIGATÓRIAS:
 2. Se a pergunta já for clara e autocontida, retorne-a exatamente como está.
 3. A pergunta reescrita deve ser em português do Brasil.
 4. Jamais invente informações — use somente o que está no histórico fornecido.
-5. A pergunta deve ser objetiva e adequada para busca em manuais técnicos."""
+5. A pergunta deve ser objetiva e adequada para busca em manuais técnicos.
+6. Se houver uma [CORREÇÃO DO SUPORTE HUMANO] no histórico, incorpore essa correção como fato verdadeiro na reescrita da consulta."""
 
 # ---------------------------------------------------------------------------
 # Estado em memória
@@ -367,23 +368,45 @@ async def rewrite_query_with_context(thread_id: str, user_message: str) -> str:
 def build_messages(thread_id: str, user_message: str, notebooklm_context: str) -> list[dict]:
     history = sessions[thread_id][-HISTORY_LIMIT:]
 
+    # Extrair correções do auditor do histórico para injetar como contexto prioritário
+    auditor_corrections = [
+        msg['content'] for msg in history
+        if msg.get('role') == 'system' and '[CORREÇÃO DO SUPORTE HUMANO]' in msg.get('content', '')
+    ]
+
+    auditor_block = ""
+    if auditor_corrections:
+        auditor_block = (
+            "\n\n[CORREÇÕES DO SUPORTE HUMANO — VERDADE ABSOLUTA]\n"
+            + "\n".join(auditor_corrections)
+            + "\n[FIM DAS CORREÇÕES]\n\n"
+            "REGRA CRÍTICA: As correções acima foram feitas por um especialista humano e "
+            "DEVEM ser tratadas como verdade absoluta. Se houver conflito entre o contexto "
+            "dos manuais e as correções do suporte humano, PRIORIZE as correções do suporte.\n"
+        )
+
     if notebooklm_context:
         user_content = (
             f"[CONTEXTO DOS MANUAIS]\n"
-            f"---\n{notebooklm_context}\n---\n\n"
-            f"Com base APENAS no contexto acima, responda a seguinte pergunta do cliente:\n"
+            f"---\n{notebooklm_context}\n---\n"
+            f"{auditor_block}"
+            f"Com base no contexto acima (e nas correções do suporte humano, se houver), responda a seguinte pergunta do cliente:\n"
             f"{user_message}"
         )
     else:
-        # Sem contexto: instrui explicitamente o modelo a não inventar
         user_content = (
             f"[CONTEXTO DOS MANUAIS]\n"
-            f"---\nNenhuma informação relevante foi encontrada nos manuais para esta consulta.\n---\n\n"
+            f"---\nNenhuma informação relevante foi encontrada nos manuais para esta consulta.\n---\n"
+            f"{auditor_block}"
             f"Pergunta do cliente: {user_message}\n\n"
             f"INSTRUÇÃO: Como não há contexto disponível nos manuais, informe ao usuário que não foi possível encontrar essa informação e sugira que ele consulte o suporte técnico."
         )
 
-    return history + [{"role": "user", "content": user_content}]
+    # Filtrar mensagens system do auditor do histórico enviado ao OpenAI
+    # (elas já foram injetadas como bloco de correção no user_content)
+    filtered_history = [msg for msg in history if msg.get('role') != 'system']
+
+    return filtered_history + [{"role": "user", "content": user_content}]
 
 
 # ---------------------------------------------------------------------------
@@ -2048,6 +2071,18 @@ async def send_auditor_message(
             })
         except asyncio.QueueFull:
             pass
+
+    # --- INJETAR NO CONTEXTO DA CONVERSA ---
+    # A mensagem do auditor é adicionada ao histórico em memória como uma
+    # instrução do tipo 'system' com prefixo especial. Isso faz com que o
+    # query_rewrite e o build_messages considerem a correção do auditor
+    # como fonte de verdade nas próximas interações da conversa.
+    if thread_id in sessions:
+        sessions[thread_id].append({
+            "role": "system",
+            "content": f"[CORREÇÃO DO SUPORTE HUMANO]: {message_text}"
+        })
+        print(f"[auditor] Correção injetada no contexto da thread {thread_id}: {message_text[:80]}...")
 
     return {
         "status": "ok",
