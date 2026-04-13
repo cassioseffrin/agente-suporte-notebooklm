@@ -19,6 +19,8 @@ Usuário pergunta outra coisa sobre o mesmo tema...
 
 
 
+DECISAO A SER TOMADA
+
   Da forma como implementamos agora (injetando no array sessions), essa "Injeção de Verdade" tem escopo local. Ela vai corrigir o rumo apenas daquela conversa (thread_id) específica enquanto ela durar.
 
 Se um novo usuário (ou o mesmo usuário em um novo chat amanhã) fizer exatamente a mesma pergunta:
@@ -45,3 +47,14 @@ Dessa forma, sempre que o NotebookLM buscar um trecho do manual antigo, o própr
 
 Faz sentido? Gostaria de evoluir e salvar essa injeção de verdade local também numa base global para corrigir futuras conversas?
 
+
+
+
+
+o nome do docs deve estar em 
+
+
+assistentesIA/FAQ-$agent-name
+
+
+ex agent-name = REFORMA_TRIBUTARIA

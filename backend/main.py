@@ -97,6 +97,12 @@ def ensure_tables():
                     ) THEN
                         ALTER TABLE agent ADD COLUMN active BOOLEAN DEFAULT TRUE;
                     END IF;
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'agent' AND column_name = 'faq_content'
+                    ) THEN
+                        ALTER TABLE agent ADD COLUMN faq_content TEXT DEFAULT '';
+                    END IF;
                 END $$;
                 """)
                 cur.execute("""
@@ -161,8 +167,21 @@ def ensure_tables():
                 cur.execute("""
                 CREATE TABLE IF NOT EXISTS thread (
                     id VARCHAR(36) PRIMARY KEY,
-                    subject TEXT
+                    subject TEXT,
+                    faq_added BOOLEAN DEFAULT FALSE
                 );
+                """)
+                # Adicionar coluna faq_added a thread caso já exista sem ela
+                cur.execute("""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'thread' AND column_name = 'faq_added'
+                    ) THEN
+                        ALTER TABLE thread ADD COLUMN faq_added BOOLEAN DEFAULT FALSE;
+                    END IF;
+                END $$;
                 """)
                 cur.execute("""
                 CREATE TABLE IF NOT EXISTS chat_thread (
@@ -2119,6 +2138,360 @@ async def thread_status(thread_id: str, authorization: str = Header(None)):
         "user_online": _is_user_online(thread_id),
         "last_heartbeat": user_presence.get(thread_id),
     }
+
+
+# ---------------------------------------------------------------------------
+# FAQ — Gerar FAQ a partir de chats auditados e adicionar ao NotebookLM
+# ---------------------------------------------------------------------------
+
+FAQ_GENERATION_PROMPT = """
+Você é um especialista em criar FAQs claras e objetivas para suporte técnico.
+
+Sua tarefa é analisar a conversa abaixo entre um USUÁRIO, um ASSISTENTE (IA) e um AUDITOR (suporte humano).
+
+REGRAS:
+1. Transforme a conversa em um ou mais pares de Pergunta e Resposta.
+2. A PERGUNTA deve ser baseada na dúvida original do usuário, reescrita de forma clara e genérica.
+3. A RESPOSTA deve priorizar as CORREÇÕES DO AUDITOR. Se o auditor corrigiu a IA, use a versão corrigida.
+4. Se não houve correção do auditor, use a resposta da IA.
+5. Respostas devem ser completas, objetivas e úteis para outros usuários com a mesma dúvida.
+6. Se a conversa cobre múltiplos tópicos distintos, gere múltiplos pares Pergunta/Resposta.
+7. NÃO inclua informações pessoais do usuário (nome, email, etc).
+8. A Resposta DEVE estar em uma NOVA LINHA abaixo da Pergunta.
+9. Separe cada par Pergunta/Resposta com DUAS linhas em branco.
+10. Retorne APENAS no formato abaixo, sem explicações adicionais:
+
+Pergunta: [pergunta clara e genérica]
+Resposta: [resposta completa e corrigida]
+
+
+Pergunta: [outra pergunta, se aplicável]
+Resposta: [resposta correspondente]
+"""
+
+
+async def _generate_faq_from_messages(messages_data: list[dict]) -> str:
+    """
+    Usa OpenAI para transformar mensagens de um chat em pares FAQ.
+    Prioriza correções do auditor sobre respostas da IA.
+    """
+    # Formatar conversa para o prompt
+    conversation_lines = []
+    for m in messages_data:
+        if m["role"] == "user":
+            conversation_lines.append(f"USUÁRIO: {m['content']}")
+        elif m["role"] == "assistant":
+            conversation_lines.append(f"ASSISTENTE (IA): {m['content']}")
+        elif m["role"] == "auditor":
+            conversation_lines.append(f"AUDITOR (CORREÇÃO HUMANA): {m['content']}")
+
+    conversation_text = "\n\n".join(conversation_lines)
+
+    try:
+        result = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            max_tokens=4096,
+            temperature=0.2,
+            timeout=120.0,
+            messages=[
+                {"role": "system", "content": FAQ_GENERATION_PROMPT},
+                {
+                    "role": "user",
+                    "content": f"[CONVERSA]\n{conversation_text}\n\n"
+                               f"Gere os pares Pergunta/Resposta para a FAQ:"
+                }
+            ]
+        )
+        return result.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"[faq] Erro ao gerar FAQ com OpenAI: {e}")
+        raise
+
+
+def _build_faq_source_title(agent_title: str) -> str:
+    """Gera o título padronizado da source FAQ: FAQ_NOME_DO_NOTEBOOK
+    Ex: agent_title='Sistema Control' -> 'FAQ_SISTEMA_CONTROL'
+    """
+    import re
+    # Remove caracteres especiais, substitui espaços por underscore, uppercase
+    clean = re.sub(r'[^a-zA-Z0-9\s]', '', agent_title)
+    clean = re.sub(r'\s+', '_', clean.strip()).upper()
+    return f"FAQ_{clean}"
+
+
+async def _delete_faq_sources(notebook_id: str, faq_title: str):
+    """
+    Deleta TODAS as sources cujo título contenha 'FAQ' ou 'faq' no notebook.
+    Isso garante limpeza de sources duplicados criados anteriormente.
+    """
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "notebooklm", "source", "list",
+            "-n", notebook_id,
+            "--json",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=60)
+        if proc.returncode != 0:
+            return
+
+        sources = json.loads(stdout.decode())
+        if isinstance(sources, dict):
+            sources = sources.get("sources", [])
+
+        for s in sources:
+            s_title = s.get("title", "")
+            source_id = s.get("id", "")
+            # Deletar qualquer source que tenha FAQ no título OU que seja o arquivo antigo faq_*.txt
+            if source_id and ("faq" in s_title.lower() or s_title == faq_title):
+                try:
+                    proc_del = await asyncio.create_subprocess_exec(
+                        "notebooklm", "source", "delete",
+                        source_id,
+                        "-n", notebook_id,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                    )
+                    await asyncio.wait_for(proc_del.communicate(), timeout=30)
+                    print(f"[faq] Source deletada: '{s_title}' ({source_id[:8]}...)")
+                except Exception as e:
+                    print(f"[faq] Erro ao deletar source {source_id[:8]}: {e}")
+    except Exception as e:
+        print(f"[faq] Erro ao listar/deletar sources: {e}")
+
+
+async def _add_faq_source_to_notebook(notebook_id: str, faq_title: str, full_faq_content: str) -> dict:
+    """
+    Deleta todas as sources FAQ antigas e adiciona UMA ÚNICA source com o conteúdo
+    completo da FAQ acumulada. O arquivo temporário recebe o nome do título para
+    que o NotebookLM mostre o nome correto.
+    """
+    import tempfile
+    from pathlib import Path as _Path
+
+    # 1. Deletar qualquer source FAQ existente
+    await _delete_faq_sources(notebook_id, faq_title)
+
+    # 2. Criar arquivo temporário com o NOME CORRETO (NotebookLM usa o filename como título)
+    tmp_dir = _Path(tempfile.gettempdir()) / "notebooklm_faq"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    faq_file = tmp_dir / f"{faq_title}.txt"
+    faq_file.write_text(full_faq_content, encoding="utf-8")
+
+    # 3. Adicionar source
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "notebooklm", "source", "add",
+            str(faq_file),
+            "-n", notebook_id,
+            "--json",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=120)
+
+        if proc.returncode == 0:
+            result = json.loads(stdout.decode()) if stdout else {}
+            print(f"[faq] Source '{faq_title}' adicionado ao notebook {notebook_id}")
+            return {"success": True, "result": result}
+        else:
+            err = stderr.decode()[:500]
+            print(f"[faq] Erro ao adicionar source: {err}")
+            return {"success": False, "error": err}
+    except asyncio.TimeoutError:
+        return {"success": False, "error": "Timeout ao adicionar source"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+    finally:
+        try:
+            faq_file.unlink(missing_ok=True)
+        except:
+            pass
+
+
+@app.post("/thread/{thread_id}/add-to-faq")
+async def add_thread_to_faq(
+    thread_id: str,
+    authorization: str = Header(None),
+):
+    """
+    Gera FAQ a partir das mensagens de uma thread (priorizando correções do auditor)
+    e adiciona como source de texto no NotebookLM do agente correspondente.
+    O conteúdo FAQ é acumulado na coluna agent.faq_content e a source inteira
+    é recriada no NotebookLM a cada adição.
+    """
+    verify_api_key(authorization)
+
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Verificar se já foi adicionada à FAQ
+                cur.execute("SELECT faq_added FROM thread WHERE id = %s;", (thread_id,))
+                thread_row = cur.fetchone()
+                if not thread_row:
+                    raise HTTPException(status_code=404, detail="Thread não encontrada")
+                if thread_row["faq_added"]:
+                    raise HTTPException(status_code=409, detail="Esta thread já foi adicionada à FAQ")
+
+                # Buscar agente da thread
+                cur.execute("""
+                    SELECT DISTINCT a.id AS agent_id, a.name AS agent_name, a.title AS agent_title,
+                           COALESCE(a.faq_content, '') AS faq_content
+                    FROM chat c
+                    JOIN chat_thread ct ON ct.chat_id = c.id
+                    JOIN agent a ON c.agent_id = a.id
+                    WHERE ct.thread_id = %s
+                    LIMIT 1;
+                """, (thread_id,))
+                agent_row = cur.fetchone()
+                if not agent_row:
+                    raise HTTPException(status_code=404, detail="Agente não encontrado para esta thread")
+
+                # Verificar se tem interação do auditor
+                cur.execute("""
+                    SELECT EXISTS(
+                        SELECT 1 FROM chat c
+                        JOIN chat_thread ct ON ct.chat_id = c.id
+                        WHERE ct.thread_id = %s AND c.origem = 'auditor'
+                    ) AS has_auditor;
+                """, (thread_id,))
+                has_auditor = cur.fetchone()["has_auditor"]
+                if not has_auditor:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Esta thread não possui interação do auditor. Apenas threads com correções do auditor podem ser adicionadas à FAQ."
+                    )
+
+                # Buscar todas as mensagens
+                cur.execute("""
+                    SELECT c.message, c.origem
+                    FROM chat c
+                    JOIN chat_thread ct ON ct.chat_id = c.id
+                    WHERE ct.thread_id = %s
+                    ORDER BY c.created_at ASC;
+                """, (thread_id,))
+                raw_messages = cur.fetchall()
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[add-to-faq] Erro ao buscar dados: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao buscar dados da thread")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+    # Formatar mensagens para o gerador de FAQ
+    messages_for_faq = []
+    for m in raw_messages:
+        if m["message"].startswith("Thread iniciada:"):
+            continue
+        if m["origem"] == "usuario":
+            role = "user"
+        elif m["origem"] == "auditor":
+            role = "auditor"
+        else:
+            role = "assistant"
+        messages_for_faq.append({"role": role, "content": m["message"]})
+
+    if not messages_for_faq:
+        raise HTTPException(status_code=400, detail="Nenhuma mensagem encontrada na thread")
+
+    # Gerar FAQ usando OpenAI
+    try:
+        faq_text = await _generate_faq_from_messages(messages_for_faq)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar FAQ: {e}")
+
+    if not faq_text.strip():
+        raise HTTPException(status_code=500, detail="FAQ gerada está vazia")
+
+    # Acumular FAQ no banco de dados (agent.faq_content)
+    existing_faq = agent_row["faq_content"] or ""
+    if existing_faq.strip():
+        full_faq = existing_faq.strip() + "\n\n" + faq_text
+    else:
+        full_faq = "# FAQ - Perguntas Frequentes\n\n" + faq_text
+
+    # Salvar FAQ acumulada no banco
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE agent SET faq_content = %s WHERE id = %s;",
+                    (full_faq, agent_row["agent_id"])
+                )
+                cur.execute(
+                    "UPDATE thread SET faq_added = TRUE WHERE id = %s;",
+                    (thread_id,)
+                )
+    except Exception as e:
+        print(f"[add-to-faq] Erro ao salvar FAQ no banco: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao salvar FAQ")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+    # Recriar source no NotebookLM (deleta antigas + cria única nova)
+    agent_notebook_id = agent_row["agent_id"]
+    faq_title = _build_faq_source_title(agent_row["agent_title"])
+
+    add_result = await _add_faq_source_to_notebook(agent_notebook_id, faq_title, full_faq)
+
+    if not add_result["success"]:
+        print(f"[add-to-faq] Falha ao adicionar source ao NotebookLM: {add_result.get('error')}")
+
+    return {
+        "status": "ok",
+        "thread_id": thread_id,
+        "agent_name": agent_row["agent_name"],
+        "agent_title": agent_row["agent_title"],
+        "faq_source_title": faq_title,
+        "faq_generated": faq_text,
+        "notebook_result": add_result,
+    }
+
+
+@app.get("/thread/{thread_id}/faq-status")
+async def get_faq_status(
+    thread_id: str,
+    authorization: str = Header(None),
+):
+    """Retorna se uma thread já foi adicionada à FAQ e se tem interação do auditor."""
+    verify_api_key(authorization)
+
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT t.faq_added,
+                           EXISTS(
+                               SELECT 1 FROM chat_thread ct
+                               JOIN chat c ON ct.chat_id = c.id
+                               WHERE ct.thread_id = t.id AND c.origem = 'auditor'
+                           ) AS has_auditor
+                    FROM thread t
+                    WHERE t.id = %s;
+                """, (thread_id,))
+                row = cur.fetchone()
+                if not row:
+                    raise HTTPException(status_code=404, detail="Thread não encontrada")
+        return {
+            "thread_id": thread_id,
+            "faq_added": row["faq_added"] or False,
+            "has_auditor": row["has_auditor"],
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[faq-status] Erro: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao buscar status")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
 
 
 # ---------------------------------------------------------------------------
