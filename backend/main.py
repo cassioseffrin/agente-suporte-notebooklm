@@ -1739,6 +1739,7 @@ async def admin_list_threads(
     page: int = 1,
     limit: int = 20,
     search: str = "",
+    auditor_only: bool = False,
     authorization: str = Header(None),
 ):
     """
@@ -1767,6 +1768,16 @@ async def admin_list_threads(
                     like = f"%{search.strip()}%"
                     params = [like, like, like, like]
 
+                auditor_clause = ""
+                if auditor_only:
+                    auditor_clause = """
+                        AND EXISTS (
+                            SELECT 1 FROM chat_thread ct2
+                            JOIN chat c2 ON ct2.chat_id = c2.id
+                            WHERE ct2.thread_id = t.id AND c2.origem = 'auditor'
+                        )
+                    """
+
                 # Main query — threads with aggregated info
                 query = f"""
                     SELECT t.id           AS thread_id,
@@ -1777,7 +1788,12 @@ async def admin_list_threads(
                            u.email        AS user_email,
                            MIN(c.created_at) AS created_at,
                            COUNT(DISTINCT c.id) FILTER (WHERE c.message NOT LIKE 'Thread iniciada:%%') AS message_count,
-                           MAX(ct.feedback_rating) AS feedback_rating
+                           MAX(ct.feedback_rating) AS feedback_rating,
+                           EXISTS (
+                               SELECT 1 FROM chat_thread ct2
+                               JOIN chat c2 ON ct2.chat_id = c2.id
+                               WHERE ct2.thread_id = t.id AND c2.origem = 'auditor'
+                           ) AS has_auditor
                     FROM thread t
                     JOIN chat_thread ct ON ct.thread_id = t.id
                     JOIN chat c         ON ct.chat_id   = c.id
@@ -1785,6 +1801,7 @@ async def admin_list_threads(
                     JOIN "user" u       ON c.user_id    = u.id
                     WHERE 1=1
                     {search_clause}
+                    {auditor_clause}
                     GROUP BY t.id, t.subject, a.name, a.title, u.name, u.email
                     ORDER BY created_at DESC
                     LIMIT %s OFFSET %s;
@@ -1801,7 +1818,8 @@ async def admin_list_threads(
                     JOIN agent a        ON c.agent_id   = a.id
                     JOIN "user" u       ON c.user_id    = u.id
                     WHERE 1=1
-                    {search_clause};
+                    {search_clause}
+                    {auditor_clause};
                 """
                 cur.execute(count_query, params)
                 total = cur.fetchone()["total"]
