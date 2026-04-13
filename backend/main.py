@@ -2410,9 +2410,36 @@ async def add_thread_to_faq(
     # Acumular FAQ no banco de dados (agent.faq_content)
     existing_faq = agent_row["faq_content"] or ""
     if existing_faq.strip():
-        full_faq = existing_faq.strip() + "\n\n" + faq_text
+        raw_full_faq = existing_faq.strip() + "\n\n" + faq_text
     else:
-        full_faq = "# FAQ - Perguntas Frequentes\n\n" + faq_text
+        raw_full_faq = faq_text
+
+    # Formatar tudo garantindo que Resposta e Pergunta estejam bem separadas
+    import re
+    # 1. Colocar 'Resposta:' em nova linha, se colar com algo
+    formatted_faq = re.sub(r'(?i)\s+Resposta:', '\nResposta:', raw_full_faq)
+    # 2. Colocar 'Pergunta:' em nova linha, se colar com algo
+    formatted_faq = re.sub(r'(?i)\s+Pergunta:', '\n\nPergunta:', formatted_faq)
+    # 3. Remover espaços extras no começo/fim das linhas
+    lines = [line.strip() for line in formatted_faq.split('\n')]
+    
+    # 4. Reconstruir garantindo 2 linhas em branco entre os blocos (Pergunta -> Resposta)
+    clean_lines = []
+    for line in lines:
+        if not line:
+            continue
+        if line.lower().startswith("pergunta:"):
+            if clean_lines: # Adicionar espaçamento duplo antes de nova pergunta
+                clean_lines.append("")
+                clean_lines.append("")
+            clean_lines.append(line)
+        elif line.lower().startswith("resposta:"):
+            clean_lines.append(line)
+        else:
+            # Caso seja texto adicional da resposta
+            clean_lines.append(line)
+
+    full_faq = "# FAQ - Perguntas Frequentes\n\n" + "\n".join(clean_lines)
 
     # Salvar FAQ acumulada no banco
     try:
