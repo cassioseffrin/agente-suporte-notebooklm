@@ -2422,28 +2422,37 @@ async def add_thread_to_faq(
         raw_full_faq = faq_text
 
     # --- Pós-processamento: garantir formatação correta ---
-    # Inserir quebra de linha ANTES de cada "Resposta:" que esteja colado no texto
-    formatted = re.sub(r'(?<!\n)\s*Resposta:', '\nResposta:', raw_full_faq)
-    # Inserir quebra de linha ANTES de cada "Pergunta:" que esteja colado no texto
-    formatted = re.sub(r'(?<!\n)\s*Pergunta:', '\n\nPergunta:', formatted)
+    # Passo 1: Separar "Resposta:" para nova linha quando colado com texto
+    # Substitui qualquer "Resposta:" precedido por texto na mesma linha
+    formatted = re.sub(r'(\S)\s+Resposta:', r'\1\nResposta:', raw_full_faq)
 
-    # Reconstruir linha a linha com espaçamento correto
+    # Passo 2: Processar linha a linha
     clean_lines = []
     for line in formatted.split('\n'):
         stripped = line.strip()
         if not stripped:
             continue
-        # Ignorar qualquer linha de título residual
+        # Ignorar títulos residuais
         if re.match(r'^#?\s*FAQ', stripped, re.IGNORECASE):
             continue
-        if stripped.lower().startswith("pergunta:"):
-            if clean_lines:  # Separador visual entre pares de FAQ
+
+        # Se a linha ainda contém AMBOS Pergunta: e Resposta:, dividir
+        if 'Pergunta:' in stripped and 'Resposta:' in stripped:
+            idx = stripped.index('Resposta:')
+            pergunta_part = stripped[:idx].strip()
+            resposta_part = stripped[idx:].strip()
+            if clean_lines:
+                clean_lines.append("")
+                clean_lines.append("---")
+                clean_lines.append("")
+            clean_lines.append(pergunta_part)
+            clean_lines.append(resposta_part)
+        elif stripped.lower().startswith("pergunta:"):
+            if clean_lines:
                 clean_lines.append("")
                 clean_lines.append("---")
                 clean_lines.append("")
             clean_lines.append(stripped)
-        elif stripped.lower().startswith("resposta:"):
-            clean_lines.append(stripped)  # Resposta na linha seguinte
         else:
             clean_lines.append(stripped)
 
