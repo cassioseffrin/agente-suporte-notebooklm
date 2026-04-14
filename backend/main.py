@@ -2443,11 +2443,11 @@ async def add_thread_to_faq(
     # Substitui qualquer "Resposta:" precedido por texto na mesma linha
     formatted = re.sub(r'(\S)\s+Resposta:', r'\1\nResposta:', raw_full_faq)
 
-    # Passo 2: Processar linha a linha
+    # Passo 2: Processar linha a linha e limpar separadores antigos
     clean_lines = []
     for line in formatted.split('\n'):
         stripped = line.strip()
-        if not stripped:
+        if not stripped or stripped == "---":
             continue
         # Ignorar títulos residuais
         if re.match(r'^#?\s*FAQ', stripped, re.IGNORECASE):
@@ -2460,14 +2460,12 @@ async def add_thread_to_faq(
             resposta_part = stripped[idx:].strip()
             if clean_lines:
                 clean_lines.append("")
-                clean_lines.append("---")
                 clean_lines.append("")
             clean_lines.append(pergunta_part)
             clean_lines.append(resposta_part)
         elif stripped.lower().startswith("pergunta:"):
             if clean_lines:
                 clean_lines.append("")
-                clean_lines.append("---")
                 clean_lines.append("")
             clean_lines.append(stripped)
         else:
