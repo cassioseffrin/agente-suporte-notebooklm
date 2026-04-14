@@ -2165,6 +2165,7 @@ REGRAS CRÍTICAS:
     - "A IA vai ser corrigida?"
     - "Vocês estão revisando a documentação?"
     Foque APENAS em perguntas técnicas sobre o PRODUTO/SISTEMA que ajudem outros usuários.
+11. EVITAR DUPLICATAS: Se a [FAQ ATUAL] já tiver a MESMA correção/informação que o auditor deu (mesmo sentido/resposta analóga), NÃO gere um novo par. Simplesmente IGNORE. Só gere a FAQ se for algo novo, ou uma informação complementar não coberta.
 
 FORMATO OBRIGATÓRIO (Resposta SEMPRE em nova linha, 2 linhas em branco entre pares):
 
@@ -2177,10 +2178,11 @@ Resposta: [resposta correspondente]
 """
 
 
-async def _generate_faq_from_messages(messages_data: list[dict]) -> str:
+async def _generate_faq_from_messages(messages_data: list[dict], existing_faq: str = "") -> str:
     """
     Usa OpenAI para transformar mensagens de um chat em pares FAQ.
     Prioriza correções do auditor sobre respostas da IA.
+    Evita duplicar informações caso existing_faq seja passado.
     """
     # Formatar conversa para o prompt
     conversation_lines = []
@@ -2193,6 +2195,13 @@ async def _generate_faq_from_messages(messages_data: list[dict]) -> str:
             conversation_lines.append(f"AUDITOR (CORREÇÃO HUMANA): {m['content']}")
 
     conversation_text = "\n\n".join(conversation_lines)
+    
+    user_content = ""
+    if existing_faq.strip():
+        user_content += f"[FAQ ATUAL]\n{existing_faq}\n\n"
+        
+    user_content += f"[CONVERSA]\n{conversation_text}\n\n"
+    user_content += f"Gere os pares Pergunta/Resposta para a FAQ se não for duplicado:"
 
     try:
         result = await openai_client.chat.completions.create(
@@ -2204,8 +2213,7 @@ async def _generate_faq_from_messages(messages_data: list[dict]) -> str:
                 {"role": "system", "content": FAQ_GENERATION_PROMPT},
                 {
                     "role": "user",
-                    "content": f"[CONVERSA]\n{conversation_text}\n\n"
-                               f"Gere os pares Pergunta/Resposta para a FAQ:"
+                    "content": user_content
                 }
             ]
         )
@@ -2406,15 +2414,6 @@ async def add_thread_to_faq(
     if not messages_for_faq:
         raise HTTPException(status_code=400, detail="Nenhuma mensagem encontrada na thread")
 
-    # Gerar FAQ usando OpenAI
-    try:
-        faq_text = await _generate_faq_from_messages(messages_for_faq)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao gerar FAQ: {e}")
-
-    if not faq_text.strip():
-        raise HTTPException(status_code=500, detail="FAQ gerada está vazia")
-
     # Acumular FAQ no banco de dados (agent.faq_content)
     existing_faq = agent_row["faq_content"] or ""
 
@@ -2422,8 +2421,20 @@ async def add_thread_to_faq(
     import re
     existing_clean = re.sub(r'#?\s*FAQ\s*-?\s*Perguntas\s*Frequentes\s*', '', existing_faq).strip()
 
+    # Gerar FAQ usando OpenAI (passando a FAQ existente para evitar duplicação)
+    try:
+        faq_text = await _generate_faq_from_messages(messages_for_faq, existing_clean)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar FAQ: {e}")
+
+    if not faq_text.strip():
+        # Se retornou vazio (ex: era uma dúvida idêntica à que já tem), dizemos que não teve FAQ nova (ou retornamos sucesso com arquivo inalterado)
+        print("[add-to-faq] FAQ ignorada pela IA (possível duplicata).")
+        # Vamos apenas marcar como true a thread sem falhar.
+        faq_text = ""
+
     if existing_clean:
-        raw_full_faq = existing_clean + "\n\n" + faq_text
+        raw_full_faq = existing_clean + ("\n\n" + faq_text if faq_text else "")
     else:
         raw_full_faq = faq_text
 
