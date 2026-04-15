@@ -2372,7 +2372,7 @@ async def _add_faq_source_to_notebook(notebook_id: str, faq_title: str, full_faq
     # 2. Criar arquivo temporário com o NOME CORRETO (NotebookLM usa o filename como título)
     tmp_dir = _Path(tempfile.gettempdir()) / "notebooklm_faq"
     tmp_dir.mkdir(parents=True, exist_ok=True)
-    faq_file = tmp_dir / f"{faq_title}.txt"
+    faq_file = tmp_dir / f"{faq_title}.md"
     faq_file.write_text(full_faq_content, encoding="utf-8")
 
     # 3. Adicionar source
