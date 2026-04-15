@@ -1,4 +1,4 @@
-# Arquitetura — Agente de Suporte Smart (pós Query Rewriting)
+# Arquitetura - Agente de Suporte Smart (pós Query Rewriting)
 
 ## Fluxo Principal por Requisição
 
@@ -8,7 +8,7 @@ sequenceDiagram
     participant API as ⚡ FastAPI Backend
     participant Mem as 🗃️ sessions[threadId]
     participant OAI1 as 🤖 OpenAI<br/>(Query Rewriter)
-    participant NLM as 📚 NotebookLM CLI<br/>(RAG — Manuais)
+    participant NLM as 📚 NotebookLM CLI<br/>(RAG - Manuais)
     participant OAI2 as 🤖 OpenAI<br/>(Formatador)
 
     User->>API: POST /chat {threadId, message}
@@ -47,7 +47,7 @@ sequenceDiagram
 graph TD
     NLM_NB["📚 NotebookLM Notebook<br/>(único, compartilhado, stateless)"]
 
-    subgraph Backend["⚡ FastAPI Backend — sessions[]"]
+    subgraph Backend["⚡ FastAPI Backend - sessions[]"]
         T1["🧵 Thread UUID-A<br/>hist: [Q1,R1,Q2,R2...]"]
         T2["🧵 Thread UUID-B<br/>hist: [Q1,R1...]"]
         T3["🧵 Thread UUID-C<br/>hist: []"]
@@ -80,9 +80,9 @@ graph TD
 | **Flutter App** | Interface do usuário | stateless |
 | **FastAPI Backend** | Orquestrador, autenticação, histórico por thread | **stateful** (RAM) |
 | **sessions[threadId]** | Histórico isolado por usuário (até 10 msgs) | em memória |
-| **OpenAI — Query Rewriter** | Expande perguntas vagas usando histórico | stateless |
-| **NotebookLM CLI** | RAG — busca real nos manuais do sistema | **stateless** |
-| **OpenAI — Formatador** | Ajusta gramática, aplica SYSTEM_PROMPT, formata Markdown | stateless |
+| **OpenAI - Query Rewriter** | Expande perguntas vagas usando histórico | stateless |
+| **NotebookLM CLI** | RAG - busca real nos manuais do sistema | **stateless** |
+| **OpenAI - Formatador** | Ajusta gramática, aplica SYSTEM_PROMPT, formata Markdown | stateless |
 
 ---
 
@@ -106,7 +106,7 @@ graph LR
 ```
 
 > [!NOTE]
-> O **Query Rewriter** usa `temperature=0` para garantir resultados conservadores e determinísticos — ele nunca inventa contexto, apenas reorganiza o que já está no histórico da conversa.
+> O **Query Rewriter** usa `temperature=0` para garantir resultados conservadores e determinísticos - ele nunca inventa contexto, apenas reorganiza o que já está no histórico da conversa.
 
 > [!IMPORTANT]
-> O NotebookLM **sempre recebe uma pergunta isolada e autocontida** — jamais recebe o histórico de conversa diretamente. Isso garante zero contaminação entre sessões de usuários diferentes que compartilham o mesmo notebook.
+> O NotebookLM **sempre recebe uma pergunta isolada e autocontida** - jamais recebe o histórico de conversa diretamente. Isso garante zero contaminação entre sessões de usuários diferentes que compartilham o mesmo notebook.

@@ -12,7 +12,7 @@ sequenceDiagram
     participant OAI as OpenAI API<br/>(gpt-4o-mini)
 
     rect rgba(0, 50, 100, 0.4)
-        Note over U,OAI: FASE 1 — Abertura do Chat e Configuração Inicial
+        Note over U,OAI: FASE 1 - Abertura do Chat e Configuração Inicial
         U->>Chat: Clica no FAB (Assistente IA)
         Chat->>Chat: Verifica localStorage "ia_consent"
 
@@ -31,7 +31,7 @@ sequenceDiagram
     end
 
     rect rgba(0, 100, 50, 0.4)
-        Note over U,OAI: FASE 2 — Criação da Thread e Conexão de Eventos
+        Note over U,OAI: FASE 2 - Criação da Thread e Conexão de Eventos
         Chat->>Backend: GET /createNewThread?agentName=...
         Backend->>Backend: Gera UUID (threadId) e inicializa sessão
         Backend->>DB: UPSERT user
@@ -45,14 +45,14 @@ sequenceDiagram
     end
 
     rect rgba(100, 70, 0, 0.4)
-        Note over U,OAI: FASE 3 — Envio de Mensagem e Resposta (SSE Streaming)
+        Note over U,OAI: FASE 3 - Envio de Mensagem e Resposta (SSE Streaming)
         U->>Chat: Digita mensagem
         Chat->>Chat: setIsTyping(true) / Start AbortController (timeout 240s)
 
         Chat->>Backend: POST /chat/stream { threadId, message, assistantName } (SSE)
         
         rect rgba(100, 50, 0, 0.3)
-            Note over Backend,OAI: Etapa 3a — Query Rewriting (timeout 60s)
+            Note over Backend,OAI: Etapa 3a - Query Rewriting (timeout 60s)
             Backend-->>Chat: event: status { stage: "rewriting" }
             Chat-->>U: Exibe "Reescrevendo consulta..."
             Backend->>OAI: chat.completions.create (escreve query autocontida)
@@ -60,7 +60,7 @@ sequenceDiagram
         end
 
         rect rgba(0, 50, 100, 0.3)
-            Note over Backend,NLM: Etapa 3b — Busca RAG NotebookLM (timeout 240s)
+            Note over Backend,NLM: Etapa 3b - Busca RAG NotebookLM (timeout 240s)
             Backend-->>Chat: event: status { stage: "searching" }
             Chat-->>U: Exibe "Buscando nos manuais..."
             Backend->>NLM: notebooklm ask ...
@@ -68,7 +68,7 @@ sequenceDiagram
         end
 
         rect rgba(0, 100, 50, 0.3)
-            Note over Backend,OAI: Etapa 3c — Geração Streaming (timeout 120s)
+            Note over Backend,OAI: Etapa 3c - Geração Streaming (timeout 120s)
             Backend-->>Chat: event: status { stage: "generating" }
             Chat-->>U: Exibe "Gerando resposta com IA..."
             Backend->>OAI: chat.completions.create (stream=True)
@@ -85,7 +85,7 @@ sequenceDiagram
         end
 
         rect rgba(70, 30, 100, 0.4)
-            Note over Backend,DB: Etapa 3d — Persistência (assíncrona)
+            Note over Backend,DB: Etapa 3d - Persistência (assíncrona)
             Backend-->>Chat: event: status { stage: "saving" }
             Backend->>DB: Salva mensagens e cria Subject (assunto curto)
         end
@@ -96,7 +96,7 @@ sequenceDiagram
     end
 
     rect rgba(0, 80, 120, 0.4)
-        Note over A,U: FASE 4 — Auditoria e Intervenção do Suporte (Injeção da Verdade)
+        Note over A,U: FASE 4 - Auditoria e Intervenção do Suporte (Injeção da Verdade)
         A->>Audit: Acessa conversa em andamento
         Audit->>Backend: GET /thread/{threadId}/presence (Conecta no SSE)
         Backend-->>Audit: event: presence { online: true }
@@ -118,7 +118,7 @@ sequenceDiagram
     end
 
     rect rgba(100, 0, 0, 0.4)
-        Note over U,Chat: TIMEOUT DO CLIENTE — AbortController (240s)
+        Note over U,Chat: TIMEOUT DO CLIENTE - AbortController (240s)
         Note over Chat: Se conexão falhar, tenta fallback POST /chat (não streaming).
     end
 ```

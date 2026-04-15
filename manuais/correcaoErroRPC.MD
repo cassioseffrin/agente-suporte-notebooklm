@@ -108,7 +108,7 @@ Would you like me to:
 ▣  Build · mimo-v2-omni-free · 40.0s
 <!-- notebooklm-py v0.3.4 -->
 # NotebookLM Automation
-Complete programmatic access to Google NotebookLM—including capabilities not exposed in the web UI. Create notebooks, add sources (URLs, YouTube, PDFs, audio, video, images), chat with content, generate all artifact types, and download results in multiple formats.
+Complete programmatic access to Google NotebookLM-including capabilities not exposed in the web UI. Create notebooks, add sources (URLs, YouTube, PDFs, audio, video, images), chat with content, generate all artifact types, and download results in multiple formats.
 ## Installation
 **From PyPI (Recommended):**
 ```bash
@@ -320,10 +320,10 @@ These capabilities are available via CLI but not in NotebookLM's web interface:
 ## Common Workflows
 ### Research to Podcast (Interactive)
 **Time:** 5-10 minutes total
-1. `notebooklm create "Research: [topic]"` — *if fails: check auth with `notebooklm login`*
-2. `notebooklm source add` for each URL/document — *if one fails: log warning, continue with others*
-3. Wait for sources: `notebooklm source list --json` until all status=READY — *required before generation*
-4. `notebooklm generate audio "Focus on [specific angle]"` (confirm when asked) — *if rate limited: wait 5 min, retry once*
+1. `notebooklm create "Research: [topic]"` - *if fails: check auth with `notebooklm login`*
+2. `notebooklm source add` for each URL/document - *if one fails: log warning, continue with others*
+3. Wait for sources: `notebooklm source list --json` until all status=READY - *required before generation*
+4. `notebooklm generate audio "Focus on [specific angle]"` (confirm when asked) - *if rate limited: wait 5 min, retry once*
 5. Note the artifact ID returned
 6. Check `notebooklm artifact list` later for status
 7. `notebooklm download audio ./podcast.mp3` when complete (confirm when asked)
@@ -364,7 +364,7 @@ When user wants full automation (generate and download when ready):
    notebooklm source add ./local-file.pdf
    ```
 3. `notebooklm source list` to verify
-**Source limits:** Varies by plan—Standard: 50, Plus: 100, Pro: 300, Ultra: 600 sources per notebook. See [NotebookLM plans](https://support.google.com/notebooklm/answer/16213268) for details. The CLI does not enforce these limits; they are applied by your NotebookLM account.
+**Source limits:** Varies by plan-Standard: 50, Plus: 100, Pro: 300, Ultra: 600 sources per notebook. See [NotebookLM plans](https://support.google.com/notebooklm/answer/16213268) for details. The CLI does not enforce these limits; they are applied by your NotebookLM account.
 **Supported types:** PDFs, YouTube URLs, web URLs, Google Docs, text files, Markdown, Word docs, audio files, video files, images
 ### Bulk Import with Source Waiting (Subagent Pattern)
 **Time:** Varies by source count

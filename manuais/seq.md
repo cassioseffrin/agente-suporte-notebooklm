@@ -4,7 +4,7 @@ sequenceDiagram
     participant API as ⚡ FastAPI Backend
     participant Mem as 🗃️ sessions[threadId]
     participant OAI1 as 🤖 OpenAI<br/>(Query Rewriter)
-    participant NLM as 📚 NotebookLM CLI<br/>(RAG — Manuais)
+    participant NLM as 📚 NotebookLM CLI<br/>(RAG - Manuais)
     participant OAI2 as 🤖 OpenAI<br/>(Formatador)
 
     User->>API: POST /chat {threadId, message}

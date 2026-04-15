@@ -96,7 +96,7 @@ O problema está claro: `MAC_HOST` e `MAC_USER` não estão configurados no `.en
 
 Agora está claro. O `auth_manager.py` usa **SCP** para copiar o `storage_state.json` do Mac para o servidor, mas `MAC_HOST` e `MAC_USER` não estão no `.env` de produção.
 
-## Solução imediata — copiar manualmente o storage_state.json
+## Solução imediata - copiar manualmente o storage_state.json
 
 O arquivo que precisa ser copiado é: `~/.notebooklm/storage_state.json` do seu Mac para o servidor.
 
@@ -111,11 +111,11 @@ in is my server production .env
 
 ### Planner Response
 
-Confirmado — o `.env` de produção está sem `MAC_HOST` e `MAC_USER`. Nada a mudar de curso.
+Confirmado - o `.env` de produção está sem `MAC_HOST` e `MAC_USER`. Nada a mudar de curso.
 
 ## Solução em 2 passos
 
-**Passo 1 — Copiar o `storage_state.json` agora (fix imediato):**
+**Passo 1 - Copiar o `storage_state.json` agora (fix imediato):**
 
 *User accepted the command `scp ~/.notebooklm/storage_state.json root@lojaArpa:/root/.notebooklm/storage_state.json`*
 
@@ -123,7 +123,7 @@ Confirmado — o `.env` de produção está sem `MAC_HOST` e `MAC_USER`. Nada a 
 
 O hostname `lojaArpa` não resolve via DNS local. Preciso do IP do servidor. Pelo `DB_HOST` no `main.py` vi `192.168.50.21`, mas o chat veio de `192.168.50.86/.89`. Qual é o IP certo do servidor de produção?
 
-Enquanto isso, **Passo 2 — Adicione ao `.env` de produção** para que as próximas renovações funcionem automaticamente pelo dashboard:
+Enquanto isso, **Passo 2 - Adicione ao `.env` de produção** para que as próximas renovações funcionem automaticamente pelo dashboard:
 
 ```bash
 # adicionar no /home/arpa/agente-suporte-notebooklm/backend/.env
@@ -141,7 +141,7 @@ MAC_USER=arpasistemas   # usuário SSH do Mac
 
 ### Planner Response
 
-Ótima pergunta. **Sim, pode ser feito diretamente no servidor Debian 12** — sem precisar copiar do Mac. O processo usa SSH com X11 forwarding: o browser roda no servidor mas a janela aparece na sua tela do Mac.
+Ótima pergunta. **Sim, pode ser feito diretamente no servidor Debian 12** - sem precisar copiar do Mac. O processo usa SSH com X11 forwarding: o browser roda no servidor mas a janela aparece na sua tela do Mac.
 
 ## Como funciona
 
@@ -153,13 +153,13 @@ storage_state.json salvo aqui    ←   você faz o login Google normalmente
 
 ## Passo a passo
 
-**1. No Mac — conectar com X11 forwarding:**
+**1. No Mac - conectar com X11 forwarding:**
 ```bash
 ssh -X root@<IP_DO_SERVIDOR>
 ```
 > Se não funcionar de primeira, tente `ssh -Y root@<IP_DO_SERVIDOR>` (menos restrito)
 
-**2. No servidor — verificar se tem Xorg client libs:**
+**2. No servidor - verificar se tem Xorg client libs:**
 ```bash
 apt-get install -y xauth x11-apps
 ```
@@ -185,9 +185,9 @@ notebooklm list
 
 ## Vantagem dessa abordagem
 
-- ✅ Tudo fica no servidor — sem dependência do Mac
+- ✅ Tudo fica no servidor - sem dependência do Mac
 - ✅ O dashboard **"Renovar Autenticação"** pode chamar `notebooklm login` diretamente (mas precisa de display, então X11 ainda seria necessário para logins futuros)
-- ✅ Simples — sem SCP, sem configurar `MAC_HOST`/`MAC_USER`
+- ✅ Simples - sem SCP, sem configurar `MAC_HOST`/`MAC_USER`
 
 Quer que eu também ajuste o `auth_manager.py` para suportar rodar o `notebooklm login` diretamente no servidor como alternativa ao SCP?
 
@@ -202,7 +202,7 @@ Ideia excelente e muito mais prática! O fluxo seria:
 1. No Mac: exportar o `~/.notebooklm/storage_state.json`
 2. No dashboard: fazer upload do arquivo
 3. O backend salva no servidor em `/root/.notebooklm/storage_state.json`
-4. Pronto — sem SSH, sem X11, sem dependências
+4. Pronto - sem SSH, sem X11, sem dependências
 
 Deixa eu ver como está a página atual antes de implementar:
 
@@ -212,8 +212,8 @@ Deixa eu ver como está a página atual antes de implementar:
 
 Perfeito. O plano é claro. Vou implementar as duas mudanças juntas:
 
-**Backend** — novo endpoint `POST /uploadAuthState` que recebe o arquivo e salva no servidor  
-**Frontend** — substituir a página por upload de arquivo com drag & drop
+**Backend** - novo endpoint `POST /uploadAuthState` que recebe o arquivo e salva no servidor  
+**Frontend** - substituir a página por upload de arquivo com drag & drop
 
 *Viewed [main.py](file:///Users/arpasistemas/dev/agentes-suporte-ia/backend/main.py) *
 
@@ -223,13 +223,13 @@ Continue
 
 ### Planner Response
 
-Vou implementar as duas mudanças de uma vez — backend e frontend.
+Vou implementar as duas mudanças de uma vez - backend e frontend.
 
 *Viewed [requirements.txt](file:///Users/arpasistemas/dev/agentes-suporte-ia/backend/requirements.txt) *
 
 ### Planner Response
 
-`python-multipart` não está no requirements — necessário para upload de arquivo no FastAPI. Vou adicionar e implementar tudo:
+`python-multipart` não está no requirements - necessário para upload de arquivo no FastAPI. Vou adicionar e implementar tudo:
 
 *Edited relevant file*
 
@@ -247,7 +247,7 @@ Boa análise. Vou esclarecer os detalhes técnicos de cada abordagem:
 
 ---
 
-## Abordagem 1 — X11 Forwarding
+## Abordagem 1 - X11 Forwarding
 
 ```
 Mac (XQuartz = X11 Server)  ←→  Debian (X11 Client)
@@ -260,7 +260,7 @@ Mac (XQuartz = X11 Server)  ←→  Debian (X11 Client)
 Não precisa de desktop/Xorg. Mas precisa de:
 - `xauth` instalado (`apt install xauth`)
 - `X11Forwarding yes` no `/etc/ssh/sshd_config`
-- Todas as **libs do Chromium/Playwright** para modo *headed* (não-headless): `libnss3`, `libatk1.0-0`, `libgbm1`, etc. — isso é bastante coisa
+- Todas as **libs do Chromium/Playwright** para modo *headed* (não-headless): `libnss3`, `libatk1.0-0`, `libgbm1`, etc. - isso é bastante coisa
 - **XQuartz** instalado no Mac
 
 **Fluxo quando o token expira:**
@@ -269,20 +269,20 @@ Não precisa de desktop/Xorg. Mas precisa de:
 ssh -X root@servidor
 notebooklm login   # Chrome abre na tua tela do Mac, faz login Google
 ```
-✅ Salva direto no servidor — sem copiar arquivo  
+✅ Salva direto no servidor - sem copiar arquivo  
 ❌ Setup inicial complexo (libs do Chromium no Debian + XQuartz no Mac)  
 ❌ Precisa de acesso SSH toda vez que expirar
 
 ---
 
-## Abordagem 2 — Upload via Web GUI
+## Abordagem 2 - Upload via Web GUI
 
 ```
 Dev Mac  →  ~/.notebooklm/storage_state.json  →  Dashboard upload  →  Servidor
 ```
 
 **Sua pergunta:** o "micro cliente" (Mac de dev) precisa ter `notebooklm` instalado?  
-**Resposta:** Sim — mas **só o Mac de administrador** (o seu), não os usuários finais. E você **já tem** isso hoje — o arquivo `~/.notebooklm/storage_state.json` **já existe e está válido** no seu Mac (confirmei logo antes).
+**Resposta:** Sim - mas **só o Mac de administrador** (o seu), não os usuários finais. E você **já tem** isso hoje - o arquivo `~/.notebooklm/storage_state.json` **já existe e está válido** no seu Mac (confirmei logo antes).
 
 **Fluxo quando o token expira:**
 1. No Mac: `notebooklm login` (abre o browser, faz login Google) → atualiza o `storage_state.json` local
@@ -290,20 +290,20 @@ Dev Mac  →  ~/.notebooklm/storage_state.json  →  Dashboard upload  →  Serv
 
 ✅ Zero mudança na infraestrutura do servidor  
 ✅ Sem SSH, sem XQuartz, sem libs extras  
-✅ Você JÁ tem o arquivo válido agora — resolveria o problema de produção **imediatamente**  
+✅ Você JÁ tem o arquivo válido agora - resolveria o problema de produção **imediatamente**  
 ❌ Precisa do Mac de dev acessível quando o token expirar (mas é o seu Mac de trabalho)
 
 ---
 
 ## Minha recomendação
 
-**Abordagem 2** é claramente superior. O único "custo" é ter o `notebooklm` no Mac de dev — que você já tem. Os cookies do Google que vi no seu arquivo expiram em **2027-2028**, então renovações serão raras.
+**Abordagem 2** é claramente superior. O único "custo" é ter o `notebooklm` no Mac de dev - que você já tem. Os cookies do Google que vi no seu arquivo expiram em **2027-2028**, então renovações serão raras.
 
 Implemento o upload agora?
 
 ### User Input
 
-ok, vamos partir para Abordagem 2 — Upload via Web GUI.
+ok, vamos partir para Abordagem 2 - Upload via Web GUI.
 
 pode fazer todas alteracoes necessarias agora
 
@@ -325,7 +325,7 @@ Continue
 
 ### Planner Response
 
-Vou fazer as duas mudanças principais agora em paralelo — o endpoint no backend e a nova página do dashboard.
+Vou fazer as duas mudanças principais agora em paralelo - o endpoint no backend e a nova página do dashboard.
 
 *Edited relevant file*
 
@@ -343,7 +343,7 @@ Continue
 
 ### Planner Response
 
-Antes de finalizar, deixa eu verificar como o dashboard passa a API key nos outros endpoints autenticados — para garantir que o upload vai funcionar:
+Antes de finalizar, deixa eu verificar como o dashboard passa a API key nos outros endpoints autenticados - para garantir que o upload vai funcionar:
 
 *User accepted the command `grep -r "NEXT_PUBLIC_API_KEY\|Authorization.*Bearer\|BACKEND_API_KEY" /Users/arpasistemas/dev/agentes-suporte-ia-dash --include="*.ts" --include="*.tsx" --include="*.env*" -l 2>/dev/null`*
 

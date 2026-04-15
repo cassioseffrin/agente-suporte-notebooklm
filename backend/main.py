@@ -1,5 +1,5 @@
 """
-Backend FastAPI — substitui OpenAI Assistants API
+Backend FastAPI - substitui OpenAI Assistants API
 Mantém contrato com o app Flutter existente:
   GET  /createNewThread  → { threadId: str }
   POST /chat             → { content: [str], images: [] }
@@ -31,7 +31,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 # ---------------------------------------------------------------------------
-# Config — via variáveis de ambiente
+# Config - via variáveis de ambiente
 # ---------------------------------------------------------------------------
 
 OPENAI_API_KEY         = os.environ.get("OPENAI_API_KEY", "")
@@ -41,7 +41,7 @@ HISTORY_LIMIT      = 10   # últimas N mensagens enviadas ao OpenAI (5 turnos)
 NOTEBOOKLM_TIMEOUT = 240
 
 # ---------------------------------------------------------------------------
-# PostgreSQL — conexão e helpers
+# PostgreSQL - conexão e helpers
 # ---------------------------------------------------------------------------
 
 DB_HOST   = os.environ.get("DB_HOST",   "192.168.50.21")
@@ -229,7 +229,7 @@ def get_agent_info_by_name(name: str):
         conn.close()
 
 
-# Prompt exclusivo para reescrita de consulta — NÃO responde ao usuário,
+# Prompt exclusivo para reescrita de consulta - NÃO responde ao usuário,
 # apenas produz uma pergunta autocontida para ser enviada ao NotebookLM.
 QUERY_REWRITE_PROMPT = """
 Você é um assistente especializado em preparar consultas para um sistema de busca em manuais.
@@ -239,10 +239,10 @@ incorporando o contexto necessário do histórico da conversa quando a pergunta 
 ou fizer referência a algo mencionado antes (ex: "isso", "o passo 2", "aquele campo", "pode detalhar?").
 
 REGRAS OBRIGATÓRIAS:
-1. Retorne APENAS a pergunta reescrita — sem explicações, sem prefixos, sem aspas.
+1. Retorne APENAS a pergunta reescrita - sem explicações, sem prefixos, sem aspas.
 2. Se a pergunta já for clara e autocontida, retorne-a exatamente como está.
 3. A pergunta reescrita deve ser em português do Brasil.
-4. Jamais invente informações — use somente o que está no histórico fornecido.
+4. Jamais invente informações - use somente o que está no histórico fornecido.
 5. A pergunta deve ser objetiva e adequada para busca em manuais técnicos.
 6. Se houver uma [CORREÇÃO DO SUPORTE HUMANO] no histórico, incorpore essa correção como fato verdadeiro na reescrita da consulta."""
 
@@ -396,7 +396,7 @@ def build_messages(thread_id: str, user_message: str, notebooklm_context: str) -
     auditor_block = ""
     if auditor_corrections:
         auditor_block = (
-            "\n\n[CORREÇÕES DO SUPORTE HUMANO — VERDADE ABSOLUTA]\n"
+            "\n\n[CORREÇÕES DO SUPORTE HUMANO - VERDADE ABSOLUTA]\n"
             + "\n".join(auditor_corrections)
             + "\n[FIM DAS CORREÇÕES]\n\n"
             "REGRA CRÍTICA: As correções acima foram feitas por um especialista humano e "
@@ -778,7 +778,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     # Notifica o auditor assim que a mensagem chega (antes da IA pensar)
     _notify_auditor_new_message(thread_id, 0, user_message, 'usuario')
 
-    # 1. Query Rewriting — expande perguntas vagas usando histórico da thread
+    # 1. Query Rewriting - expande perguntas vagas usando histórico da thread
     search_query = await rewrite_query_with_context(thread_id, user_message)
 
     print(f"\n{'='*50}")
@@ -787,7 +787,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     print(f"[DEBUG Chat] Original : {user_message!r}")
     print(f"[DEBUG Chat] Rewritten: {search_query!r}")
 
-    # 2. NotebookLM — busca contexto nos manuais com a query expandida usando o ID dinâmico
+    # 2. NotebookLM - busca contexto nos manuais com a query expandida usando o ID dinâmico
     notebooklm_context = await query_notebooklm(search_query, agent_notebook_id)
 
     context_preview = notebooklm_context[:200].replace('\n', ' ') + "..." if notebooklm_context else "VAZIO"
@@ -797,7 +797,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     # 3. Monta histórico + contexto injetado (usa mensagem original do usuário)
     messages = build_messages(thread_id, user_message, notebooklm_context)
 
-    # 4. OpenAI gpt-4o-mini — formata resposta com base no contexto do NotebookLM
+    # 4. OpenAI gpt-4o-mini - formata resposta com base no contexto do NotebookLM
     try:
         response = await openai_client.chat.completions.create(
             model="gpt-4o-mini",
@@ -811,7 +811,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         print(f"[openai] erro: {e}")
         raise HTTPException(status_code=500, detail="Erro ao gerar resposta")
 
-    # 5. Histórico — salva mensagem original do usuário (não a query reescrita)
+    # 5. Histórico - salva mensagem original do usuário (não a query reescrita)
     sessions[thread_id].append({"role": "user",      "content": user_message})
     sessions[thread_id].append({"role": "assistant", "content": assistant_text})
 
@@ -867,7 +867,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
 
 
 # ---------------------------------------------------------------------------
-# POST /chat/stream — SSE streaming version for the dashboard
+# POST /chat/stream - SSE streaming version for the dashboard
 # ---------------------------------------------------------------------------
 
 @app.post("/chat/stream")
@@ -1169,7 +1169,7 @@ async def upload_auth_state(
         "message": (
             "✅ Autenticação renovada e validada com sucesso!"
             if valid else
-            "⚠️ Arquivo salvo, mas a validação falhou. O token pode estar expirado — tente gerar um novo no Mac."
+            "⚠️ Arquivo salvo, mas a validação falhou. O token pode estar expirado - tente gerar um novo no Mac."
         ),
     }
 
@@ -1521,10 +1521,48 @@ async def get_agents_all():
                         "active": r["active"],
                         "creation": r["creation"].isoformat() if r["creation"] else None,
                         "modification": r["modification"].isoformat() if r["modification"] else None,
+                        # faq_content intentionally omitted from list (fetched on-demand via GET /agents/{id})
                     })
                 return {"agents": agents}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao buscar agentes: {e}")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+
+@app.get("/agents/{agent_id}")
+async def get_agent_by_id(agent_id: str):
+    """Retorna um agente pelo ID, incluindo faq_content (para edição no dashboard)."""
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT id, title, name, system_prompt, email, overview,
+                           sort_order, active, creation, modification, faq_content
+                    FROM agent WHERE id = %s;
+                """, (agent_id,))
+                r = cur.fetchone()
+                if not r:
+                    raise HTTPException(status_code=404, detail="Agente não encontrado.")
+                return {
+                    "id": r["id"],
+                    "title": r["title"],
+                    "name": r["name"],
+                    "system_prompt": r["system_prompt"],
+                    "email": r["email"],
+                    "overview": r["overview"],
+                    "sort_order": r["sort_order"],
+                    "active": r["active"],
+                    "creation": r["creation"].isoformat() if r["creation"] else None,
+                    "modification": r["modification"].isoformat() if r["modification"] else None,
+                    "faq_content": r["faq_content"] or "",
+                }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar agente: {e}")
     finally:
         if 'conn' in locals() and conn:
             conn.close()
@@ -1538,6 +1576,7 @@ class AgentUpdateRequest(BaseModel):
     overview: Optional[str] = None
     sort_order: Optional[int] = None
     active: Optional[bool] = None
+    faq_content: Optional[str] = None
 
 
 @app.put("/agents/{agent_id}")
@@ -1577,6 +1616,47 @@ async def update_agent(agent_id: str, request: AgentUpdateRequest):
     finally:
         if 'conn' in locals() and conn:
             conn.close()
+
+
+@app.post("/agents/{agent_id}/sync-faq")
+async def sync_agent_faq_to_notebooklm(agent_id: str):
+    """
+    Pega o faq_content atual do agente no banco e sincroniza (recria) a
+    source FAQ no notebook NotebookLM correspondente.
+    Reutiliza a mesma lógica do endpoint /thread/{id}/add-to-faq.
+    """
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    "SELECT id, title, faq_content FROM agent WHERE id = %s;",
+                    (agent_id,)
+                )
+                row = cur.fetchone()
+                if not row:
+                    raise HTTPException(status_code=404, detail="Agente não encontrado.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar agente: {e}")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+    faq_content = row["faq_content"] or ""
+    if not faq_content.strip():
+        raise HTTPException(status_code=400, detail="FAQ vazia. Adicione conteúdo antes de sincronizar.")
+
+    faq_title = _build_faq_source_title(row["title"])
+    add_result = await _add_faq_source_to_notebook(agent_id, faq_title, faq_content)
+
+    return {
+        "status": "ok" if add_result["success"] else "error",
+        "agent_id": agent_id,
+        "faq_title": faq_title,
+        "notebook_result": add_result,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -1750,7 +1830,7 @@ async def delete_thread(
 
 
 # ---------------------------------------------------------------------------
-# Admin — Auditoria de conversas (todas as threads de todos os usuários)
+# Admin - Auditoria de conversas (todas as threads de todos os usuários)
 # ---------------------------------------------------------------------------
 
 @app.get("/admin/threads")
@@ -1797,7 +1877,7 @@ async def admin_list_threads(
                         )
                     """
 
-                # Main query — threads with aggregated info
+                # Main query - threads with aggregated info
                 query = f"""
                     SELECT t.id           AS thread_id,
                            t.subject,
@@ -2141,7 +2221,7 @@ async def thread_status(thread_id: str, authorization: str = Header(None)):
 
 
 # ---------------------------------------------------------------------------
-# FAQ — Gerar FAQ a partir de chats auditados e adicionar ao NotebookLM
+# FAQ - Gerar FAQ a partir de chats auditados e adicionar ao NotebookLM
 # ---------------------------------------------------------------------------
 
 FAQ_GENERATION_PROMPT = """
