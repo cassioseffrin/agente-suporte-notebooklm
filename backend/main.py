@@ -303,8 +303,15 @@ def verify_api_key(authorization: str = Header(None)):
 
 
 async def query_notebooklm(user_message: str, notebook_id: str, max_retries: int = 3) -> str:
+    """Consulta o NotebookLM CLI com retry para falhas rápidas.
+    NÃO faz retry em timeout (240s já consome quase todo o budget).
+    Orçamento total: ~400s máx para caber no proxy_read_timeout do nginx (600s)."""
     if not notebook_id:
         return ""
+
+    import time
+    TIME_BUDGET = 400  # segundos máx para todas as tentativas (nginx=600s, sobra p/ rewrite+openai)
+    t0 = time.monotonic()
 
     cmd = [
         "notebooklm", "ask",
@@ -314,6 +321,11 @@ async def query_notebooklm(user_message: str, notebook_id: str, max_retries: int
     ]
 
     for attempt in range(1, max_retries + 1):
+        elapsed = time.monotonic() - t0
+        if elapsed > TIME_BUDGET:
+            print(f"[notebooklm] orçamento de tempo esgotado ({elapsed:.0f}s/{TIME_BUDGET}s) — abortando")
+            break
+
         try:
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
@@ -348,15 +360,15 @@ async def query_notebooklm(user_message: str, notebook_id: str, max_retries: int
                 await asyncio.sleep(2 * attempt)  # backoff: 2s, 4s
 
         except asyncio.TimeoutError:
-            print(f"[notebooklm] tentativa {attempt}/{max_retries}: timeout ({NOTEBOOKLM_TIMEOUT}s)")
-            if attempt < max_retries:
-                await asyncio.sleep(2)
+            # Timeout = 240s já consumidos → NÃO faz retry (estoura nginx)
+            print(f"[notebooklm] TIMEOUT ({NOTEBOOKLM_TIMEOUT}s) — sem retry")
+            return ""
         except Exception as e:
             print(f"[notebooklm] tentativa {attempt}/{max_retries}: erro: {e}")
             if attempt < max_retries:
                 await asyncio.sleep(2)
 
-    print(f"[notebooklm] FALHOU após {max_retries} tentativas")
+    print(f"[notebooklm] FALHOU após {max_retries} tentativas ({time.monotonic() - t0:.0f}s)")
     return ""
 
 
