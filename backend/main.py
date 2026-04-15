@@ -302,7 +302,7 @@ def verify_api_key(authorization: str = Header(None)):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
-async def query_notebooklm(user_message: str, notebook_id: str) -> str:
+async def query_notebooklm(user_message: str, notebook_id: str, max_retries: int = 3) -> str:
     if not notebook_id:
         return ""
 
@@ -313,30 +313,51 @@ async def query_notebooklm(user_message: str, notebook_id: str) -> str:
         "--json",
     ]
 
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, stderr = await asyncio.wait_for(
-            proc.communicate(),
-            timeout=NOTEBOOKLM_TIMEOUT,
-        )
+    for attempt in range(1, max_retries + 1):
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(
+                proc.communicate(),
+                timeout=NOTEBOOKLM_TIMEOUT,
+            )
 
-        if proc.returncode == 0:
-            data = json.loads(stdout.decode())
-            return data.get("answer", "")
+            if proc.returncode == 0:
+                raw = stdout.decode()
+                data = json.loads(raw)
+                answer = data.get("answer", "")
+                if answer.strip():
+                    if attempt > 1:
+                        print(f"[notebooklm] OK na tentativa {attempt}/{max_retries}")
+                    return answer
+                # answer vazio mesmo com rc=0 → tratar como falha e tentar de novo
+                print(f"[notebooklm] tentativa {attempt}/{max_retries}: rc=0 mas answer vazio")
+            else:
+                stderr_text = stderr.decode()[:300]
+                stdout_text = stdout.decode()[:300]
+                print(
+                    f"[notebooklm] tentativa {attempt}/{max_retries}: "
+                    f"rc={proc.returncode} | stderr={stderr_text!r} | stdout={stdout_text!r}"
+                )
 
-        print(f"[notebooklm] stderr: {stderr.decode()[:300]}")
-        return ""
+            # Espera antes de tentar de novo (exceto na última tentativa)
+            if attempt < max_retries:
+                await asyncio.sleep(2 * attempt)  # backoff: 2s, 4s
 
-    except asyncio.TimeoutError:
-        print("[notebooklm] timeout")
-        return ""
-    except Exception as e:
-        print(f"[notebooklm] erro: {e}")
-        return ""
+        except asyncio.TimeoutError:
+            print(f"[notebooklm] tentativa {attempt}/{max_retries}: timeout ({NOTEBOOKLM_TIMEOUT}s)")
+            if attempt < max_retries:
+                await asyncio.sleep(2)
+        except Exception as e:
+            print(f"[notebooklm] tentativa {attempt}/{max_retries}: erro: {e}")
+            if attempt < max_retries:
+                await asyncio.sleep(2)
+
+    print(f"[notebooklm] FALHOU após {max_retries} tentativas")
+    return ""
 
 
 async def rewrite_query_with_context(thread_id: str, user_message: str) -> str:
