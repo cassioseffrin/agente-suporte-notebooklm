@@ -442,8 +442,12 @@ def build_messages(thread_id: str, user_message: str, notebooklm_context: str) -
             f"[CONTEXTO DOS MANUAIS]\n"
             f"---\n{notebooklm_context}\n---\n"
             f"{auditor_block}"
-            f"Com base no contexto acima (e nas correções do suporte humano, se houver), responda a seguinte pergunta do cliente:\n"
-            f"{user_message}"
+            f"INSTRUÇÃO OBRIGATÓRIA: O contexto acima foi encontrado nos manuais do sistema e é RELEVANTE para a pergunta. "
+            f"Use EXCLUSIVAMENTE este contexto para formular sua resposta. "
+            f"Se o contexto indicar que uma funcionalidade NÃO existe ou NÃO está disponível, "
+            f"informe isso claramente ao cliente — isso É uma resposta válida. "
+            f"NUNCA diga que 'não encontrou informações' quando há contexto acima.\n\n"
+            f"Pergunta do cliente: {user_message}"
         )
     else:
         user_content = (
@@ -988,6 +992,10 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
                     yield _sse("token", {"text": token_text})
 
             openai_ok = True
+
+            # Log diagnóstico: ver se OpenAI descartou o contexto
+            response_preview = assistant_text[:200].replace('\n', ' ') if assistant_text else "VAZIO"
+            print(f"[STREAM] Resposta OpenAI: {response_preview}...")
 
         except Exception as e:
             print(f"[STREAM openai] erro: {e}")
