@@ -203,14 +203,69 @@ def ensure_tables():
                     END IF;
                 END $$;
                 """)
+                # Renomear tabela users -> auditor se existir
                 cur.execute("""
-                CREATE TABLE IF NOT EXISTS users (
+                DO $$
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users') THEN
+                        ALTER TABLE users RENAME TO auditor;
+                    END IF;
+                END $$;
+                """)
+                cur.execute("""
+                CREATE TABLE IF NOT EXISTS auditor (
                     id SERIAL PRIMARY KEY,
                     login VARCHAR(255) UNIQUE NOT NULL,
-                    senha VARCHAR(255) NOT NULL
+                    senha VARCHAR(255) NOT NULL,
+                    name VARCHAR(255),
+                    nickname VARCHAR(100),
+                    icon_svg TEXT,
+                    email VARCHAR(255)
                 );
                 """)
-        print("[DB] Tabelas agent, user, users, chat, thread e chat_thread verificadas/criadas com sucesso.")
+                # Adicionar colunas caso a tabela já exista sem elas (migração)
+                cur.execute("""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'auditor' AND column_name = 'name'
+                    ) THEN
+                        ALTER TABLE auditor ADD COLUMN name VARCHAR(255);
+                    END IF;
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'auditor' AND column_name = 'nickname'
+                    ) THEN
+                        ALTER TABLE auditor ADD COLUMN nickname VARCHAR(100);
+                    END IF;
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'auditor' AND column_name = 'icon_svg'
+                    ) THEN
+                        ALTER TABLE auditor ADD COLUMN icon_svg TEXT;
+                    END IF;
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'auditor' AND column_name = 'email'
+                    ) THEN
+                        ALTER TABLE auditor ADD COLUMN email VARCHAR(255);
+                    END IF;
+                END $$;
+                """)
+                # Adicionar auditor_id à tabela chat (nullable FK para auditor)
+                cur.execute("""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'chat' AND column_name = 'auditor_id'
+                    ) THEN
+                        ALTER TABLE chat ADD COLUMN auditor_id INT REFERENCES auditor(id) ON DELETE SET NULL;
+                    END IF;
+                END $$;
+                """)
+        print("[DB] Tabelas agent, user, auditor, chat, thread e chat_thread verificadas/criadas com sucesso.")
     except Exception as e:
         print("[DB] Erro ao criar tabelas:", e)
     finally:
@@ -288,6 +343,7 @@ class ChatRequest(BaseModel):
 
 class AuditorMessageRequest(BaseModel):
     message: str
+    auditor_id: Optional[int] = None
 
 class LoginRequest(BaseModel):
     login: str
@@ -475,10 +531,23 @@ async def login(request: LoginRequest):
         conn = get_db_connection()
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT id, login FROM users WHERE login = %s AND senha = %s", (request.login, request.senha))
-                user = cur.fetchone()
-                if user:
-                    return {"status": "ok", "user": {"id": user["id"], "login": user["login"]}}
+                cur.execute(
+                    "SELECT id, login, name, nickname, icon_svg, email FROM auditor WHERE login = %s AND senha = %s",
+                    (request.login, request.senha)
+                )
+                auditor = cur.fetchone()
+                if auditor:
+                    return {
+                        "status": "ok",
+                        "user": {
+                            "id": auditor["id"],
+                            "login": auditor["login"],
+                            "name": auditor["name"],
+                            "nickname": auditor["nickname"],
+                            "icon_svg": auditor["icon_svg"],
+                            "email": auditor["email"],
+                        }
+                    }
                 else:
                     raise HTTPException(status_code=401, detail="Credenciais incorretas")
     except HTTPException:
@@ -1784,9 +1853,12 @@ async def get_thread_messages(
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
                     SELECT c.id, c.message, c.origem, c.created_at, c.feedback_thumb, c.feedback_text,
-                           ct.feedback_rating
+                           ct.feedback_rating, c.auditor_id,
+                           aud.name AS auditor_name, aud.nickname AS auditor_nickname,
+                           aud.icon_svg AS auditor_icon_svg
                     FROM chat c
                     JOIN chat_thread ct ON ct.chat_id = c.id
+                    LEFT JOIN auditor aud ON aud.id = c.auditor_id
                     WHERE ct.thread_id = %s
                     ORDER BY c.created_at ASC;
                 """, (thread_id,))
@@ -1804,14 +1876,20 @@ async def get_thread_messages(
                 role = "auditor"
             else:
                 role = "assistant"
-            formatted_messages.append({
+            msg_data = {
                 "id": m["id"],
                 "role": role,
                 "content": m["message"],
                 "feedback_thumb": m["feedback_thumb"],
                 "feedback_text": m["feedback_text"],
                 "feedback_rating": m["feedback_rating"],
-            })
+            }
+            if role == "auditor":
+                msg_data["auditor_id"] = m.get("auditor_id")
+                msg_data["auditor_name"] = m.get("auditor_name")
+                msg_data["auditor_nickname"] = m.get("auditor_nickname") or m.get("auditor_name")
+                msg_data["auditor_icon_svg"] = m.get("auditor_icon_svg")
+            formatted_messages.append(msg_data)
             
         return {"messages": formatted_messages}
     except Exception as e:
@@ -2181,12 +2259,13 @@ async def send_auditor_message(
 
                 uid, aid = row
 
-                # Persistir mensagem do auditor
+                # Persistir mensagem do auditor (com auditor_id se fornecido)
+                auditor_id = request.auditor_id
                 cur.execute("""
-                    INSERT INTO chat (user_id, agent_id, message, origem)
-                    VALUES (%s, %s, %s, 'auditor')
+                    INSERT INTO chat (user_id, agent_id, message, origem, auditor_id)
+                    VALUES (%s, %s, %s, 'auditor', %s)
                     RETURNING id;
-                """, (uid, aid, message_text))
+                """, (uid, aid, message_text, auditor_id))
                 chat_id = cur.fetchone()[0]
 
                 # Vincular à thread
@@ -2204,11 +2283,37 @@ async def send_auditor_message(
             conn.close()
 
     # Enviar via SSE para o chat do usuário
+    # Buscar dados do auditor para incluir no evento SSE
+    auditor_info = {}
+    if request.auditor_id:
+        try:
+            conn2 = get_db_connection()
+            with conn2:
+                with conn2.cursor(cursor_factory=RealDictCursor) as cur2:
+                    cur2.execute(
+                        "SELECT id, login, name, nickname, icon_svg FROM auditor WHERE id = %s",
+                        (request.auditor_id,)
+                    )
+                    aud_row = cur2.fetchone()
+                    if aud_row:
+                        auditor_info = {
+                            "auditor_id": aud_row["id"],
+                            "auditor_name": aud_row["name"] or aud_row["login"],
+                            "auditor_nickname": aud_row["nickname"] or aud_row["name"] or aud_row["login"],
+                            "auditor_icon_svg": aud_row["icon_svg"],
+                        }
+        except Exception as e:
+            print(f"[auditor-message] Erro ao buscar dados do auditor: {e}")
+        finally:
+            if 'conn2' in locals() and conn2:
+                conn2.close()
+
     event = {
         "type": "auditor_message",
         "chat_id": chat_id,
         "message": message_text,
         "thread_id": thread_id,
+        **auditor_info,
     }
     sent_count = 0
     for q in user_queues.get(thread_id, []):
