@@ -2011,7 +2011,16 @@ async def admin_list_threads(
                                SELECT 1 FROM chat_thread ct2
                                JOIN chat c2 ON ct2.chat_id = c2.id
                                WHERE ct2.thread_id = t.id AND c2.origem = 'auditor'
-                           ) AS has_auditor
+                           ) AS has_auditor,
+                           (
+                               SELECT COALESCE(aud.nickname, aud.name)
+                               FROM chat c3
+                               JOIN chat_thread ct3 ON ct3.chat_id = c3.id
+                               JOIN auditor aud ON aud.id = c3.auditor_id
+                               WHERE ct3.thread_id = t.id AND c3.origem = 'auditor'
+                               ORDER BY c3.created_at DESC
+                               LIMIT 1
+                           ) AS auditor_nickname
                     FROM thread t
                     JOIN chat_thread ct ON ct.thread_id = t.id
                     JOIN chat c         ON ct.chat_id   = c.id
