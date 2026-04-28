@@ -25,7 +25,7 @@ from dotenv import load_dotenv  # Carregar variáveis do .env
 load_dotenv()
 
 from openai import AsyncOpenAI
-from fastapi import FastAPI, HTTPException, Header, UploadFile, File, Request
+from fastapi import FastAPI, HTTPException, Header, UploadFile, File, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -1182,13 +1182,11 @@ async def list_feedbacks(
     page: int = 1,
     limit: int = 30,
     search: str = "",
-    thumb: int = None,
+    thumb: Optional[int] = Query(None),
     authorization: str = Header(None),
 ):
     """
-    Retorna lista paginada de mensagens que possuem feedback_text preenchido.
-    Inclui dados do usuário, agente e thread associados.
-    thumb: 1 = positivo, -1 = negativo, None = todos
+    Retorna lista paginada de mensagens que possuem feedback (texto ou thumb).
     """
     verify_api_key(authorization)
     offset = (page - 1) * limit
@@ -1197,7 +1195,8 @@ async def list_feedbacks(
         conn = get_db_connection()
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                conditions = ["c.feedback_text IS NOT NULL", "c.feedback_text <> ''"]
+                # Condição base: ou tem texto, ou tem thumb (feedback acionado)
+                conditions = ["(c.feedback_text IS NOT NULL AND c.feedback_text <> '' OR c.feedback_thumb IS NOT NULL)"]
                 params: list = []
 
                 if search.strip():
@@ -1206,8 +1205,9 @@ async def list_feedbacks(
                     params += [like, like, like, like]
 
                 if thumb is not None:
+                    # Garantir que thumb seja interpretado como int
                     conditions.append("c.feedback_thumb = %s")
-                    params.append(thumb)
+                    params.append(int(thumb))
 
                 where = " AND ".join(conditions)
 
@@ -1225,10 +1225,10 @@ async def list_feedbacks(
                            a.name      AS agent_name,
                            a.title     AS agent_title
                     FROM chat c
-                    JOIN chat_thread ct ON ct.chat_id = c.id
-                    JOIN thread t       ON t.id = ct.thread_id
-                    JOIN "user" u       ON u.id = c.user_id
-                    JOIN agent a        ON a.id = c.agent_id
+                    LEFT JOIN chat_thread ct ON ct.chat_id = c.id
+                    LEFT JOIN thread t       ON t.id = ct.thread_id
+                    LEFT JOIN "user" u       ON u.id = c.user_id
+                    LEFT JOIN agent a        ON a.id = c.agent_id
                     WHERE {where}
                     ORDER BY c.created_at DESC
                     LIMIT %s OFFSET %s;
@@ -1239,10 +1239,10 @@ async def list_feedbacks(
                 count_query = f"""
                     SELECT COUNT(*) AS total
                     FROM chat c
-                    JOIN chat_thread ct ON ct.chat_id = c.id
-                    JOIN thread t       ON t.id = ct.thread_id
-                    JOIN "user" u       ON u.id = c.user_id
-                    JOIN agent a        ON a.id = c.agent_id
+                    LEFT JOIN chat_thread ct ON ct.chat_id = c.id
+                    LEFT JOIN thread t       ON t.id = ct.thread_id
+                    LEFT JOIN "user" u       ON u.id = c.user_id
+                    LEFT JOIN agent a        ON a.id = c.agent_id
                     WHERE {where};
                 """
                 cur.execute(count_query, params)
