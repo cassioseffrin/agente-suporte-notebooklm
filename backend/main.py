@@ -1177,6 +1177,111 @@ async def health():
     return {"status": "ok", "sessions_ativas": len(sessions)}
 
 
+@app.get("/feedbacks")
+async def list_feedbacks(
+    page: int = 1,
+    limit: int = 30,
+    search: str = "",
+    thumb: int = None,
+    authorization: str = Header(None),
+):
+    """
+    Retorna lista paginada de mensagens que possuem feedback_text preenchido.
+    Inclui dados do usuário, agente e thread associados.
+    thumb: 1 = positivo, -1 = negativo, None = todos
+    """
+    verify_api_key(authorization)
+    offset = (page - 1) * limit
+
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                conditions = ["c.feedback_text IS NOT NULL", "c.feedback_text <> ''"]
+                params: list = []
+
+                if search.strip():
+                    conditions.append("(c.feedback_text ILIKE %s OR c.message ILIKE %s OR u.email ILIKE %s OR u.name ILIKE %s)")
+                    like = f"%{search.strip()}%"
+                    params += [like, like, like, like]
+
+                if thumb is not None:
+                    conditions.append("c.feedback_thumb = %s")
+                    params.append(thumb)
+
+                where = " AND ".join(conditions)
+
+                query = f"""
+                    SELECT c.id        AS chat_id,
+                           c.message   AS message,
+                           c.feedback_thumb,
+                           c.feedback_text,
+                           c.created_at,
+                           ct.feedback_rating,
+                           t.id        AS thread_id,
+                           t.subject   AS thread_subject,
+                           u.name      AS user_name,
+                           u.email     AS user_email,
+                           a.name      AS agent_name,
+                           a.title     AS agent_title
+                    FROM chat c
+                    JOIN chat_thread ct ON ct.chat_id = c.id
+                    JOIN thread t       ON t.id = ct.thread_id
+                    JOIN "user" u       ON u.id = c.user_id
+                    JOIN agent a        ON a.id = c.agent_id
+                    WHERE {where}
+                    ORDER BY c.created_at DESC
+                    LIMIT %s OFFSET %s;
+                """
+                cur.execute(query, params + [limit, offset])
+                rows = cur.fetchall()
+
+                count_query = f"""
+                    SELECT COUNT(*) AS total
+                    FROM chat c
+                    JOIN chat_thread ct ON ct.chat_id = c.id
+                    JOIN thread t       ON t.id = ct.thread_id
+                    JOIN "user" u       ON u.id = c.user_id
+                    JOIN agent a        ON a.id = c.agent_id
+                    WHERE {where};
+                """
+                cur.execute(count_query, params)
+                total = cur.fetchone()["total"]
+
+        feedbacks = []
+        for r in rows:
+            feedbacks.append({
+                "chat_id": r["chat_id"],
+                "message": r["message"],
+                "feedback_thumb": r["feedback_thumb"],
+                "feedback_text": r["feedback_text"],
+                "feedback_rating": r["feedback_rating"],
+                "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+                "thread_id": r["thread_id"],
+                "thread_subject": r["thread_subject"],
+                "user_name": r["user_name"],
+                "user_email": r["user_email"],
+                "agent_name": r["agent_name"],
+                "agent_title": r["agent_title"],
+            })
+
+        return {
+            "feedbacks": feedbacks,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "pages": (total + limit - 1) // limit if limit else 1,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[feedbacks] Erro: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao buscar feedbacks.")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+
 @app.get("/refreshAuth")
 async def refresh_auth():
     """
