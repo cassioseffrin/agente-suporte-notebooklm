@@ -349,6 +349,9 @@ class LoginRequest(BaseModel):
     login: str
     senha: str
 
+class FAQRequest(BaseModel):
+    faq_text: Optional[str] = None
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -2669,6 +2672,7 @@ async def _add_faq_source_to_notebook(notebook_id: str, faq_title: str, full_faq
 @app.post("/thread/{thread_id}/add-to-faq")
 async def add_thread_to_faq(
     thread_id: str,
+    request: Optional[FAQRequest] = None,
     authorization: str = Header(None),
 ):
     """
@@ -2761,11 +2765,14 @@ async def add_thread_to_faq(
     import re
     existing_clean = re.sub(r'#?\s*FAQ\s*-?\s*Perguntas\s*Frequentes\s*', '', existing_faq).strip()
 
-    # Gerar FAQ usando OpenAI (passando a FAQ existente para evitar duplicação)
-    try:
-        faq_text = await _generate_faq_from_messages(messages_for_faq, existing_clean)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao gerar FAQ: {e}")
+    # Gerar FAQ usando OpenAI (se não for passado texto pronto pelo auditor)
+    faq_text = request.faq_text if request and request.faq_text else None
+    
+    if not faq_text:
+        try:
+            faq_text = await _generate_faq_from_messages(messages_for_faq, existing_clean)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Erro ao gerar FAQ: {e}")
 
     if not faq_text.strip():
         # Se retornou vazio (ex: era uma dúvida idêntica à que já tem), dizemos que não teve FAQ nova (ou retornamos sucesso com arquivo inalterado)
@@ -2803,7 +2810,7 @@ async def add_thread_to_faq(
                 clean_lines.append("")
             clean_lines.append(pergunta_part)
             clean_lines.append(resposta_part)
-        elif stripped.lower().startswith("pergunta:"):
+        elif stripped.lower().startswith("pergunta:") or stripped.startswith("## "):
             if clean_lines:
                 clean_lines.append("")
                 clean_lines.append("")
