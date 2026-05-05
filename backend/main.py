@@ -1233,7 +1233,7 @@ async def list_feedbacks(
                     LEFT JOIN "user" u       ON u.id = c.user_id
                     LEFT JOIN agent a        ON a.id = c.agent_id
                     WHERE {where}
-                    ORDER BY c.created_at DESC
+                    ORDER BY c.created_at DESC, c.id DESC
                     LIMIT %s OFFSET %s;
                 """
                 cur.execute(query, params + [limit, offset])
@@ -1968,7 +1968,7 @@ async def get_thread_messages(
                     JOIN chat_thread ct ON ct.chat_id = c.id
                     LEFT JOIN auditor aud ON aud.id = c.auditor_id
                     WHERE ct.thread_id = %s
-                    ORDER BY c.created_at ASC;
+                    ORDER BY c.created_at ASC, c.id ASC;
                 """, (thread_id,))
                 messages = cur.fetchall()
                 
@@ -2730,7 +2730,7 @@ async def add_thread_to_faq(
                     FROM chat c
                     JOIN chat_thread ct ON ct.chat_id = c.id
                     WHERE ct.thread_id = %s
-                    ORDER BY c.created_at ASC;
+                    ORDER BY c.created_at ASC, c.id ASC;
                 """, (thread_id,))
                 raw_messages = cur.fetchall()
     except HTTPException:
