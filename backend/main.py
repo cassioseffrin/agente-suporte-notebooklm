@@ -1991,6 +1991,7 @@ async def get_thread_messages(
                 "feedback_thumb": m["feedback_thumb"],
                 "feedback_text": m["feedback_text"],
                 "feedback_rating": m["feedback_rating"],
+                "created_at": m["created_at"].isoformat() if m.get("created_at") else None,
             }
             if role == "auditor":
                 msg_data["auditor_id"] = m.get("auditor_id")
@@ -2054,6 +2055,44 @@ async def delete_thread(
     finally:
         if 'conn' in locals() and conn:
             conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Admin - TTS (Text to Speech) para notificações do auditor
+# ---------------------------------------------------------------------------
+
+class TTSRequest(BaseModel):
+    text: str
+
+@app.post("/admin/tts")
+async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
+    """Gera áudio TTS usando OpenAI gpt-4o-mini-tts (voz coral, pt-BR)."""
+    verify_api_key(authorization)
+
+    text = request.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Texto vazio")
+
+    try:
+        response = await openai_client.audio.speech.create(
+            model="gpt-4o-mini-tts",
+            voice="coral",
+            input=text,
+            instructions="Fale em português do Brasil, com tom profissional e claro, como uma notificação de sistema.",
+            response_format="mp3",
+        )
+
+        # response is an HttpxBinaryResponseContent — read all bytes
+        audio_bytes = response.content
+
+        return StreamingResponse(
+            iter([audio_bytes]),
+            media_type="audio/mpeg",
+            headers={"Content-Disposition": "inline; filename=notification.mp3"},
+        )
+    except Exception as e:
+        print(f"[admin/tts] Erro: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar áudio TTS: {e}")
 
 
 # ---------------------------------------------------------------------------
