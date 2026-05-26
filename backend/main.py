@@ -1540,6 +1540,99 @@ async def auth_status_all():
     return {"profiles": results}
 
 
+class RenameProfileRequest(BaseModel):
+    old_profile: str
+    new_profile: str
+
+
+@app.post("/renameProfile")
+async def rename_profile(request: RenameProfileRequest):
+    """
+    Renomeia um profile de autenticação:
+    1. Atualiza todos os agentes que usam o old_profile no banco de dados para new_profile.
+    2. Se existir uma pasta de sessão on-disk (~/.notebooklm/profiles/old_profile),
+       renomeia a pasta para new_profile.
+    """
+    from pathlib import Path as _Path
+    import shutil
+    import re
+    
+    old_p = re.sub(r'[^a-z0-9-_]', '', request.old_profile.strip().lower())
+    new_p = re.sub(r'[^a-z0-9-_]', '', request.new_profile.strip().lower())
+    
+    if not old_p or not new_p:
+        raise HTTPException(status_code=400, detail="Nomes de profile inválidos.")
+        
+    if old_p == new_p:
+        return {"status": "ok", "message": "Nomes iguais, nenhuma alteração necessária."}
+        
+    disk_renamed = False
+    old_dir = _Path.home() / ".notebooklm" / "profiles" / old_p
+    new_dir = _Path.home() / ".notebooklm" / "profiles" / new_p
+    
+    legacy_file = _Path.home() / ".notebooklm" / "storage_state.json"
+    if old_p == "default" and not old_dir.exists() and legacy_file.exists():
+        try:
+            new_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(legacy_file, new_dir / "storage_state.json")
+            disk_renamed = True
+            print(f"[renameProfile] Sessão legado copiada de default para {new_p}")
+        except Exception as e:
+            print(f"[renameProfile] Erro ao migrar arquivo legado: {e}")
+            
+    if old_dir.exists() and old_dir.is_dir():
+        try:
+            if new_dir.exists():
+                for item in old_dir.iterdir():
+                    shutil.move(str(item), str(new_dir / item.name))
+                old_dir.rmdir()
+            else:
+                shutil.move(str(old_dir), str(new_dir))
+            disk_renamed = True
+            print(f"[renameProfile] Pasta renomeada de {old_p} para {new_p}")
+        except Exception as e:
+            print(f"[renameProfile] Erro ao renomear pasta: {e}")
+            raise HTTPException(status_code=500, detail=f"Erro ao renomear arquivos no disco: {e}")
+            
+    db_updated = 0
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                if old_p == "default":
+                    cur.execute("""
+                        UPDATE agent
+                        SET notebooklm_profile = %s, modification = NOW()
+                        WHERE notebooklm_profile IS NULL OR notebooklm_profile = 'default'
+                        RETURNING id;
+                    """, (new_p,))
+                else:
+                    cur.execute("""
+                        UPDATE agent
+                        SET notebooklm_profile = %s, modification = NOW()
+                        WHERE notebooklm_profile = %s
+                        RETURNING id;
+                    """, (new_p, old_p))
+                rows = cur.fetchall()
+                db_updated = len(rows)
+                print(f"[renameProfile] {db_updated} agentes atualizados de {old_p} para {new_p}")
+    except Exception as e:
+        print(f"[renameProfile] Erro no banco de dados: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro no banco de dados: {e}")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+            
+    return {
+        "status": "ok",
+        "old_profile": old_p,
+        "new_profile": new_p,
+        "disk_renamed": disk_renamed,
+        "agents_updated": db_updated,
+        "message": f"Profile renomeado com sucesso! {db_updated} agente(s) e arquivos de sessão atualizados."
+    }
+
+
 @app.get("/dashboard/chats-per-user")
 async def dashboard_chats_per_user(days: int = 30, limit: int = 10):
     """
