@@ -81,8 +81,18 @@ def ensure_tables():
                     modification  TIMESTAMP   NOT NULL DEFAULT NOW(),
                     sort_order    INTEGER     DEFAULT 0,
                     active        BOOLEAN     DEFAULT TRUE,
-                    faq_content   TEXT        DEFAULT ''
+                    faq_content   TEXT        DEFAULT '',
+                    notebooklm_profile VARCHAR(100) DEFAULT 'default'
                 );
+                """)
+
+                # Migration: add notebooklm_profile column if missing (existing DBs)
+                cur.execute("""
+                DO $$ BEGIN
+                    ALTER TABLE agent ADD COLUMN notebooklm_profile VARCHAR(100) DEFAULT 'default';
+                EXCEPTION
+                    WHEN duplicate_column THEN NULL;
+                END $$;
                 """)
 
                 # 2. Tabela auditor
@@ -149,12 +159,12 @@ def ensure_tables():
 
 
 def get_agent_info_by_name(name: str):
-    """Busca id (notebook_id) e system_prompt pelo nome do agente."""
+    """Busca id (notebook_id), system_prompt e notebooklm_profile pelo nome do agente."""
     conn = get_db_connection()
     try:
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT id, system_prompt FROM agent WHERE name = %s LIMIT 1", (name,))
+                cur.execute("SELECT id, system_prompt, COALESCE(notebooklm_profile, 'default') as notebooklm_profile FROM agent WHERE name = %s LIMIT 1", (name,))
                 return cur.fetchone()
     finally:
         conn.close()
@@ -237,7 +247,28 @@ def verify_api_key(authorization: str = Header(None)):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
-async def query_notebooklm(user_message: str, notebook_id: str, max_retries: int = 3) -> str:
+def _get_notebooklm_cmd(profile: str, *args) -> list[str]:
+    """
+    Retorna a lista de argumentos para executar o notebooklm usando o arquivo de sessão correspondente.
+    Usa '--storage <path>' para isolar as contas.
+    """
+    from pathlib import Path as _Path
+    profile = profile.strip() or "default"
+    
+    profile_file = _Path.home() / ".notebooklm" / "profiles" / profile / "storage_state.json"
+    legacy_file = _Path.home() / ".notebooklm" / "storage_state.json"
+    
+    if profile_file.exists():
+        session_file = profile_file
+    elif profile == "default" and legacy_file.exists():
+        session_file = legacy_file
+    else:
+        session_file = profile_file
+        
+    return ["notebooklm", "--storage", str(session_file)] + list(args)
+
+
+async def query_notebooklm(user_message: str, notebook_id: str, profile: str = "default", max_retries: int = 3) -> str:
     """Consulta o NotebookLM CLI com retry para falhas rápidas.
     NÃO faz retry em timeout (240s já consome quase todo o budget).
     Orçamento total: ~400s máx para caber no proxy_read_timeout do nginx (600s)."""
@@ -248,12 +279,7 @@ async def query_notebooklm(user_message: str, notebook_id: str, max_retries: int
     TIME_BUDGET = 400  # segundos máx para todas as tentativas (nginx=600s, sobra p/ rewrite+openai)
     t0 = time.monotonic()
 
-    cmd = [
-        "notebooklm", "ask",
-        user_message,
-        "-n", notebook_id,
-        "--json",
-    ]
+    cmd = _get_notebooklm_cmd(profile, "ask", user_message, "-n", notebook_id, "--json")
 
     for attempt in range(1, max_retries + 1):
         elapsed = time.monotonic() - t0
@@ -617,17 +643,20 @@ async def get_agents():
 
 
 @app.get("/updateNotebooks")
-async def update_notebooks():
+async def update_notebooks(profile: str = "default"):
     """
-    1. Executa `notebooklm list --json` para obter todos os notebooks.
+    1. Executa `notebooklm -p <profile> list --json` para obter todos os notebooks.
     2. Para cada notebook, faz INSERT ... ON CONFLICT (id) DO UPDATE na tabela agent.
     3. Notebooks que não estão mais na lista têm active=false (nunca são deletados).
     4. Retorna resumo: notebooks encontrados, inseridos, atualizados e desativados.
     """
+    profile = profile.strip() or "default"
+
     # --- 1. Chamar CLI ---
     try:
+        cmd = _get_notebooklm_cmd(profile, "list", "--json")
         proc = await asyncio.create_subprocess_exec(
-            "notebooklm", "list", "--json",
+            *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -656,11 +685,12 @@ async def update_notebooks():
 
     # --- 3. Upsert no Postgres ---
     upsert_sql = """
-        INSERT INTO agent (id, title, name, creation, modification, active)
-        VALUES (%(id)s, %(title)s, %(name)s, %(creation)s, %(modification)s, FALSE)
+        INSERT INTO agent (id, title, name, creation, modification, active, notebooklm_profile)
+        VALUES (%(id)s, %(title)s, %(name)s, %(creation)s, %(modification)s, FALSE, %(profile)s)
         ON CONFLICT (id) DO UPDATE
             SET title        = EXCLUDED.title,
-                modification = EXCLUDED.modification
+                modification = EXCLUDED.modification,
+                notebooklm_profile = COALESCE(agent.notebooklm_profile, EXCLUDED.notebooklm_profile)
         RETURNING (xmax = 0) AS inserted;
     """
 
@@ -704,6 +734,7 @@ async def update_notebooks():
                             "name":         nb_name,
                             "creation":     nb_created,
                             "modification": now,
+                            "profile":      profile,
                         })
                         row = cur.fetchone()
                         if row and row["inserted"]:
@@ -715,10 +746,10 @@ async def update_notebooks():
                 
                 # --- 4. Desativar removidos (soft delete) ---
                 if valid_ids:
-                    # Marca como inativo os agentes que não vieram na lista atual
+                    # Marca como inativo os agentes pertencentes a este profile que não vieram na lista atual
                     cur.execute(
-                        "UPDATE agent SET active = FALSE, modification = %s WHERE id != ALL(%s) AND active = TRUE RETURNING id;",
-                        (now, valid_ids)
+                        "UPDATE agent SET active = FALSE, modification = %s WHERE id != ALL(%s) AND active = TRUE AND COALESCE(notebooklm_profile, 'default') = %s RETURNING id;",
+                        (now, valid_ids, profile)
                     )
                     deactivated_rows = cur.fetchall()
                     deactivated_count = len(deactivated_rows)
@@ -747,13 +778,14 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     if not user_message:
         raise HTTPException(status_code=400, detail="Mensagem vazia")
 
-    # Busca o agente no banco de dados para pegar notebook ID e system prompt.
+    # Busca o agente no banco de dados para pegar notebook ID, system prompt e profile.
     agent_info = get_agent_info_by_name(assistant_name)
     if not agent_info:
         raise HTTPException(status_code=404, detail=f"Agent '{assistant_name}' não encontrado.")
     
     agent_notebook_id = agent_info["id"]
     agent_system_prompt = agent_info.get("system_prompt", "Você é um assistente útil.")
+    agent_profile = agent_info.get("notebooklm_profile", "default")
 
     if thread_id not in sessions:
         sessions[thread_id] = []
@@ -773,7 +805,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     print(f"[DEBUG Chat] Rewritten: {search_query!r}")
 
     # 2. NotebookLM - busca contexto nos manuais com a query expandida usando o ID dinâmico
-    notebooklm_context = await query_notebooklm(search_query, agent_notebook_id)
+    notebooklm_context = await query_notebooklm(search_query, agent_notebook_id, profile=agent_profile)
 
     context_preview = notebooklm_context[:200].replace('\n', ' ') + "..." if notebooklm_context else "VAZIO"
     print(f"[DEBUG Chat] Contexto : {context_preview}")
@@ -877,6 +909,7 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
 
     agent_notebook_id    = agent_info["id"]
     agent_system_prompt  = agent_info.get("system_prompt", "Você é um assistente útil.")
+    agent_profile        = agent_info.get("notebooklm_profile", "default")
 
     if thread_id not in sessions:
         sessions[thread_id] = []
@@ -906,7 +939,7 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
 
         # --- Etapa 2: NotebookLM RAG ---
         yield _sse("status", {"stage": "searching", "detail": "Buscando nos manuais..."})
-        notebooklm_context = await query_notebooklm(search_query, agent_notebook_id)
+        notebooklm_context = await query_notebooklm(search_query, agent_notebook_id, profile=agent_profile)
 
         context_preview = notebooklm_context[:200].replace('\n', ' ') + "..." if notebooklm_context else "VAZIO"
         print(f"[STREAM] Contexto : {context_preview}")
@@ -1194,14 +1227,19 @@ async def refresh_auth():
 @app.post("/uploadAuthState")
 async def upload_auth_state(
     file: UploadFile = File(...),
+    profile: str = "default",
 ):
     """
     Recebe o storage_state.json do NotebookLM via upload e salva no servidor.
-    Após salvar, valida executando 'notebooklm list'.
+    Salva no diretório do profile especificado (~/.notebooklm/profiles/<profile>/).
+    Após salvar, valida executando 'notebooklm -p <profile> list'.
     """
 
     from pathlib import Path as _Path
     import shutil
+
+    # Sanitizar nome do profile
+    profile = profile.strip() or "default"
 
     # --- 1. Ler conteúdo ---
     content = await file.read()
@@ -1223,9 +1261,10 @@ async def upload_auth_state(
 
     cookies_count = len(data.get("cookies", []))
 
-    # --- 3. Salvar no servidor (com backup do anterior) ---
-    session_file = _Path.home() / ".notebooklm" / "storage_state.json"
-    session_file.parent.mkdir(parents=True, exist_ok=True)
+    # --- 3. Salvar no diretório do profile (com backup do anterior) ---
+    profile_dir = _Path.home() / ".notebooklm" / "profiles" / profile
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    session_file = profile_dir / "storage_state.json"
 
     if session_file.exists():
         backup = session_file.with_suffix(".json.bak")
@@ -1233,64 +1272,74 @@ async def upload_auth_state(
         print(f"[uploadAuthState] backup salvo em {backup}")
 
     session_file.write_bytes(content)
-    print(f"[uploadAuthState] storage_state.json atualizado ({len(content)} bytes, {cookies_count} cookies)")
+    print(f"[uploadAuthState] profile={profile} storage_state.json atualizado ({len(content)} bytes, {cookies_count} cookies)")
 
-    # --- 4. Validar executando notebooklm list ---
+    # --- 4. Validar executando notebooklm -p <profile> list ---
     valid = False
     try:
+        cmd = _get_notebooklm_cmd(profile, "list")
         proc = await asyncio.create_subprocess_exec(
-            "notebooklm", "list",
+            *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
         stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=30)
         valid = proc.returncode == 0
         if not valid:
-            print(f"[uploadAuthState] validação falhou: {stderr.decode()[:200]}")
+            print(f"[uploadAuthState] validação falhou (profile={profile}): {stderr.decode()[:200]}")
         else:
-            print("[uploadAuthState] sessão validada com sucesso.")
+            print(f"[uploadAuthState] sessão validada com sucesso (profile={profile}).")
     except asyncio.TimeoutError:
-        print("[uploadAuthState] timeout na validação")
+        print(f"[uploadAuthState] timeout na validação (profile={profile})")
     except Exception as e:
-        print(f"[uploadAuthState] erro na validação: {e}")
+        print(f"[uploadAuthState] erro na validação (profile={profile}): {e}")
 
     return {
         "status": "ok",
+        "profile": profile,
         "saved": True,
         "valid": valid,
         "bytes": len(content),
         "cookies_count": cookies_count,
         "message": (
-            "✅ Autenticação renovada e validada com sucesso!"
+            f"✅ Autenticação renovada e validada com sucesso! (profile: {profile})"
             if valid else
-            "⚠️ Arquivo salvo, mas a validação falhou. O token pode estar expirado - tente gerar um novo no Mac."
+            f"⚠️ Arquivo salvo, mas a validação falhou. O token pode estar expirado - tente gerar um novo no Mac. (profile: {profile})"
         ),
     }
 
 
 
 @app.get("/authStatus")
-async def auth_status():
+async def auth_status(profile: str = "default"):
     """
-    Verifica o status do storage_state.json do NotebookLM no servidor.
+    Verifica o status do storage_state.json do NotebookLM no servidor para um profile específico.
     Retorna se o arquivo existe, quantos cookies tem, quais expiram e quando.
     """
     from pathlib import Path as _Path
 
-    session_file = _Path.home() / ".notebooklm" / "storage_state.json"
+    profile = profile.strip() or "default"
 
-    if not session_file.exists():
+    # Tentar profile-based path primeiro, fallback para legacy path
+    profile_file = _Path.home() / ".notebooklm" / "profiles" / profile / "storage_state.json"
+    legacy_file = _Path.home() / ".notebooklm" / "storage_state.json"
+
+    if profile_file.exists():
+        session_file = profile_file
+    elif profile == "default" and legacy_file.exists():
+        session_file = legacy_file
+    else:
         return {
+            "profile": profile,
             "exists": False,
             "valid": False,
             "cookies_count": 0,
             "expires_at": None,
             "file_age_hours": None,
-            "message": "Arquivo storage_state.json não encontrado no servidor.",
+            "message": f"Arquivo storage_state.json não encontrado para o profile '{profile}'.",
         }
 
     try:
-        import stat as _stat
         raw = session_file.read_bytes()
         data = json.loads(raw)
         cookies = data.get("cookies", [])
@@ -1317,11 +1366,12 @@ async def auth_status():
         file_mtime = session_file.stat().st_mtime
         file_age_hours = round((now_ts - file_mtime) / 3600, 1)
 
-        # Validar executando notebooklm list (rápido, timeout curto)
+        # Validar executando notebooklm -p <profile> list (rápido, timeout curto)
         valid_session = False
         try:
+            cmd = _get_notebooklm_cmd(profile, "list")
             proc = await asyncio.create_subprocess_exec(
-                "notebooklm", "list",
+                *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -1338,6 +1388,7 @@ async def auth_status():
             message = "⚠️ Sessão pode estar inválida. Recomenda-se renovar."
 
         return {
+            "profile": profile,
             "exists": True,
             "valid": valid_session,
             "cookies_count": cookies_count,
@@ -1347,6 +1398,7 @@ async def auth_status():
         }
     except Exception as e:
         return {
+            "profile": profile,
             "exists": True,
             "valid": False,
             "cookies_count": 0,
@@ -1354,6 +1406,138 @@ async def auth_status():
             "file_age_hours": None,
             "message": f"Erro ao verificar o arquivo: {e}",
         }
+
+
+@app.get("/authStatus/all")
+async def auth_status_all():
+    """
+    Retorna o status de autenticação de TODOS os profiles distintos usados pelos agentes.
+    Inclui quais agentes estão associados a cada profile.
+    """
+    from pathlib import Path as _Path
+
+    # 1. Buscar todos os profiles distintos do banco
+    profiles_map: dict[str, list[dict]] = {}
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT COALESCE(notebooklm_profile, 'default') as profile,
+                           id, name, title, active
+                    FROM agent
+                    WHERE active = TRUE
+                    ORDER BY notebooklm_profile, sort_order ASC;
+                """)
+                for row in cur.fetchall():
+                    p = row["profile"]
+                    if p not in profiles_map:
+                        profiles_map[p] = []
+                    profiles_map[p].append({
+                        "id": row["id"],
+                        "name": row["name"],
+                        "title": row["title"],
+                    })
+    except Exception as e:
+        print(f"[authStatus/all] Erro ao buscar profiles: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar profiles: {e}")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+    if not profiles_map:
+        profiles_map["default"] = []
+
+    # 1.5. Buscar também os profiles que existem no disco (possuem storage_state.json) mas sem agentes
+    profiles_dir = _Path.home() / ".notebooklm" / "profiles"
+    if profiles_dir.exists() and profiles_dir.is_dir():
+        for p_dir in profiles_dir.iterdir():
+            if p_dir.is_dir() and (p_dir / "storage_state.json").exists():
+                p_name = p_dir.name
+                if p_name not in profiles_map:
+                    profiles_map[p_name] = []
+
+    # 2. Para cada profile, verificar o status do storage_state.json
+    results = []
+    for profile_name, agents_list in sorted(profiles_map.items()):
+        profile_file = _Path.home() / ".notebooklm" / "profiles" / profile_name / "storage_state.json"
+        legacy_file = _Path.home() / ".notebooklm" / "storage_state.json"
+
+        if profile_file.exists():
+            session_file = profile_file
+        elif profile_name == "default" and legacy_file.exists():
+            session_file = legacy_file
+        else:
+            results.append({
+                "profile": profile_name,
+                "agents": agents_list,
+                "exists": False,
+                "valid": False,
+                "cookies_count": 0,
+                "expires_at": None,
+                "file_age_hours": None,
+                "message": f"Sem autenticação configurada.",
+            })
+            continue
+
+        try:
+            raw = session_file.read_bytes()
+            data = json.loads(raw)
+            cookies = data.get("cookies", [])
+            cookies_count = len(cookies)
+
+            now_ts = datetime.utcnow().timestamp()
+            expires_timestamps = []
+            for c in cookies:
+                exp = c.get("expires")
+                if exp and isinstance(exp, (int, float)) and exp > 0:
+                    expires_timestamps.append(exp)
+
+            if expires_timestamps:
+                nearest_expiry_ts = min(expires_timestamps)
+                nearest_expiry = datetime.utcfromtimestamp(nearest_expiry_ts)
+                is_expired = nearest_expiry_ts < now_ts
+                expires_at_iso = nearest_expiry.isoformat() + "Z"
+            else:
+                is_expired = False
+                expires_at_iso = None
+
+            file_mtime = session_file.stat().st_mtime
+            file_age_hours = round((now_ts - file_mtime) / 3600, 1)
+
+            # Quick validation — skip for speed, infer from cookie expiry
+            valid_session = not is_expired
+
+            if valid_session:
+                message = "✅ Sessão ativa e válida."
+            elif is_expired:
+                message = "⚠️ Token expirado. Renove a autenticação."
+            else:
+                message = "⚠️ Sessão pode estar inválida."
+
+            results.append({
+                "profile": profile_name,
+                "agents": agents_list,
+                "exists": True,
+                "valid": valid_session,
+                "cookies_count": cookies_count,
+                "expires_at": expires_at_iso,
+                "file_age_hours": file_age_hours,
+                "message": message,
+            })
+        except Exception as e:
+            results.append({
+                "profile": profile_name,
+                "agents": agents_list,
+                "exists": True,
+                "valid": False,
+                "cookies_count": 0,
+                "expires_at": None,
+                "file_age_hours": None,
+                "message": f"Erro: {e}",
+            })
+
+    return {"profiles": results}
 
 
 @app.get("/dashboard/chats-per-user")
@@ -1597,7 +1781,8 @@ async def get_agents_all():
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
                     SELECT id, title, name, system_prompt, email, overview,
-                           sort_order, active, creation, modification
+                           sort_order, active, creation, modification,
+                           COALESCE(notebooklm_profile, 'default') as notebooklm_profile
                     FROM agent
                     ORDER BY sort_order ASC, title ASC;
                 """)
@@ -1615,6 +1800,7 @@ async def get_agents_all():
                         "active": r["active"],
                         "creation": r["creation"].isoformat() if r["creation"] else None,
                         "modification": r["modification"].isoformat() if r["modification"] else None,
+                        "notebooklm_profile": r["notebooklm_profile"],
                         # faq_content intentionally omitted from list (fetched on-demand via GET /agents/{id})
                     })
                 return {"agents": agents}
@@ -1634,7 +1820,8 @@ async def get_agent_by_id(agent_id: str):
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
                     SELECT id, title, name, system_prompt, email, overview,
-                           sort_order, active, creation, modification, faq_content
+                           sort_order, active, creation, modification, faq_content,
+                           COALESCE(notebooklm_profile, 'default') as notebooklm_profile
                     FROM agent WHERE id = %s;
                 """, (agent_id,))
                 r = cur.fetchone()
@@ -1652,6 +1839,7 @@ async def get_agent_by_id(agent_id: str):
                     "creation": r["creation"].isoformat() if r["creation"] else None,
                     "modification": r["modification"].isoformat() if r["modification"] else None,
                     "faq_content": r["faq_content"] or "",
+                    "notebooklm_profile": r["notebooklm_profile"],
                 }
     except HTTPException:
         raise
@@ -1671,6 +1859,7 @@ class AgentUpdateRequest(BaseModel):
     sort_order: Optional[int] = None
     active: Optional[bool] = None
     faq_content: Optional[str] = None
+    notebooklm_profile: Optional[str] = None
 
 
 @app.put("/agents/{agent_id}")
@@ -1693,7 +1882,8 @@ async def update_agent(agent_id: str, request: AgentUpdateRequest):
                     UPDATE agent SET {set_clause}
                     WHERE id = %(agent_id)s
                     RETURNING id, title, name, system_prompt, email, overview,
-                              sort_order, active, creation, modification;
+                              sort_order, active, creation, modification,
+                              COALESCE(notebooklm_profile, 'default') as notebooklm_profile;
                 """, fields)
                 row = cur.fetchone()
                 if not row:
@@ -1724,7 +1914,7 @@ async def sync_agent_faq_to_notebooklm(agent_id: str):
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(
-                    "SELECT id, title, faq_content FROM agent WHERE id = %s;",
+                    "SELECT id, title, faq_content, COALESCE(notebooklm_profile, 'default') as notebooklm_profile FROM agent WHERE id = %s;",
                     (agent_id,)
                 )
                 row = cur.fetchone()
@@ -1742,8 +1932,9 @@ async def sync_agent_faq_to_notebooklm(agent_id: str):
     if not faq_content.strip():
         raise HTTPException(status_code=400, detail="FAQ vazia. Adicione conteúdo antes de sincronizar.")
 
+    agent_profile = row.get("notebooklm_profile", "default")
     faq_title = _build_faq_source_title(row["title"])
-    add_result = await _add_faq_source_to_notebook(agent_id, faq_title, faq_content)
+    add_result = await _add_faq_source_to_notebook(agent_id, faq_title, faq_content, profile=agent_profile)
 
     return {
         "status": "ok" if add_result["success"] else "error",
@@ -2492,16 +2683,15 @@ def _build_faq_source_title(agent_title: str) -> str:
     return f"FAQ_{clean}"
 
 
-async def _delete_faq_sources(notebook_id: str, faq_title: str):
+async def _delete_faq_sources(notebook_id: str, faq_title: str, profile: str = "default"):
     """
     Deleta TODAS as sources cujo título contenha 'FAQ' ou 'faq' no notebook.
     Isso garante limpeza de sources duplicados criados anteriormente.
     """
     try:
+        cmd = _get_notebooklm_cmd(profile, "source", "list", "-n", notebook_id, "--json")
         proc = await asyncio.create_subprocess_exec(
-            "notebooklm", "source", "list",
-            "-n", notebook_id,
-            "--json",
+            *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -2519,11 +2709,9 @@ async def _delete_faq_sources(notebook_id: str, faq_title: str):
             # Deletar qualquer source que tenha FAQ no título OU que seja o arquivo antigo faq_*.txt
             if source_id and ("faq" in s_title.lower() or s_title == faq_title):
                 try:
+                    cmd_del = _get_notebooklm_cmd(profile, "source", "delete", source_id, "-n", notebook_id, "-y")
                     proc_del = await asyncio.create_subprocess_exec(
-                        "notebooklm", "source", "delete",
-                        source_id,
-                        "-n", notebook_id,
-                        "-y",  # Skip confirmation
+                        *cmd_del,
                         stdout=asyncio.subprocess.PIPE,
                         stderr=asyncio.subprocess.PIPE,
                     )
@@ -2535,7 +2723,7 @@ async def _delete_faq_sources(notebook_id: str, faq_title: str):
         print(f"[faq] Erro ao listar/deletar sources: {e}")
 
 
-async def _add_faq_source_to_notebook(notebook_id: str, faq_title: str, full_faq_content: str) -> dict:
+async def _add_faq_source_to_notebook(notebook_id: str, faq_title: str, full_faq_content: str, profile: str = "default") -> dict:
     """
     Deleta todas as sources FAQ antigas e adiciona UMA ÚNICA source com o conteúdo
     completo da FAQ acumulada. O arquivo temporário recebe o nome do título para
@@ -2545,7 +2733,7 @@ async def _add_faq_source_to_notebook(notebook_id: str, faq_title: str, full_faq
     from pathlib import Path as _Path
 
     # 1. Deletar qualquer source FAQ existente
-    await _delete_faq_sources(notebook_id, faq_title)
+    await _delete_faq_sources(notebook_id, faq_title, profile=profile)
 
     # 2. Criar arquivo temporário com o NOME CORRETO (NotebookLM usa o filename como título)
     tmp_dir = _Path(tempfile.gettempdir()) / "notebooklm_faq"
@@ -2555,11 +2743,9 @@ async def _add_faq_source_to_notebook(notebook_id: str, faq_title: str, full_faq
 
     # 3. Adicionar source
     try:
+        cmd = _get_notebooklm_cmd(profile, "source", "add", str(faq_file), "-n", notebook_id, "--json")
         proc = await asyncio.create_subprocess_exec(
-            "notebooklm", "source", "add",
-            str(faq_file),
-            "-n", notebook_id,
-            "--json",
+            *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -2567,7 +2753,7 @@ async def _add_faq_source_to_notebook(notebook_id: str, faq_title: str, full_faq
 
         if proc.returncode == 0:
             result = json.loads(stdout.decode()) if stdout else {}
-            print(f"[faq] Source '{faq_title}' adicionado ao notebook {notebook_id}")
+            print(f"[faq] Source '{faq_title}' adicionado ao notebook {notebook_id} (profile={profile})")
             return {"success": True, "result": result}
         else:
             err = stderr.decode()[:500]
@@ -2613,7 +2799,8 @@ async def add_thread_to_faq(
                 # Buscar agente da thread
                 cur.execute("""
                     SELECT DISTINCT a.id AS agent_id, a.name AS agent_name, a.title AS agent_title,
-                           COALESCE(a.faq_content, '') AS faq_content
+                           COALESCE(a.faq_content, '') AS faq_content,
+                           COALESCE(a.notebooklm_profile, 'default') AS notebooklm_profile
                     FROM chat c
                     JOIN chat_thread ct ON ct.chat_id = c.id
                     JOIN agent a ON c.agent_id = a.id
@@ -2757,9 +2944,10 @@ async def add_thread_to_faq(
 
     # Recriar source no NotebookLM (deleta antigas + cria única nova)
     agent_notebook_id = agent_row["agent_id"]
+    agent_profile = agent_row.get("notebooklm_profile", "default")
     faq_title = _build_faq_source_title(agent_row["agent_title"])
 
-    add_result = await _add_faq_source_to_notebook(agent_notebook_id, faq_title, full_faq)
+    add_result = await _add_faq_source_to_notebook(agent_notebook_id, faq_title, full_faq, profile=agent_profile)
 
     if not add_result["success"]:
         print(f"[add-to-faq] Falha ao adicionar source ao NotebookLM: {add_result.get('error')}")
