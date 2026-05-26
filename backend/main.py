@@ -280,6 +280,7 @@ async def query_notebooklm(user_message: str, notebook_id: str, profile: str = "
     t0 = time.monotonic()
 
     cmd = _get_notebooklm_cmd(profile, "ask", user_message, "-n", notebook_id, "--json")
+    print(f"[notebooklm] profile={profile!r} | notebook={notebook_id!r} | cmd={' '.join(cmd[:5])}...")
 
     for attempt in range(1, max_retries + 1):
         elapsed = time.monotonic() - t0
@@ -934,6 +935,7 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
         print(f"\n{'='*50}")
         print(f"[STREAM] Thread: {thread_id}")
         print(f"[STREAM] Assistant: {assistant_name}")
+        print(f"[STREAM] Profile: {agent_profile!r}")
         print(f"[STREAM] Original : {user_message!r}")
         print(f"[STREAM] Rewritten: {search_query!r}")
 
