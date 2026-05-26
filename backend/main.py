@@ -63,207 +63,83 @@ def get_db_connection():
 
 
 def ensure_tables():
-    """Cria as tabelas agent, user, chat, thread e chat_thread se não existirem."""
+    """Cria as tabelas agent, user, auditor, thread, chat e chat_thread se não existirem, mantendo apenas a última versão."""
     conn = get_db_connection()
     try:
         with conn:
             with conn.cursor() as cur:
+                # 1. Tabela agent
                 cur.execute("""
                 CREATE TABLE IF NOT EXISTS agent (
-                    id           VARCHAR(36) PRIMARY KEY,
-                    title        TEXT        NOT NULL,
-                    name         TEXT,
+                    id            VARCHAR(36) PRIMARY KEY,
+                    title         TEXT        NOT NULL,
+                    name          TEXT,
                     system_prompt TEXT,
-                    email        TEXT,
-                    overview     TEXT,
-                    sort_order   INTEGER     DEFAULT 0,
-                    active       BOOLEAN     DEFAULT TRUE,
-                    creation     TIMESTAMP   NOT NULL DEFAULT NOW(),
-                    modification TIMESTAMP   NOT NULL DEFAULT NOW()
+                    email         TEXT,
+                    overview      TEXT,
+                    creation      TIMESTAMP   NOT NULL DEFAULT NOW(),
+                    modification  TIMESTAMP   NOT NULL DEFAULT NOW(),
+                    sort_order    INTEGER     DEFAULT 0,
+                    active        BOOLEAN     DEFAULT TRUE,
+                    faq_content   TEXT        DEFAULT ''
                 );
                 """)
-                cur.execute("""
-                DO $$
-                BEGIN
-                    IF NOT EXISTS (
-                        SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'agent' AND column_name = 'sort_order'
-                    ) THEN
-                        ALTER TABLE agent ADD COLUMN sort_order INTEGER DEFAULT 0;
-                    END IF;
-                    IF NOT EXISTS (
-                        SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'agent' AND column_name = 'active'
-                    ) THEN
-                        ALTER TABLE agent ADD COLUMN active BOOLEAN DEFAULT TRUE;
-                    END IF;
-                    IF NOT EXISTS (
-                        SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'agent' AND column_name = 'faq_content'
-                    ) THEN
-                        ALTER TABLE agent ADD COLUMN faq_content TEXT DEFAULT '';
-                    END IF;
-                END $$;
-                """)
-                cur.execute("""
-                CREATE TABLE IF NOT EXISTS "user" (
-                    id SERIAL PRIMARY KEY,
-                    email VARCHAR(255) UNIQUE NOT NULL,
-                    name VARCHAR(255),
-                    cnpj VARCHAR(255)
-                );
-                """)
-                # Renomear tabela antiga se existir
-                cur.execute("""
-                DO $$
-                BEGIN
-                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'chats') THEN
-                        ALTER TABLE chats RENAME TO chat;
-                    END IF;
-                END $$;
-                """)
-                cur.execute("""
-                CREATE TABLE IF NOT EXISTS chat (
-                    id SERIAL PRIMARY KEY,
-                    user_id INT REFERENCES "user"(id) ON DELETE CASCADE,
-                    agent_id VARCHAR(36) REFERENCES agent(id) ON DELETE CASCADE,
-                    message TEXT,
-                    origem VARCHAR(10) DEFAULT 'sistema',
-                    created_at TIMESTAMP NOT NULL DEFAULT NOW()
-                );
-                """)
-                # Adicionar coluna created_at e origem caso tabela já exista sem ela
-                cur.execute("""
-                DO $$
-                BEGIN
-                    IF NOT EXISTS (
-                        SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'chat' AND column_name = 'created_at'
-                    ) THEN
-                        ALTER TABLE chat ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT NOW();
-                    END IF;
-                    IF NOT EXISTS (
-                        SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'chat' AND column_name = 'origem'
-                    ) THEN
-                        ALTER TABLE chat ADD COLUMN origem VARCHAR(10) DEFAULT 'sistema';
-                    END IF;
-                    IF NOT EXISTS (
-                        SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'chat' AND column_name = 'feedback_thumb'
-                    ) THEN
-                        ALTER TABLE chat ADD COLUMN feedback_thumb INT;
-                        ALTER TABLE chat ADD COLUMN feedback_text TEXT;
-                    END IF;
-                    -- Remover feedback_rating de chat se existir (migrou para chat_thread)
-                    IF EXISTS (
-                        SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'chat' AND column_name = 'feedback_rating'
-                    ) THEN
-                        ALTER TABLE chat DROP COLUMN feedback_rating;
-                    END IF;
-                END $$;
-                """)
-                cur.execute("""
-                CREATE TABLE IF NOT EXISTS thread (
-                    id VARCHAR(36) PRIMARY KEY,
-                    subject TEXT,
-                    faq_added BOOLEAN DEFAULT FALSE
-                );
-                """)
-                # Adicionar coluna faq_added a thread caso já exista sem ela
-                cur.execute("""
-                DO $$
-                BEGIN
-                    IF NOT EXISTS (
-                        SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'thread' AND column_name = 'faq_added'
-                    ) THEN
-                        ALTER TABLE thread ADD COLUMN faq_added BOOLEAN DEFAULT FALSE;
-                    END IF;
-                END $$;
-                """)
-                cur.execute("""
-                CREATE TABLE IF NOT EXISTS chat_thread (
-                    id SERIAL PRIMARY KEY,
-                    thread_id VARCHAR(36) REFERENCES thread(id) ON DELETE CASCADE,
-                    chat_id INT REFERENCES chat(id) ON DELETE CASCADE,
-                    feedback_rating INT CHECK (feedback_rating >= 1 AND feedback_rating <= 5)
-                );
-                """)
-                # Adicionar coluna feedback_rating a chat_thread caso já exista sem ela
-                cur.execute("""
-                DO $$
-                BEGIN
-                    IF NOT EXISTS (
-                        SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'chat_thread' AND column_name = 'feedback_rating'
-                    ) THEN
-                        ALTER TABLE chat_thread ADD COLUMN feedback_rating INT CHECK (feedback_rating >= 1 AND feedback_rating <= 5);
-                    END IF;
-                END $$;
-                """)
-                # Renomear tabela users -> auditor se existir
-                cur.execute("""
-                DO $$
-                BEGIN
-                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users') THEN
-                        ALTER TABLE users RENAME TO auditor;
-                    END IF;
-                END $$;
-                """)
+
+                # 2. Tabela auditor
                 cur.execute("""
                 CREATE TABLE IF NOT EXISTS auditor (
-                    id SERIAL PRIMARY KEY,
-                    login VARCHAR(255) UNIQUE NOT NULL,
-                    senha VARCHAR(255) NOT NULL,
-                    name VARCHAR(255),
+                    id       SERIAL       PRIMARY KEY,
+                    login    VARCHAR(255) UNIQUE NOT NULL,
+                    senha    VARCHAR(255) NOT NULL,
+                    name     VARCHAR(255),
                     nickname VARCHAR(100),
                     icon_svg TEXT,
-                    email VARCHAR(255)
+                    email    VARCHAR(255)
                 );
                 """)
-                # Adicionar colunas caso a tabela já exista sem elas (migração)
+
+                # 3. Tabela thread
                 cur.execute("""
-                DO $$
-                BEGIN
-                    IF NOT EXISTS (
-                        SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'auditor' AND column_name = 'name'
-                    ) THEN
-                        ALTER TABLE auditor ADD COLUMN name VARCHAR(255);
-                    END IF;
-                    IF NOT EXISTS (
-                        SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'auditor' AND column_name = 'nickname'
-                    ) THEN
-                        ALTER TABLE auditor ADD COLUMN nickname VARCHAR(100);
-                    END IF;
-                    IF NOT EXISTS (
-                        SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'auditor' AND column_name = 'icon_svg'
-                    ) THEN
-                        ALTER TABLE auditor ADD COLUMN icon_svg TEXT;
-                    END IF;
-                    IF NOT EXISTS (
-                        SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'auditor' AND column_name = 'email'
-                    ) THEN
-                        ALTER TABLE auditor ADD COLUMN email VARCHAR(255);
-                    END IF;
-                END $$;
+                CREATE TABLE IF NOT EXISTS thread (
+                    id        VARCHAR(36) PRIMARY KEY,
+                    subject   TEXT,
+                    faq_added BOOLEAN     DEFAULT FALSE
+                );
                 """)
-                # Adicionar auditor_id à tabela chat (nullable FK para auditor)
+
+                # 4. Tabela user
                 cur.execute("""
-                DO $$
-                BEGIN
-                    IF NOT EXISTS (
-                        SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'chat' AND column_name = 'auditor_id'
-                    ) THEN
-                        ALTER TABLE chat ADD COLUMN auditor_id INT REFERENCES auditor(id) ON DELETE SET NULL;
-                    END IF;
-                END $$;
+                CREATE TABLE IF NOT EXISTS "user" (
+                    id    SERIAL       PRIMARY KEY,
+                    email VARCHAR(255) UNIQUE NOT NULL,
+                    name  VARCHAR(255),
+                    cnpj  VARCHAR(255)
+                );
+                """)
+
+                # 5. Tabela chat
+                cur.execute("""
+                CREATE TABLE IF NOT EXISTS chat (
+                    id             SERIAL      PRIMARY KEY,
+                    user_id        INTEGER     REFERENCES "user"(id) ON DELETE CASCADE,
+                    agent_id       VARCHAR(36) REFERENCES agent(id) ON DELETE CASCADE,
+                    message        TEXT,
+                    created_at     TIMESTAMP   NOT NULL DEFAULT NOW(),
+                    origem         VARCHAR(10) DEFAULT 'sistema',
+                    feedback_thumb INTEGER,
+                    feedback_text  TEXT,
+                    auditor_id     INTEGER     REFERENCES auditor(id) ON DELETE SET NULL
+                );
+                """)
+
+                # 6. Tabela chat_thread
+                cur.execute("""
+                CREATE TABLE IF NOT EXISTS chat_thread (
+                    id              SERIAL      PRIMARY KEY,
+                    thread_id       VARCHAR(36) REFERENCES thread(id) ON DELETE CASCADE,
+                    chat_id         INTEGER     REFERENCES chat(id) ON DELETE CASCADE,
+                    feedback_rating INTEGER     CHECK (feedback_rating >= 1 AND feedback_rating <= 5)
+                );
                 """)
         print("[DB] Tabelas agent, user, auditor, chat, thread e chat_thread verificadas/criadas com sucesso.")
     except Exception as e:
