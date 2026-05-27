@@ -1605,14 +1605,14 @@ async def rename_profile(request: RenameProfileRequest):
                     cur.execute("""
                         UPDATE agent
                         SET notebooklm_profile = %s, modification = NOW()
-                        WHERE notebooklm_profile IS NULL OR notebooklm_profile = 'default'
+                        WHERE notebooklm_profile IS NULL OR LOWER(TRIM(notebooklm_profile)) = 'default'
                         RETURNING id;
                     """, (new_p,))
                 else:
                     cur.execute("""
                         UPDATE agent
                         SET notebooklm_profile = %s, modification = NOW()
-                        WHERE notebooklm_profile = %s
+                        WHERE LOWER(TRIM(notebooklm_profile)) = LOWER(TRIM(%s))
                         RETURNING id;
                     """, (new_p, old_p))
                 rows = cur.fetchall()
@@ -1633,6 +1633,39 @@ async def rename_profile(request: RenameProfileRequest):
         "agents_updated": db_updated,
         "message": f"Profile renomeado com sucesso! {db_updated} agente(s) e arquivos de sessão atualizados."
     }
+
+
+@app.get("/dashboard/totals")
+async def dashboard_totals(days: int = 30):
+    """
+    Retorna o total geral de chats e usuários ativos nos últimos N dias,
+    sem limite de paginação.
+    """
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT 
+                        COUNT(c.id) as total_chats,
+                        COUNT(DISTINCT c.user_id) as total_users
+                    FROM chat c
+                    JOIN "user" u ON u.id = c.user_id
+                    WHERE c.origem = 'usuario'
+                      AND c.created_at >= NOW() - INTERVAL '%s days'
+                      AND u.email NOT IN ('admin@test.com');
+                """, (days,))
+                row = cur.fetchone()
+                return {
+                    "total_chats": row["total_chats"] or 0,
+                    "total_users": row["total_users"] or 0
+                }
+    except Exception as e:
+        print(f"[dashboard-totals] Erro: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao buscar totais do dashboard.")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
 
 
 @app.get("/dashboard/chats-per-user")

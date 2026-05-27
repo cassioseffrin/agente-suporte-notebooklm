@@ -85,3 +85,53 @@ Instructions:
 
 Authentication saved to: /Users/arpasistemas/.notebooklm/storage_state.json
 (venv) arpasistemas@Arpas-Mac-mini agentes-suporte-ia %  cp ~/.notebooklm/storage_state.json  ~/Desktop 
+
+
+
+
+
+
+
+
+
+
+### Como Evitar Invalidação de Sessão (Múltiplos Perfis)
+
+#### O Problema
+No seu Mac/ambiente de dev, o CLI `notebooklm` usa uma pasta de perfil de navegador persistente e compartilhada chamada `browser_profile` para abrir o navegador de login. 
+
+Se você estiver logado em um perfil (ex: `suportevimbo`) e for logar em outro (ex: `arpadrive`), o navegador abrirá automaticamente logado na conta do perfil anterior. Se você clicar em **"Sair" (Sign out / Logout)** no navegador, **o Google invalidará imediatamente todas as sessões ativas dessa conta no mundo inteiro**, derrubando os agentes ativos daquela conta em produção!
+
+#### A Solução Definitiva (Passo a Passo)
+Para manter múltiplos perfis ativos simultaneamente em produção, **NUNCA clique em "Sair"** na tela do Google. Em vez disso, limpe a pasta temporária do navegador do CLI antes de logar para forçar uma aba limpa:
+
+##### Passo 1: Gerar e subir o `suportevimbo`
+1. No terminal do seu Mac, limpe o perfil do navegador:
+   ```bash
+   rm -rf ~/.notebooklm/browser_profile
+   ```
+2. Inicie o login especificando o arquivo de storage do profile:
+   ```bash
+   notebooklm --storage ~/.notebooklm/profiles/suportevimbo/storage_state.json login
+   ```
+3. O navegador abrirá limpo. Faça login com `suporte@vimbo.com.br` e aguarde a home do NotebookLM carregar.
+4. Pressione <kbd>ENTER</kbd> no terminal do Mac.
+5. No Painel (Dashboard): Selecione o profile **`suportevimbo`** e faça o upload do arquivo:
+   `/Users/arpasistemas/.notebooklm/profiles/suportevimbo/storage_state.json`
+
+##### Passo 2: Gerar e subir o `arpadrive`
+1. No terminal do seu Mac, limpe o perfil do navegador novamente (evitando o botão de "Sair"):
+   ```bash
+   rm -rf ~/.notebooklm/browser_profile
+   ```
+2. Inicie o login especificando o storage do profile:
+   ```bash
+   notebooklm --storage ~/.notebooklm/profiles/arpadrive/storage_state.json login
+   ```
+3. Faça login com `arpa.drive@gmail.com` e aguarde carregar.
+4. Pressione <kbd>ENTER</kbd> no terminal.
+5. No Painel (Dashboard): Selecione o profile **`arpadrive`** e faça o upload do arquivo:
+   `/Users/arpasistemas/.notebooklm/profiles/arpadrive/storage_state.json`
+
+Dessa forma, as sessões de produção nunca são revogadas e ambos os profiles funcionam perfeitamente ao mesmo tempo!
+
