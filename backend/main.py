@@ -819,6 +819,74 @@ async def update_notebooks(profile: str = "default"):
     }
 
 
+async def run_in_thread(func, *args):
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, func, *args)
+
+def save_user_message_sync(thread_id: str, user_message: str) -> int | None:
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT c.user_id, c.agent_id FROM chat c
+                    JOIN chat_thread ct ON ct.chat_id = c.id
+                    WHERE ct.thread_id = %s
+                    LIMIT 1;
+                """, (thread_id,))
+                row = cur.fetchone()
+                if row:
+                    uid, aid = row
+                    cur.execute("""
+                        INSERT INTO chat (user_id, agent_id, message, origem)
+                        VALUES (%s, %s, %s, 'usuario')
+                        RETURNING id;
+                    """, (uid, aid, user_message))
+                    user_chat_id = cur.fetchone()[0]
+                    cur.execute("""
+                        INSERT INTO chat_thread (thread_id, chat_id)
+                        VALUES (%s, %s);
+                    """, (thread_id, user_chat_id))
+                    return user_chat_id
+    except Exception as e:
+        print(f"[DB-save-user] Erro: {e}")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+    return None
+
+def save_agent_message_sync(thread_id: str, assistant_text: str) -> int | None:
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT c.user_id, c.agent_id FROM chat c
+                    JOIN chat_thread ct ON ct.chat_id = c.id
+                    WHERE ct.thread_id = %s
+                    LIMIT 1;
+                """, (thread_id,))
+                row = cur.fetchone()
+                if row:
+                    uid, aid = row
+                    cur.execute("""
+                        INSERT INTO chat (user_id, agent_id, message, origem)
+                        VALUES (%s, %s, %s, 'agente')
+                        RETURNING id;
+                    """, (uid, aid, assistant_text))
+                    assistant_chat_id = cur.fetchone()[0]
+                    cur.execute("""
+                        INSERT INTO chat_thread (thread_id, chat_id)
+                        VALUES (%s, %s);
+                    """, (thread_id, assistant_chat_id))
+                    return assistant_chat_id
+    except Exception as e:
+        print(f"[DB-save-agent] Erro: {e}")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+    return None
+
 @app.post("/chat")
 async def chat(request: ChatRequest, authorization: str = Header(None)):
     verify_api_key(authorization)
@@ -845,35 +913,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     is_first_message = len(sessions[thread_id]) == 0
 
     # 0. Persiste no banco a mensagem do usuário imediatamente para registrar o timestamp correto
-    user_chat_id = None
-    try:
-        conn_hist = get_db_connection()
-        with conn_hist:
-            with conn_hist.cursor() as cur:
-                cur.execute("""
-                    SELECT c.user_id, c.agent_id FROM chat c
-                    JOIN chat_thread ct ON ct.chat_id = c.id
-                    WHERE ct.thread_id = %s
-                    LIMIT 1;
-                """, (thread_id,))
-                row = cur.fetchone()
-                if row:
-                    uid, aid = row
-                    cur.execute("""
-                        INSERT INTO chat (user_id, agent_id, message, origem)
-                        VALUES (%s, %s, %s, 'usuario')
-                        RETURNING id;
-                    """, (uid, aid, user_message))
-                    user_chat_id = cur.fetchone()[0]
-                    cur.execute("""
-                        INSERT INTO chat_thread (thread_id, chat_id)
-                        VALUES (%s, %s);
-                    """, (thread_id, user_chat_id))
-    except Exception as e:
-        print(f"[chat] Erro ao persistir mensagem do usuario: {e}")
-    finally:
-        if 'conn_hist' in locals() and conn_hist:
-            conn_hist.close()
+    user_chat_id = await run_in_thread(save_user_message_sync, thread_id, user_message)
 
     # Notifica o auditor assim que a mensagem chega (antes da IA pensar)
     _notify_auditor_new_message(thread_id, user_chat_id or 0, user_message, 'usuario')
@@ -928,36 +968,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     sessions[thread_id].append({"role": "assistant", "content": assistant_text})
 
     # 5b. Persiste no banco a mensagem do agente
-    assistant_chat_id = None
-    try:
-        conn_hist = get_db_connection()
-        with conn_hist:
-            with conn_hist.cursor() as cur:
-                # Buscar user_id pelo thread -> chat_thread -> chat
-                cur.execute("""
-                    SELECT c.user_id, c.agent_id FROM chat c
-                    JOIN chat_thread ct ON ct.chat_id = c.id
-                    WHERE ct.thread_id = %s
-                    LIMIT 1;
-                """, (thread_id,))
-                row = cur.fetchone()
-                if row:
-                    uid, aid = row
-                    cur.execute("""
-                        INSERT INTO chat (user_id, agent_id, message, origem)
-                        VALUES (%s, %s, %s, 'agente')
-                        RETURNING id;
-                    """, (uid, aid, assistant_text))
-                    assistant_chat_id = cur.fetchone()[0]
-                    cur.execute("""
-                        INSERT INTO chat_thread (thread_id, chat_id)
-                        VALUES (%s, %s);
-                    """, (thread_id, assistant_chat_id))
-    except Exception as e:
-        print(f"[chat] Erro ao persistir mensagem do agente: {e}")
-    finally:
-        if 'conn_hist' in locals() and conn_hist:
-            conn_hist.close()
+    assistant_chat_id = await run_in_thread(save_agent_message_sync, thread_id, assistant_text)
 
     # 5b2. Notificar auditores sobre a resposta da IA
     if assistant_chat_id:
@@ -1009,35 +1020,7 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
     is_first_message = len(sessions[thread_id]) == 0
 
     # 0. Persiste no banco a mensagem do usuário imediatamente para registrar o timestamp correto
-    user_chat_id = None
-    try:
-        conn_hist = get_db_connection()
-        with conn_hist:
-            with conn_hist.cursor() as cur:
-                cur.execute("""
-                    SELECT c.user_id, c.agent_id FROM chat c
-                    JOIN chat_thread ct ON ct.chat_id = c.id
-                    WHERE ct.thread_id = %s
-                    LIMIT 1;
-                """, (thread_id,))
-                row = cur.fetchone()
-                if row:
-                    uid, aid = row
-                    cur.execute("""
-                        INSERT INTO chat (user_id, agent_id, message, origem)
-                        VALUES (%s, %s, %s, 'usuario')
-                        RETURNING id;
-                    """, (uid, aid, user_message))
-                    user_chat_id = cur.fetchone()[0]
-                    cur.execute("""
-                        INSERT INTO chat_thread (thread_id, chat_id)
-                        VALUES (%s, %s);
-                    """, (thread_id, user_chat_id))
-    except Exception as e:
-        print(f"[STREAM] Erro ao persistir mensagem do usuario: {e}")
-    finally:
-        if 'conn_hist' in locals() and conn_hist:
-            conn_hist.close()
+    user_chat_id = await run_in_thread(save_user_message_sync, thread_id, user_message)
 
     # Notifica o auditor assim que a mensagem chega (antes da IA pensar)
     _notify_auditor_new_message(thread_id, user_chat_id or 0, user_message, 'usuario')
@@ -1133,35 +1116,7 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
         sessions[thread_id].append({"role": "user",      "content": user_message})
         sessions[thread_id].append({"role": "assistant", "content": assistant_text})
 
-        assistant_chat_id = None
-        try:
-            conn_hist = get_db_connection()
-            with conn_hist:
-                with conn_hist.cursor() as cur:
-                    cur.execute("""
-                        SELECT c.user_id, c.agent_id FROM chat c
-                        JOIN chat_thread ct ON ct.chat_id = c.id
-                        WHERE ct.thread_id = %s
-                        LIMIT 1;
-                    """, (thread_id,))
-                    row = cur.fetchone()
-                    if row:
-                        uid, aid = row
-                        cur.execute("""
-                            INSERT INTO chat (user_id, agent_id, message, origem)
-                            VALUES (%s, %s, %s, 'agente')
-                            RETURNING id;
-                        """, (uid, aid, assistant_text))
-                        assistant_chat_id = cur.fetchone()[0]
-                        cur.execute("""
-                            INSERT INTO chat_thread (thread_id, chat_id)
-                            VALUES (%s, %s);
-                        """, (thread_id, assistant_chat_id))
-        except Exception as e:
-            print(f"[STREAM] Erro ao persistir mensagem do agente: {e}")
-        finally:
-            if 'conn_hist' in locals() and conn_hist:
-                conn_hist.close()
+        assistant_chat_id = await run_in_thread(save_agent_message_sync, thread_id, assistant_text)
 
         # Notificar auditores sobre a resposta da IA
         if assistant_chat_id:
