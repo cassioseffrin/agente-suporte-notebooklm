@@ -14,9 +14,11 @@ import asyncio
 import uuid
 import os
 import json
+import hashlib
 from collections import defaultdict
 from datetime import datetime
 from typing import Optional
+from pathlib import Path
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -164,7 +166,7 @@ def get_agent_info_by_name(name: str):
     try:
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT id, system_prompt, COALESCE(notebooklm_profile, 'default') as notebooklm_profile FROM agent WHERE name = %s LIMIT 1", (name,))
+                cur.execute("SELECT id, title, system_prompt, COALESCE(notebooklm_profile, 'default') as notebooklm_profile FROM agent WHERE name = %s LIMIT 1", (name,))
                 return cur.fetchone()
     finally:
         conn.close()
@@ -201,7 +203,52 @@ user_presence: dict[str, float] = {}
 auditor_queues: dict[str, list[asyncio.Queue]] = defaultdict(list)
 user_queues: dict[str, list[asyncio.Queue]] = defaultdict(list)
 
+# Global admin broadcast: lista de asyncio.Queue para SSE /admin/events
+admin_broadcast_queues: list[asyncio.Queue] = []
+
 PRESENCE_TIMEOUT = 30  # segundos sem heartbeat = offline
+
+# TTS cache directory
+TTS_CACHE_DIR = Path("/tmp/tts_cache")
+TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+def _broadcast_admin_event(event: dict):
+    """Envia evento para todos os dashboards conectados via SSE /admin/events."""
+    for q in admin_broadcast_queues:
+        try:
+            q.put_nowait(event)
+        except asyncio.QueueFull:
+            pass
+
+
+def _broadcast_thread_update(thread_id: str):
+    """Envia evento de atualização de thread para todos os dashboards conectados."""
+    _broadcast_admin_event({
+        "type": "thread_updated",
+        "thread_id": thread_id,
+    })
+
+
+def _get_user_name_for_thread(thread_id: str) -> str:
+    """Busca o nome do usuário pelo thread_id no banco."""
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT u.name FROM "user" u
+                    JOIN chat c ON c.user_id = u.id
+                    JOIN chat_thread ct ON ct.chat_id = c.id
+                    WHERE ct.thread_id = %s
+                    LIMIT 1;
+                """, (thread_id,))
+                row = cur.fetchone()
+                return row[0] if row else "Desconhecido"
+    except Exception:
+        return "Desconhecido"
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
 
 # ---------------------------------------------------------------------------
 # App
@@ -566,6 +613,7 @@ async def update_thread_feedback(thread_id: str, request: FeedbackRequest, autho
         if 'conn' in locals() and conn:
             conn.close()
 
+    _broadcast_thread_update(thread_id)
     return {"status": "ok", "thread_id": thread_id, "feedback_rating": request.rating}
 
 
@@ -597,6 +645,7 @@ async def update_thread_subject(thread_id: str, request: SubjectRequest, authori
         if 'conn' in locals() and conn:
             conn.close()
 
+    _broadcast_thread_update(thread_id)
     return {"status": "ok", "thread_id": thread_id, "subject": subject}
 
 
@@ -617,6 +666,8 @@ async def generate_and_update_subject(thread_id: str, user_message: str, assista
         with conn:
             with conn.cursor() as cur:
                 cur.execute("UPDATE thread SET subject = %s WHERE id = %s;", (new_subject, thread_id))
+        
+        _broadcast_thread_update(thread_id)
     except Exception as e:
         print(f"[subject thread] Erro ao compor subject automatico: {e}")
     finally:
@@ -793,8 +844,51 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         
     is_first_message = len(sessions[thread_id]) == 0
 
+    # 0. Persiste no banco a mensagem do usuário imediatamente para registrar o timestamp correto
+    user_chat_id = None
+    try:
+        conn_hist = get_db_connection()
+        with conn_hist:
+            with conn_hist.cursor() as cur:
+                cur.execute("""
+                    SELECT c.user_id, c.agent_id FROM chat c
+                    JOIN chat_thread ct ON ct.chat_id = c.id
+                    WHERE ct.thread_id = %s
+                    LIMIT 1;
+                """, (thread_id,))
+                row = cur.fetchone()
+                if row:
+                    uid, aid = row
+                    cur.execute("""
+                        INSERT INTO chat (user_id, agent_id, message, origem)
+                        VALUES (%s, %s, %s, 'usuario')
+                        RETURNING id;
+                    """, (uid, aid, user_message))
+                    user_chat_id = cur.fetchone()[0]
+                    cur.execute("""
+                        INSERT INTO chat_thread (thread_id, chat_id)
+                        VALUES (%s, %s);
+                    """, (thread_id, user_chat_id))
+    except Exception as e:
+        print(f"[chat] Erro ao persistir mensagem do usuario: {e}")
+    finally:
+        if 'conn_hist' in locals() and conn_hist:
+            conn_hist.close()
+
     # Notifica o auditor assim que a mensagem chega (antes da IA pensar)
-    _notify_auditor_new_message(thread_id, 0, user_message, 'usuario')
+    _notify_auditor_new_message(thread_id, user_chat_id or 0, user_message, 'usuario')
+
+    # Broadcast para dashboards se for primeira mensagem
+    if is_first_message:
+        agent_title = agent_info.get("title", assistant_name)
+        user_name = _get_user_name_for_thread(thread_id)
+        _broadcast_admin_event({
+            "type": "new_chat",
+            "thread_id": thread_id,
+            "user_name": user_name,
+            "agent_name": agent_title,
+            "first_message": user_message[:300],
+        })
 
     # 1. Query Rewriting - expande perguntas vagas usando histórico da thread
     search_query = await rewrite_query_with_context(thread_id, user_message)
@@ -833,7 +927,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     sessions[thread_id].append({"role": "user",      "content": user_message})
     sessions[thread_id].append({"role": "assistant", "content": assistant_text})
 
-    # 5b. Persiste no banco as duas mensagens desta interação
+    # 5b. Persiste no banco a mensagem do agente
     assistant_chat_id = None
     try:
         conn_hist = get_db_connection()
@@ -849,21 +943,18 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
                 row = cur.fetchone()
                 if row:
                     uid, aid = row
-                    for msg_text, msg_origem in [(user_message, 'usuario'), (assistant_text, 'agente')]:
-                        cur.execute("""
-                            INSERT INTO chat (user_id, agent_id, message, origem)
-                            VALUES (%s, %s, %s, %s)
-                            RETURNING id;
-                        """, (uid, aid, msg_text, msg_origem))
-                        chat_id = cur.fetchone()[0]
-                        if msg_origem == 'agente':
-                            assistant_chat_id = chat_id
-                        cur.execute("""
-                            INSERT INTO chat_thread (thread_id, chat_id)
-                            VALUES (%s, %s);
-                        """, (thread_id, chat_id))
+                    cur.execute("""
+                        INSERT INTO chat (user_id, agent_id, message, origem)
+                        VALUES (%s, %s, %s, 'agente')
+                        RETURNING id;
+                    """, (uid, aid, assistant_text))
+                    assistant_chat_id = cur.fetchone()[0]
+                    cur.execute("""
+                        INSERT INTO chat_thread (thread_id, chat_id)
+                        VALUES (%s, %s);
+                    """, (thread_id, assistant_chat_id))
     except Exception as e:
-        print(f"[chat] Erro ao persistir mensagens: {e}")
+        print(f"[chat] Erro ao persistir mensagem do agente: {e}")
     finally:
         if 'conn_hist' in locals() and conn_hist:
             conn_hist.close()
@@ -917,8 +1008,51 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
 
     is_first_message = len(sessions[thread_id]) == 0
 
+    # 0. Persiste no banco a mensagem do usuário imediatamente para registrar o timestamp correto
+    user_chat_id = None
+    try:
+        conn_hist = get_db_connection()
+        with conn_hist:
+            with conn_hist.cursor() as cur:
+                cur.execute("""
+                    SELECT c.user_id, c.agent_id FROM chat c
+                    JOIN chat_thread ct ON ct.chat_id = c.id
+                    WHERE ct.thread_id = %s
+                    LIMIT 1;
+                """, (thread_id,))
+                row = cur.fetchone()
+                if row:
+                    uid, aid = row
+                    cur.execute("""
+                        INSERT INTO chat (user_id, agent_id, message, origem)
+                        VALUES (%s, %s, %s, 'usuario')
+                        RETURNING id;
+                    """, (uid, aid, user_message))
+                    user_chat_id = cur.fetchone()[0]
+                    cur.execute("""
+                        INSERT INTO chat_thread (thread_id, chat_id)
+                        VALUES (%s, %s);
+                    """, (thread_id, user_chat_id))
+    except Exception as e:
+        print(f"[STREAM] Erro ao persistir mensagem do usuario: {e}")
+    finally:
+        if 'conn_hist' in locals() and conn_hist:
+            conn_hist.close()
+
     # Notifica o auditor assim que a mensagem chega (antes da IA pensar)
-    _notify_auditor_new_message(thread_id, 0, user_message, 'usuario')
+    _notify_auditor_new_message(thread_id, user_chat_id or 0, user_message, 'usuario')
+
+    # Broadcast para dashboards se for primeira mensagem
+    if is_first_message:
+        agent_title = agent_info.get("title", assistant_name)
+        user_name = _get_user_name_for_thread(thread_id)
+        _broadcast_admin_event({
+            "type": "new_chat",
+            "thread_id": thread_id,
+            "user_name": user_name,
+            "agent_name": agent_title,
+            "first_message": user_message[:300],
+        })
 
     def _sse(event: str, data: dict) -> str:
         """Format a single SSE event."""
@@ -1013,21 +1147,18 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
                     row = cur.fetchone()
                     if row:
                         uid, aid = row
-                        for msg_text, msg_origem in [(user_message, 'usuario'), (assistant_text, 'agente')]:
-                            cur.execute("""
-                                INSERT INTO chat (user_id, agent_id, message, origem)
-                                VALUES (%s, %s, %s, %s)
-                                RETURNING id;
-                            """, (uid, aid, msg_text, msg_origem))
-                            chat_id = cur.fetchone()[0]
-                            if msg_origem == 'agente':
-                                assistant_chat_id = chat_id
-                            cur.execute("""
-                                INSERT INTO chat_thread (thread_id, chat_id)
-                                VALUES (%s, %s);
-                            """, (thread_id, chat_id))
+                        cur.execute("""
+                            INSERT INTO chat (user_id, agent_id, message, origem)
+                            VALUES (%s, %s, %s, 'agente')
+                            RETURNING id;
+                        """, (uid, aid, assistant_text))
+                        assistant_chat_id = cur.fetchone()[0]
+                        cur.execute("""
+                            INSERT INTO chat_thread (thread_id, chat_id)
+                            VALUES (%s, %s);
+                        """, (thread_id, assistant_chat_id))
         except Exception as e:
-            print(f"[STREAM] Erro ao persistir mensagens: {e}")
+            print(f"[STREAM] Erro ao persistir mensagem do agente: {e}")
         finally:
             if 'conn_hist' in locals() and conn_hist:
                 conn_hist.close()
@@ -1060,10 +1191,12 @@ class MessageFeedbackRequest(BaseModel):
     thumb: int  # 1 ou -1
     text: Optional[str] = None
 
+
 @app.put("/chat/{chat_id}/feedback")
 async def update_message_feedback(chat_id: int, request: MessageFeedbackRequest, authorization: str = Header(None)):
     """Atualiza o feedback da mensagem."""
     verify_api_key(authorization)
+    thread_id = None
     try:
         conn = get_db_connection()
         with conn:
@@ -1074,6 +1207,14 @@ async def update_message_feedback(chat_id: int, request: MessageFeedbackRequest,
                 row = cur.fetchone()
                 if not row:
                     raise HTTPException(status_code=404, detail="Chat não encontrado")
+                
+                # Buscar thread_id associado ao chat_id
+                cur.execute("""
+                    SELECT thread_id FROM chat_thread WHERE chat_id = %s LIMIT 1;
+                """, (chat_id,))
+                t_row = cur.fetchone()
+                if t_row:
+                    thread_id = t_row["thread_id"] if isinstance(t_row, dict) else t_row[0]
     except HTTPException:
         raise
     except Exception as e:
@@ -1082,6 +1223,9 @@ async def update_message_feedback(chat_id: int, request: MessageFeedbackRequest,
     finally:
         if 'conn' in locals() and conn:
             conn.close()
+
+    if thread_id:
+        _broadcast_thread_update(thread_id)
 
     return {"status": "ok", "chat_id": chat_id, "thumb": request.thumb}
 
@@ -2261,12 +2405,25 @@ class TTSRequest(BaseModel):
 
 @app.post("/admin/tts")
 async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
-    """Gera áudio TTS usando OpenAI gpt-4o-mini-tts (voz coral, pt-BR)."""
+    """Gera áudio TTS usando OpenAI gpt-4o-mini-tts (voz coral, pt-BR). Cache em disco."""
     verify_api_key(authorization)
 
     text = request.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="Texto vazio")
+
+    # Cache key: hash MD5 do texto
+    cache_key = hashlib.md5(text.encode("utf-8")).hexdigest()
+    cache_path = TTS_CACHE_DIR / f"{cache_key}.mp3"
+
+    if cache_path.exists():
+        print(f"[admin/tts] Cache hit: {cache_key}")
+        audio_bytes = cache_path.read_bytes()
+        return StreamingResponse(
+            iter([audio_bytes]),
+            media_type="audio/mpeg",
+            headers={"Content-Disposition": "inline; filename=notification.mp3"},
+        )
 
     try:
         response = await openai_client.audio.speech.create(
@@ -2275,10 +2432,18 @@ async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
             input=text,
             instructions="Fale em português do Brasil, com tom profissional e claro, como uma notificação de sistema.",
             response_format="mp3",
+            speed=1.5,
         )
 
         # response is an HttpxBinaryResponseContent — read all bytes
         audio_bytes = response.content
+
+        # Salvar no cache
+        try:
+            cache_path.write_bytes(audio_bytes)
+            print(f"[admin/tts] Cache saved: {cache_key}")
+        except Exception as e:
+            print(f"[admin/tts] Erro ao salvar cache: {e}")
 
         return StreamingResponse(
             iter([audio_bytes]),
@@ -2288,6 +2453,49 @@ async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
     except Exception as e:
         print(f"[admin/tts] Erro: {e}")
         raise HTTPException(status_code=500, detail=f"Erro ao gerar áudio TTS: {e}")
+
+
+# ---------------------------------------------------------------------------
+# Admin - SSE Global Events (notificações em tempo real para dashboards)
+# ---------------------------------------------------------------------------
+
+@app.get("/admin/events")
+async def admin_events_sse(request: Request, authorization: str = Header(None), token: str = Query(None)):
+    """SSE stream global para dashboards. Emite new_chat quando chega nova conversa."""
+    auth = authorization or (f"Bearer {token}" if token else None)
+    verify_api_key(auth)
+
+    queue: asyncio.Queue = asyncio.Queue(maxsize=100)
+    admin_broadcast_queues.append(queue)
+
+    def _sse(event: str, data: dict) -> str:
+        payload = json.dumps(data, ensure_ascii=False)
+        return f"event: {event}\ndata: {payload}\n\n"
+
+    async def event_stream():
+        try:
+            yield _sse("connected", {"status": "ok"})
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=15.0)
+                    yield _sse(event.get("type", "message"), event)
+                except asyncio.TimeoutError:
+                    yield _sse("ping", {"ts": datetime.utcnow().isoformat()})
+        finally:
+            if queue in admin_broadcast_queues:
+                admin_broadcast_queues.remove(queue)
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -2439,6 +2647,9 @@ def _notify_auditor_new_message(thread_id: str, chat_id: int, message: str, orig
             q.put_nowait(event)
         except asyncio.QueueFull:
             pass
+
+    # Notifica também o painel global
+    _broadcast_thread_update(thread_id)
 
 
 @app.put("/thread/{thread_id}/heartbeat")
@@ -2685,6 +2896,9 @@ async def send_auditor_message(
             })
         except asyncio.QueueFull:
             pass
+
+    # Notifica o painel global
+    _broadcast_thread_update(thread_id)
 
     # --- INJETAR NO CONTEXTO DA CONVERSA ---
     # A mensagem do auditor é adicionada ao histórico em memória como uma
@@ -3176,6 +3390,7 @@ async def startup():
     except Exception as e:
         print(f"[startup] Aviso: não foi possível verificar as tabelas: {e}")
     asyncio.create_task(_cleanup_loop())
+    asyncio.create_task(_tts_cache_cleanup_loop())
 
 async def _cleanup_loop():
     import time
@@ -3189,3 +3404,22 @@ async def _cleanup_loop():
             last_activity.pop(tid, None)
         if expiradas:
             print(f"[cleanup] {len(expiradas)} sessões removidas")
+
+async def _tts_cache_cleanup_loop():
+    """Remove arquivos de cache TTS mais antigos que 24 horas."""
+    import time as _t
+    while True:
+        await asyncio.sleep(3600)  # Verifica a cada hora
+        try:
+            now = _t.time()
+            removed = 0
+            for f in TTS_CACHE_DIR.iterdir():
+                if f.is_file() and f.suffix == ".mp3":
+                    age = now - f.stat().st_mtime
+                    if age > 86400:  # 24 horas
+                        f.unlink()
+                        removed += 1
+            if removed:
+                print(f"[tts_cache_cleanup] {removed} arquivos removidos")
+        except Exception as e:
+            print(f"[tts_cache_cleanup] Erro: {e}")
