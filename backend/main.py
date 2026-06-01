@@ -986,6 +986,133 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     }
 
 
+async def _run_stream_processing(
+    event_queue: asyncio.Queue,
+    thread_id: str,
+    user_message: str,
+    assistant_name: str,
+    agent_notebook_id: str,
+    agent_system_prompt: str,
+    agent_profile: str,
+    is_first_message: bool,
+):
+    """
+    Runs the full chat processing pipeline: query rewrite → NotebookLM → OpenAI.
+
+    DECOUPLED from the SSE connection — this task always runs to completion and
+    persists results to the database and session, even if the client disconnects
+    mid-stream. Events are pushed to event_queue for the SSE generator to consume.
+
+    Fixes the bug where a client disconnect during NotebookLM processing caused
+    the response to be silently lost (never saved to DB or session).
+    """
+    def _push(event_type: str, data: dict):
+        """Push an event to the SSE queue. Non-blocking, safe to call even if
+        the generator has been abandoned (queue is unbounded)."""
+        try:
+            event_queue.put_nowait({"type": event_type, "data": data})
+        except Exception:
+            pass
+
+    try:
+        # --- Etapa 1: Query Rewriting ---
+        _push("status", {"stage": "rewriting", "detail": "Reescrevendo consulta..."})
+        search_query = await rewrite_query_with_context(thread_id, user_message)
+
+        print(f"\n{'='*50}")
+        print(f"[STREAM] Thread: {thread_id}")
+        print(f"[STREAM] Assistant: {assistant_name}")
+        print(f"[STREAM] Profile: {agent_profile!r}")
+        print(f"[STREAM] Original : {user_message!r}")
+        print(f"[STREAM] Rewritten: {search_query!r}")
+
+        # --- Etapa 2: NotebookLM RAG ---
+        _push("status", {"stage": "searching", "detail": "Buscando nos manuais..."})
+        notebooklm_context = await query_notebooklm(search_query, agent_notebook_id, profile=agent_profile)
+
+        context_preview = notebooklm_context[:200].replace('\n', ' ') + "..." if notebooklm_context else "VAZIO"
+        print(f"[STREAM] Contexto : {context_preview}")
+        print(f"{'='*50}\n")
+
+        has_notebooklm_context = bool(notebooklm_context and notebooklm_context.strip())
+
+        # --- Etapa 3: OpenAI generation (with streaming) ---
+        _push("status", {"stage": "generating", "detail": "Gerando resposta com IA..."})
+
+        messages = build_messages(thread_id, user_message, notebooklm_context)
+        full_messages = [{"role": "system", "content": agent_system_prompt or "Você é um assistente útil."}] + messages
+
+        assistant_text = ""
+        openai_ok = False
+
+        try:
+            stream = await openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                max_tokens=10240,
+                messages=full_messages,
+                timeout=120.0,
+                stream=True,
+            )
+
+            async for chunk in stream:
+                delta = chunk.choices[0].delta if chunk.choices else None
+                if delta and delta.content:
+                    token_text = delta.content
+                    assistant_text += token_text
+                    _push("token", {"text": token_text})
+
+            openai_ok = True
+
+            # Log diagnóstico
+            response_preview = assistant_text[:200].replace('\n', ' ') if assistant_text else "VAZIO"
+            print(f"[STREAM] Resposta OpenAI: {response_preview}...")
+
+        except Exception as e:
+            print(f"[STREAM openai] erro: {e}")
+            if has_notebooklm_context:
+                assistant_text = notebooklm_context
+                _push("fallback", {
+                    "content": notebooklm_context,
+                    "reason": "Não foi possível refinar a resposta com IA. Exibindo resposta direta dos manuais."
+                })
+            else:
+                _push("error", {"detail": "Erro ao gerar resposta. Tente novamente."})
+                return
+
+        # --- Etapa 4: Persistence (ALWAYS runs, even if client disconnected) ---
+        _push("status", {"stage": "saving", "detail": "Salvando..."})
+
+        sessions[thread_id].append({"role": "user",      "content": user_message})
+        sessions[thread_id].append({"role": "assistant", "content": assistant_text})
+
+        assistant_chat_id = await run_in_thread(save_agent_message_sync, thread_id, assistant_text)
+
+        # Notificar auditores sobre a resposta da IA
+        if assistant_chat_id:
+            _notify_auditor_new_message(thread_id, assistant_chat_id, assistant_text, 'agente')
+
+        if is_first_message:
+            asyncio.create_task(generate_and_update_subject(thread_id, user_message, assistant_text))
+
+        # --- Final done event ---
+        _push("done", {
+            "chat_id": assistant_chat_id,
+            "content": assistant_text,
+            "was_fallback": not openai_ok,
+        })
+
+    except Exception as e:
+        print(f"[STREAM] Erro inesperado no processamento — thread={thread_id}: {e}")
+        _push("error", {"detail": "Erro interno ao processar. Tente novamente."})
+
+    finally:
+        # Sentinel: signal generator that processing is complete
+        try:
+            event_queue.put_nowait(None)
+        except Exception:
+            pass
+
+
 # ---------------------------------------------------------------------------
 # POST /chat/stream - SSE streaming version for the dashboard
 # ---------------------------------------------------------------------------
@@ -1042,95 +1169,37 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
         payload = json.dumps(data, ensure_ascii=False)
         return f"event: {event}\ndata: {payload}\n\n"
 
+    # Queue for communication between processing task and SSE generator.
+    # Processing runs as a background task decoupled from the SSE connection,
+    # ensuring responses are ALWAYS persisted to DB and session even if the
+    # client disconnects mid-stream.
+    event_queue: asyncio.Queue = asyncio.Queue()
+
+    asyncio.create_task(
+        _run_stream_processing(
+            event_queue=event_queue,
+            thread_id=thread_id,
+            user_message=user_message,
+            assistant_name=assistant_name,
+            agent_notebook_id=agent_notebook_id,
+            agent_system_prompt=agent_system_prompt,
+            agent_profile=agent_profile,
+            is_first_message=is_first_message,
+        )
+    )
+
     async def event_generator():
-        nonlocal is_first_message
-
-        # --- Etapa 1: Query Rewriting ---
-        yield _sse("status", {"stage": "rewriting", "detail": "Reescrevendo consulta..."})
-        search_query = await rewrite_query_with_context(thread_id, user_message)
-
-        print(f"\n{'='*50}")
-        print(f"[STREAM] Thread: {thread_id}")
-        print(f"[STREAM] Assistant: {assistant_name}")
-        print(f"[STREAM] Profile: {agent_profile!r}")
-        print(f"[STREAM] Original : {user_message!r}")
-        print(f"[STREAM] Rewritten: {search_query!r}")
-
-        # --- Etapa 2: NotebookLM RAG ---
-        yield _sse("status", {"stage": "searching", "detail": "Buscando nos manuais..."})
-        notebooklm_context = await query_notebooklm(search_query, agent_notebook_id, profile=agent_profile)
-
-        context_preview = notebooklm_context[:200].replace('\n', ' ') + "..." if notebooklm_context else "VAZIO"
-        print(f"[STREAM] Contexto : {context_preview}")
-        print(f"{'='*50}\n")
-
-        has_notebooklm_context = bool(notebooklm_context and notebooklm_context.strip())
-
-        # --- Etapa 3: OpenAI generation (with streaming) ---
-        yield _sse("status", {"stage": "generating", "detail": "Gerando resposta com IA..."})
-
-        messages = build_messages(thread_id, user_message, notebooklm_context)
-        full_messages = [{"role": "system", "content": agent_system_prompt or "Você é um assistente útil."}] + messages
-
-        assistant_text = ""
-        openai_ok = False
-
+        """Reads events from the processing queue and streams as SSE to the client.
+        If the client disconnects, the processing task continues in background,
+        ensuring the response is always persisted."""
         try:
-            stream = await openai_client.chat.completions.create(
-                model="gpt-4o-mini",
-                max_tokens=10240,
-                messages=full_messages,
-                timeout=120.0,
-                stream=True,
-            )
-
-            async for chunk in stream:
-                delta = chunk.choices[0].delta if chunk.choices else None
-                if delta and delta.content:
-                    token_text = delta.content
-                    assistant_text += token_text
-                    yield _sse("token", {"text": token_text})
-
-            openai_ok = True
-
-            # Log diagnóstico: ver se OpenAI descartou o contexto
-            response_preview = assistant_text[:200].replace('\n', ' ') if assistant_text else "VAZIO"
-            print(f"[STREAM] Resposta OpenAI: {response_preview}...")
-
-        except Exception as e:
-            print(f"[STREAM openai] erro: {e}")
-            # If OpenAI fails but we have NotebookLM context, use it as fallback
-            if has_notebooklm_context:
-                assistant_text = notebooklm_context
-                yield _sse("fallback", {
-                    "content": notebooklm_context,
-                    "reason": "Não foi possível refinar a resposta com IA. Exibindo resposta direta dos manuais."
-                })
-            else:
-                yield _sse("error", {"detail": "Erro ao gerar resposta. Tente novamente."})
-                return
-
-        # --- Etapa 4: Persistence ---
-        yield _sse("status", {"stage": "saving", "detail": "Salvando..."})
-
-        sessions[thread_id].append({"role": "user",      "content": user_message})
-        sessions[thread_id].append({"role": "assistant", "content": assistant_text})
-
-        assistant_chat_id = await run_in_thread(save_agent_message_sync, thread_id, assistant_text)
-
-        # Notificar auditores sobre a resposta da IA
-        if assistant_chat_id:
-            _notify_auditor_new_message(thread_id, assistant_chat_id, assistant_text, 'agente')
-
-        if is_first_message:
-            asyncio.create_task(generate_and_update_subject(thread_id, user_message, assistant_text))
-
-        # --- Final done event ---
-        yield _sse("done", {
-            "chat_id": assistant_chat_id,
-            "content": assistant_text,
-            "was_fallback": not openai_ok,
-        })
+            while True:
+                event = await event_queue.get()
+                if event is None:  # Sentinel: processing complete
+                    break
+                yield _sse(event["type"], event["data"])
+        except (asyncio.CancelledError, GeneratorExit):
+            print(f"[STREAM] Cliente desconectou — thread={thread_id} (processamento continua em background)")
 
     return StreamingResponse(
         event_generator(),
