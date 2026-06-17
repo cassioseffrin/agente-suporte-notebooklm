@@ -1,3 +1,15 @@
+dibem.educ@gmail.com
+Senha: 1276@90Zpt
+
+suporte@vimbo.com.br
+Vmb!@2026
+
+
+arpa.drive@gmail.com 
+90Zpt89dt7
+
+
+
  O OpenAI serve como um "orquestrador de sessões + formatador", não como fonte de conhecimento. Aqui está o breakdown:
 
 O que o NotebookLM faz

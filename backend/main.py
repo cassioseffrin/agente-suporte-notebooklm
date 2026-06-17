@@ -84,7 +84,8 @@ def ensure_tables():
                     sort_order    INTEGER     DEFAULT 0,
                     active        BOOLEAN     DEFAULT TRUE,
                     faq_content   TEXT        DEFAULT '',
-                    notebooklm_profile VARCHAR(100) DEFAULT 'default'
+                    notebooklm_profile VARCHAR(100) DEFAULT 'default',
+                    hide          BOOLEAN     DEFAULT FALSE
                 );
                 """)
 
@@ -92,6 +93,15 @@ def ensure_tables():
                 cur.execute("""
                 DO $$ BEGIN
                     ALTER TABLE agent ADD COLUMN notebooklm_profile VARCHAR(100) DEFAULT 'default';
+                EXCEPTION
+                    WHEN duplicate_column THEN NULL;
+                END $$;
+                """)
+
+                # Migration: add hide column if missing (existing DBs)
+                cur.execute("""
+                DO $$ BEGIN
+                    ALTER TABLE agent ADD COLUMN hide BOOLEAN DEFAULT FALSE;
                 EXCEPTION
                     WHEN duplicate_column THEN NULL;
                 END $$;
@@ -686,7 +696,7 @@ async def get_agents():
     try:
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT id, name, title, sort_order FROM agent WHERE active = TRUE ORDER BY sort_order ASC;")
+                cur.execute("SELECT id, name, title, sort_order FROM agent WHERE active = TRUE AND hide = FALSE ORDER BY sort_order ASC;")
                 rows = cur.fetchall()
                 # Removemos datetime objectos caso existissem, mas select é só id, name, title
                 return {"agents": rows}
@@ -2078,7 +2088,8 @@ async def get_agents_all():
                 cur.execute("""
                     SELECT id, title, name, system_prompt, email, overview,
                            sort_order, active, creation, modification,
-                           COALESCE(notebooklm_profile, 'default') as notebooklm_profile
+                           COALESCE(notebooklm_profile, 'default') as notebooklm_profile,
+                           hide
                     FROM agent
                     ORDER BY sort_order ASC, title ASC;
                 """)
@@ -2097,6 +2108,7 @@ async def get_agents_all():
                         "creation": r["creation"].isoformat() if r["creation"] else None,
                         "modification": r["modification"].isoformat() if r["modification"] else None,
                         "notebooklm_profile": r["notebooklm_profile"],
+                        "hide": r["hide"],
                         # faq_content intentionally omitted from list (fetched on-demand via GET /agents/{id})
                     })
                 return {"agents": agents}
@@ -2117,7 +2129,8 @@ async def get_agent_by_id(agent_id: str):
                 cur.execute("""
                     SELECT id, title, name, system_prompt, email, overview,
                            sort_order, active, creation, modification, faq_content,
-                           COALESCE(notebooklm_profile, 'default') as notebooklm_profile
+                           COALESCE(notebooklm_profile, 'default') as notebooklm_profile,
+                           hide
                     FROM agent WHERE id = %s;
                 """, (agent_id,))
                 r = cur.fetchone()
@@ -2136,6 +2149,7 @@ async def get_agent_by_id(agent_id: str):
                     "modification": r["modification"].isoformat() if r["modification"] else None,
                     "faq_content": r["faq_content"] or "",
                     "notebooklm_profile": r["notebooklm_profile"],
+                    "hide": r["hide"],
                 }
     except HTTPException:
         raise
@@ -2156,6 +2170,7 @@ class AgentUpdateRequest(BaseModel):
     active: Optional[bool] = None
     faq_content: Optional[str] = None
     notebooklm_profile: Optional[str] = None
+    hide: Optional[bool] = None
 
 
 @app.put("/agents/{agent_id}")
@@ -2179,7 +2194,8 @@ async def update_agent(agent_id: str, request: AgentUpdateRequest):
                     WHERE id = %(agent_id)s
                     RETURNING id, title, name, system_prompt, email, overview,
                               sort_order, active, creation, modification,
-                              COALESCE(notebooklm_profile, 'default') as notebooklm_profile;
+                              COALESCE(notebooklm_profile, 'default') as notebooklm_profile,
+                              hide;
                 """, fields)
                 row = cur.fetchone()
                 if not row:
