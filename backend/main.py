@@ -2597,6 +2597,8 @@ async def admin_list_threads(
                            MIN(c.created_at) AS created_at,
                            COUNT(DISTINCT c.id) FILTER (WHERE c.message NOT LIKE 'Thread iniciada:%%') AS message_count,
                            MAX(ct.feedback_rating) AS feedback_rating,
+                           COUNT(c.id) FILTER (WHERE c.feedback_thumb = 1) AS thumb_up_count,
+                           COUNT(c.id) FILTER (WHERE c.feedback_thumb = -1) AS thumb_down_count,
                            EXISTS (
                                SELECT 1 FROM chat_thread ct2
                                JOIN chat c2 ON ct2.chat_id = c2.id
