@@ -204,6 +204,7 @@ REGRAS OBRIGATÓRIAS:
 # ---------------------------------------------------------------------------
 
 sessions: dict[str, list[dict[str, str]]] = defaultdict(list)
+pending_threads: dict[str, dict] = {}
 
 # Presença: mapeia thread_id -> timestamp do último heartbeat do usuário
 user_presence: dict[str, float] = {}
@@ -537,59 +538,15 @@ async def create_new_thread(
     cnpj = cnpj or "03.600.477/0001-04"
     agentName = agentName or "SMART"
 
-    # Registra no banco: user, thread, chat e chat_thread
-    try:
-        conn = get_db_connection()
-        with conn:
-            with conn.cursor() as cur:
-                # Upsert user
-                cur.execute("""
-                    INSERT INTO "user" (email, name, cnpj)
-                    VALUES (%s, %s, %s)
-                    ON CONFLICT (email) DO UPDATE 
-                    SET name = EXCLUDED.name, cnpj = EXCLUDED.cnpj
-                    RETURNING id;
-                """, (email, name, cnpj))
-                user_id = cur.fetchone()[0]
+    # Store metadata in pending_threads to defer DB creation until first message
+    pending_threads[thread_id] = {
+        "email": email,
+        "name": name,
+        "cnpj": cnpj,
+        "agentName": agentName
+    }
 
-                # Localizar agent_id e title pelo agentName
-                cur.execute("SELECT id, title FROM agent WHERE name = %s;", (agentName,))
-                agent_row = cur.fetchone()
-
-                agent_id = None
-                subject_title = "indefinido"
-                if agent_row:
-                    agent_id = agent_row[0]
-                    subject_title = f"Nova conversa com {agent_row[1]}"
-
-                # Criar thread
-                cur.execute("""
-                    INSERT INTO thread (id, subject)
-                    VALUES (%s, %s);
-                """, (thread_id, subject_title))
-
-                if agent_id:
-                    # Inserir chat
-                    cur.execute("""
-                        INSERT INTO chat (user_id, agent_id, message)
-                        VALUES (%s, %s, %s)
-                        RETURNING id;
-                    """, (user_id, agent_id, f"Thread iniciada: {thread_id}"))
-                    chat_id = cur.fetchone()[0]
-
-                    # Vincular chat à thread
-                    cur.execute("""
-                        INSERT INTO chat_thread (thread_id, chat_id)
-                        VALUES (%s, %s);
-                    """, (thread_id, chat_id))
-
-    except Exception as e:
-        print("Erro ao registrar user/chat/thread no banco:", e)
-    finally:
-        if 'conn' in locals() and conn:
-            conn.close()
-
-    return {"threadId": thread_id, "userId": user_id if 'user_id' in locals() else None}
+    return {"threadId": thread_id, "userId": None}
 
 
 class FeedbackRequest(BaseModel):
@@ -833,20 +790,73 @@ async def run_in_thread(func, *args):
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, func, *args)
 
+def _ensure_thread_in_db_and_get_ids(cur, thread_id: str) -> tuple[int | None, int | None]:
+    """
+    Garante que a thread e seu usuário estejam registrados no banco
+    no momento em que a primeira mensagem é enviada (lazy creation).
+    Retorna (user_id, agent_id).
+    """
+    # 1. Verifica se a thread já possui alguma mensagem no chat
+    cur.execute("""
+        SELECT c.user_id, c.agent_id FROM chat c
+        JOIN chat_thread ct ON ct.chat_id = c.id
+        WHERE ct.thread_id = %s
+        LIMIT 1;
+    """, (thread_id,))
+    row = cur.fetchone()
+    if row:
+        return row[0], row[1]
+
+    # 2. Se não possuir mensagens, verifica se a thread em si existe
+    cur.execute("SELECT 1 FROM thread WHERE id = %s;", (thread_id,))
+    thread_exists = cur.fetchone() is not None
+
+    # Recupera metadados da memória (do createNewThread) ou usa fallbacks
+    meta = pending_threads.get(thread_id, {})
+    email = meta.get("email") or "usuario.generico@arpasistemas.com.br"
+    name = meta.get("name") or "Usuario Generico"
+    cnpj = meta.get("cnpj") or "03.600.477/0001-04"
+    agentName = meta.get("agentName") or "SMART"
+
+    # Upsert do usuário
+    cur.execute("""
+        INSERT INTO "user" (email, name, cnpj)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (email) DO UPDATE 
+        SET name = EXCLUDED.name, cnpj = EXCLUDED.cnpj
+        RETURNING id;
+    """, (email, name, cnpj))
+    user_id = cur.fetchone()[0]
+
+    # Localiza o agente pelo agentName
+    cur.execute("SELECT id, title FROM agent WHERE name = %s;", (agentName,))
+    agent_row = cur.fetchone()
+    agent_id = None
+    subject_title = "indefinido"
+    if agent_row:
+        agent_id = agent_row[0]
+        subject_title = f"Nova conversa com {agent_row[1]}"
+
+    # Cria a thread no banco de dados se não existir
+    if not thread_exists:
+        cur.execute("""
+            INSERT INTO thread (id, subject)
+            VALUES (%s, %s);
+        """, (thread_id, subject_title))
+
+    # Limpa os metadados pendentes
+    pending_threads.pop(thread_id, None)
+
+    return user_id, agent_id
+
+
 def save_user_message_sync(thread_id: str, user_message: str) -> int | None:
     try:
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
-                cur.execute("""
-                    SELECT c.user_id, c.agent_id FROM chat c
-                    JOIN chat_thread ct ON ct.chat_id = c.id
-                    WHERE ct.thread_id = %s
-                    LIMIT 1;
-                """, (thread_id,))
-                row = cur.fetchone()
-                if row:
-                    uid, aid = row
+                uid, aid = _ensure_thread_in_db_and_get_ids(cur, thread_id)
+                if uid and aid:
                     cur.execute("""
                         INSERT INTO chat (user_id, agent_id, message, origem)
                         VALUES (%s, %s, %s, 'usuario')
@@ -2426,6 +2436,7 @@ async def delete_thread(
 
         # Remove da sessão em memória, se existir
         sessions.pop(thread_id, None)
+        pending_threads.pop(thread_id, None)
 
         return {"status": "deleted", "thread_id": thread_id}
     except Exception as e:
