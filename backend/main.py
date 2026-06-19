@@ -1730,6 +1730,37 @@ async def auth_status_all():
     return {"profiles": results}
 
 
+@app.get("/notebooklm-version")
+async def get_notebooklm_version():
+    """
+    Retorna a versão do NotebookLM CLI instalada no servidor.
+    Executa 'notebooklm --version'.
+    """
+    try:
+        import sys
+        env = os.environ.copy()
+        venv_bin = os.path.dirname(sys.executable)
+        env["PATH"] = f"{venv_bin}{os.pathsep}{env.get('PATH', '')}"
+
+        proc = await asyncio.create_subprocess_exec(
+            "notebooklm", "--version",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=env,
+        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=5.0)
+        if proc.returncode == 0:
+            version_str = stdout.decode().strip()
+            return {"version": version_str}
+        else:
+            err_msg = stderr.decode().strip()
+            print(f"[get_notebooklm_version] Erro ao obter versão ({proc.returncode}): {err_msg}")
+            return {"version": "Desconhecido", "error": f"Erro {proc.returncode}: {err_msg}"}
+    except Exception as e:
+        print(f"[get_notebooklm_version] Exceção ao obter versão: {e}")
+        return {"version": "Desconhecido", "error": str(e)}
+
+
 class RenameProfileRequest(BaseModel):
     old_profile: str
     new_profile: str
