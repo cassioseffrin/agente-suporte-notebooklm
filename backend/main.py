@@ -40,7 +40,7 @@ OPENAI_API_KEY         = os.environ.get("OPENAI_API_KEY", "")
 BACKEND_API_KEY        = os.environ.get("BACKEND_API_KEY", "")
 
 HISTORY_LIMIT      = 10   # últimas N mensagens enviadas ao OpenAI (5 turnos)
-NOTEBOOKLM_TIMEOUT = 240
+NOTEBOOKLM_TIMEOUT = 300
 
 # ---------------------------------------------------------------------------
 # PostgreSQL - conexão e helpers
@@ -328,16 +328,16 @@ def _get_notebooklm_cmd(profile: str, *args) -> list[str]:
 
 async def query_notebooklm(user_message: str, notebook_id: str, profile: str = "default", max_retries: int = 3) -> str:
     """Consulta o NotebookLM CLI com retry para falhas rápidas.
-    NÃO faz retry em timeout (240s já consome quase todo o budget).
-    Orçamento total: ~400s máx para caber no proxy_read_timeout do nginx (600s)."""
+    NÃO faz retry em timeout (300s já consome quase todo o budget).
+    Orçamento total: ~500s máx para caber no proxy_read_timeout do nginx (600s)."""
     if not notebook_id:
         return ""
 
     import time
-    TIME_BUDGET = 400  # segundos máx para todas as tentativas (nginx=600s, sobra p/ rewrite+openai)
+    TIME_BUDGET = 500  # segundos máx para todas as tentativas (nginx=600s, sobra p/ rewrite+openai)
     t0 = time.monotonic()
 
-    cmd = _get_notebooklm_cmd(profile, "ask", user_message, "-n", notebook_id, "--json")
+    cmd = _get_notebooklm_cmd(profile, "ask", user_message, "-n", notebook_id, "--json", "--request-timeout", str(NOTEBOOKLM_TIMEOUT))
     print(f"[notebooklm] profile={profile!r} | notebook={notebook_id!r} | cmd={' '.join(cmd[:5])}...")
 
     for attempt in range(1, max_retries + 1):
@@ -380,7 +380,7 @@ async def query_notebooklm(user_message: str, notebook_id: str, profile: str = "
                 await asyncio.sleep(2 * attempt)  # backoff: 2s, 4s
 
         except asyncio.TimeoutError:
-            # Timeout = 240s já consumidos → NÃO faz retry (estoura nginx)
+            # Timeout = 300s já consumidos → NÃO faz retry (estoura nginx)
             print(f"[notebooklm] TIMEOUT ({NOTEBOOKLM_TIMEOUT}s) — sem retry")
             return ""
         except Exception as e:
