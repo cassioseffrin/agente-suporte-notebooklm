@@ -216,6 +216,7 @@ REGRAS OBRIGATÓRIAS:
 
 sessions: dict[str, list[dict[str, str]]] = defaultdict(list)
 pending_threads: dict[str, dict] = {}
+active_generations: set[str] = set()
 
 # Presença: mapeia thread_id -> timestamp do último heartbeat do usuário
 user_presence: dict[str, float] = {}
@@ -1213,6 +1214,7 @@ async def _run_stream_processing(
             pass
 
     try:
+        active_generations.add(thread_id)
         # --- Etapa 1: Query Rewriting ---
         _push("status", {"stage": "rewriting", "detail": "Reescrevendo consulta..."})
         search_query = await rewrite_query_with_context(thread_id, user_message)
@@ -1285,9 +1287,10 @@ async def _run_stream_processing(
 
         assistant_chat_id = await run_in_thread(save_agent_message_sync, thread_id, assistant_text)
 
-        # Notificar auditores sobre a resposta da IA
+        # Notificar auditores e usuário sobre a resposta da IA
         if assistant_chat_id:
             _notify_auditor_new_message(thread_id, assistant_chat_id, assistant_text, 'agente')
+            _notify_user_new_message(thread_id, assistant_chat_id, assistant_text, 'agente')
 
         if is_first_message:
             asyncio.create_task(generate_and_update_subject(thread_id, user_message, assistant_text))
@@ -1304,6 +1307,7 @@ async def _run_stream_processing(
         _push("error", {"detail": "Erro interno ao processar. Tente novamente."})
 
     finally:
+        active_generations.discard(thread_id)
         # Sentinel: signal generator that processing is complete
         try:
             event_queue.put_nowait(None)
@@ -2609,7 +2613,10 @@ async def get_thread_messages(
                 msg_data["auditor_icon_svg"] = m.get("auditor_icon_svg")
             formatted_messages.append(msg_data)
             
-        return {"messages": formatted_messages}
+        return {
+            "messages": formatted_messages,
+            "generating": thread_id in active_generations
+        }
     except Exception as e:
         print(f"[thread_messages] Erro: {e}")
         raise HTTPException(status_code=500, detail="Erro ao buscar mensagens.")
@@ -2924,6 +2931,22 @@ def _notify_auditor_new_message(thread_id: str, chat_id: int, message: str, orig
 
     # Notifica também o painel global
     _broadcast_thread_update(thread_id)
+
+
+def _notify_user_new_message(thread_id: str, chat_id: int, message: str, origem: str):
+    """Notifica o usuário conectado via SSE sobre nova mensagem (ex: resposta da IA ou mensagem do auditor)."""
+    event = {
+        "type": "agent_message" if origem == "agente" else "auditor_message" if origem == "auditor" else "user_message",
+        "thread_id": thread_id,
+        "chat_id": chat_id,
+        "message": message,
+        "created_at": datetime.now().isoformat(),
+    }
+    for q in user_queues.get(thread_id, []):
+        try:
+            q.put_nowait(event)
+        except asyncio.QueueFull:
+            pass
 
 
 @app.put("/thread/{thread_id}/heartbeat")
