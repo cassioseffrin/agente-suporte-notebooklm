@@ -21,7 +21,8 @@ from typing import Optional
 from pathlib import Path
 
 import psycopg2
-from psycopg2.extras import RealDictCursor
+from psycopg2.extras import RealDictCursor, Json
+import httpx
 
 from dotenv import load_dotenv  # Carregar variáveis do .env
 load_dotenv()
@@ -135,8 +136,18 @@ def ensure_tables():
                     id    SERIAL       PRIMARY KEY,
                     email VARCHAR(255) UNIQUE NOT NULL,
                     name  VARCHAR(255),
-                    cnpj  VARCHAR(255)
+                    cnpj  VARCHAR(255),
+                    company_data JSONB
                 );
+                """)
+
+                # Migration: add company_data column if missing (existing DBs)
+                cur.execute("""
+                DO $$ BEGIN
+                    ALTER TABLE "user" ADD COLUMN company_data JSONB;
+                EXCEPTION
+                    WHEN duplicate_column THEN NULL;
+                END $$;
                 """)
 
                 # 5. Tabela chat
@@ -790,11 +801,164 @@ async def run_in_thread(func, *args):
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, func, *args)
 
-def _ensure_thread_in_db_and_get_ids(cur, thread_id: str) -> tuple[int | None, int | None]:
+
+# ---------------------------------------------------------------------------
+# Enriquecimento de dados da empresa via CNPJ (assíncrono, não-bloqueante)
+# ---------------------------------------------------------------------------
+
+def _normalize_cnpj(cnpj: str) -> str:
+    """Remove formatação do CNPJ, mantendo apenas dígitos."""
+    return ''.join(c for c in cnpj if c.isdigit())
+
+
+def _parse_brasilapi(data: dict) -> dict:
+    """Parse da resposta da BrasilAPI para formato normalizado."""
+    return {
+        "cnpj": data.get("cnpj", ""),
+        "razao_social": data.get("razao_social", ""),
+        "nome_fantasia": data.get("nome_fantasia", ""),
+        "situacao_cadastral": data.get("descricao_situacao_cadastral", ""),
+        "data_inicio_atividade": data.get("data_inicio_atividade", ""),
+        "natureza_juridica": data.get("natureza_juridica", ""),
+        "porte": data.get("porte", ""),
+        "capital_social": data.get("capital_social", 0),
+        "atividade_principal": {
+            "codigo": str(data.get("cnae_fiscal", "")),
+            "descricao": data.get("cnae_fiscal_descricao", ""),
+        },
+        "atividades_secundarias": [
+            {"codigo": str(a.get("codigo", "")), "descricao": a.get("descricao", "")}
+            for a in (data.get("cnaes_secundarios") or [])
+        ],
+        "endereco": {
+            "logradouro": data.get("logradouro", ""),
+            "numero": data.get("numero", ""),
+            "complemento": data.get("complemento", ""),
+            "bairro": data.get("bairro", ""),
+            "municipio": data.get("municipio", ""),
+            "uf": data.get("uf", ""),
+            "cep": data.get("cep", ""),
+        },
+        "contato": {
+            "email": data.get("email"),
+            "telefone": data.get("ddd_telefone_1", ""),
+        },
+        "simples_optante": data.get("opcao_pelo_simples", False),
+        "mei_optante": data.get("opcao_pelo_mei", False),
+        "source": "brasilapi",
+    }
+
+
+def _parse_receitaws(data: dict) -> dict:
+    """Parse da resposta da ReceitaWS para formato normalizado."""
+    atividade_principal = {}
+    atividades = data.get("atividade_principal") or []
+    if atividades:
+        atividade_principal = {
+            "codigo": atividades[0].get("code", ""),
+            "descricao": atividades[0].get("text", ""),
+        }
+
+    return {
+        "cnpj": _normalize_cnpj(data.get("cnpj", "")),
+        "razao_social": data.get("nome", ""),
+        "nome_fantasia": data.get("fantasia", ""),
+        "situacao_cadastral": data.get("situacao", ""),
+        "data_inicio_atividade": data.get("abertura", ""),
+        "natureza_juridica": data.get("natureza_juridica", ""),
+        "porte": data.get("porte", ""),
+        "capital_social": float(data.get("capital_social", 0) or 0),
+        "atividade_principal": atividade_principal,
+        "atividades_secundarias": [
+            {"codigo": a.get("code", ""), "descricao": a.get("text", "")}
+            for a in (data.get("atividades_secundarias") or [])
+        ],
+        "endereco": {
+            "logradouro": data.get("logradouro", ""),
+            "numero": data.get("numero", ""),
+            "complemento": data.get("complemento", ""),
+            "bairro": data.get("bairro", ""),
+            "municipio": data.get("municipio", ""),
+            "uf": data.get("uf", ""),
+            "cep": data.get("cep", "").replace(".", "").replace("-", ""),
+        },
+        "contato": {
+            "email": data.get("email") or None,
+            "telefone": data.get("telefone", ""),
+        },
+        "simples_optante": (data.get("simples") or {}).get("optante", False),
+        "mei_optante": (data.get("simei") or {}).get("optante", False),
+        "source": "receitaws",
+    }
+
+
+async def fetch_company_data(cnpj: str) -> dict | None:
+    """Busca dados da empresa via BrasilAPI (primário) ou ReceitaWS (fallback).
+    Timeout de 500ms por requisição. Retorna dict normalizado ou None."""
+    cnpj_limpo = _normalize_cnpj(cnpj)
+    if len(cnpj_limpo) != 14:
+        print(f"[CNPJ-enrich] CNPJ inválido (len={len(cnpj_limpo)}): {cnpj}")
+        return None
+
+    timeout = httpx.Timeout(0.5)  # 500ms
+
+    # Tentativa 1: BrasilAPI
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.get(f"https://brasilapi.com.br/api/cnpj/v1/{cnpj_limpo}")
+            resp.raise_for_status()
+            data = resp.json()
+            result = _parse_brasilapi(data)
+            print(f"[CNPJ-enrich] BrasilAPI OK para {cnpj_limpo}: {result.get('razao_social')}")
+            return result
+    except Exception as e:
+        print(f"[CNPJ-enrich] BrasilAPI falhou para {cnpj_limpo}: {e}")
+
+    # Tentativa 2: ReceitaWS (fallback)
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.get(f"https://www.receitaws.com.br/v1/cnpj/{cnpj_limpo}")
+            resp.raise_for_status()
+            data = resp.json()
+            if data.get("status") == "ERROR":
+                print(f"[CNPJ-enrich] ReceitaWS retornou ERROR para {cnpj_limpo}")
+                return None
+            result = _parse_receitaws(data)
+            print(f"[CNPJ-enrich] ReceitaWS OK para {cnpj_limpo}: {result.get('razao_social')}")
+            return result
+    except Exception as e:
+        print(f"[CNPJ-enrich] ReceitaWS falhou para {cnpj_limpo}: {e}")
+
+    return None
+
+
+async def _enrich_company_data_bg(user_id: int, cnpj: str):
+    """Fire-and-forget: busca dados da empresa e salva no banco."""
+    try:
+        company = await fetch_company_data(cnpj)
+        if not company:
+            print(f"[CNPJ-enrich] Nenhum dado obtido para user_id={user_id}, cnpj={cnpj}")
+            return
+
+        conn = get_db_connection()
+        try:
+            with conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        'UPDATE "user" SET company_data = %s WHERE id = %s;',
+                        (Json(company), user_id)
+                    )
+            print(f"[CNPJ-enrich] company_data salvo para user_id={user_id}: {company.get('razao_social')}")
+        finally:
+            conn.close()
+    except Exception as e:
+        print(f"[CNPJ-enrich] Erro ao enriquecer user_id={user_id}: {e}")
+
+def _ensure_thread_in_db_and_get_ids(cur, thread_id: str) -> tuple[int | None, int | None, str | None, bool]:
     """
     Garante que a thread e seu usuário estejam registrados no banco
     no momento em que a primeira mensagem é enviada (lazy creation).
-    Retorna (user_id, agent_id).
+    Retorna (user_id, agent_id, cnpj, needs_enrichment).
     """
     # 1. Verifica se a thread já possui alguma mensagem no chat
     cur.execute("""
@@ -805,7 +969,7 @@ def _ensure_thread_in_db_and_get_ids(cur, thread_id: str) -> tuple[int | None, i
     """, (thread_id,))
     row = cur.fetchone()
     if row:
-        return row[0], row[1]
+        return row[0], row[1], None, False
 
     # 2. Se não possuir mensagens, verifica se a thread em si existe
     cur.execute("SELECT 1 FROM thread WHERE id = %s;", (thread_id,))
@@ -824,9 +988,11 @@ def _ensure_thread_in_db_and_get_ids(cur, thread_id: str) -> tuple[int | None, i
         VALUES (%s, %s, %s)
         ON CONFLICT (email) DO UPDATE 
         SET name = EXCLUDED.name, cnpj = EXCLUDED.cnpj
-        RETURNING id;
+        RETURNING id, company_data IS NULL AS needs_enrichment;
     """, (email, name, cnpj))
-    user_id = cur.fetchone()[0]
+    row = cur.fetchone()
+    user_id = row[0]
+    needs_enrichment = row[1]  # True se company_data é NULL
 
     # Localiza o agente pelo agentName
     cur.execute("SELECT id, title FROM agent WHERE name = %s;", (agentName,))
@@ -847,15 +1013,16 @@ def _ensure_thread_in_db_and_get_ids(cur, thread_id: str) -> tuple[int | None, i
     # Limpa os metadados pendentes
     pending_threads.pop(thread_id, None)
 
-    return user_id, agent_id
+    return user_id, agent_id, cnpj, needs_enrichment
 
 
-def save_user_message_sync(thread_id: str, user_message: str) -> int | None:
+def save_user_message_sync(thread_id: str, user_message: str) -> tuple[int | None, int | None, str | None, bool]:
+    """Salva mensagem do usuário e retorna (chat_id, user_id, cnpj, needs_enrichment)."""
     try:
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
-                uid, aid = _ensure_thread_in_db_and_get_ids(cur, thread_id)
+                uid, aid, cnpj, needs_enrichment = _ensure_thread_in_db_and_get_ids(cur, thread_id)
                 if uid and aid:
                     cur.execute("""
                         INSERT INTO chat (user_id, agent_id, message, origem)
@@ -867,13 +1034,13 @@ def save_user_message_sync(thread_id: str, user_message: str) -> int | None:
                         INSERT INTO chat_thread (thread_id, chat_id)
                         VALUES (%s, %s);
                     """, (thread_id, user_chat_id))
-                    return user_chat_id
+                    return user_chat_id, uid, cnpj, needs_enrichment
     except Exception as e:
         print(f"[DB-save-user] Erro: {e}")
     finally:
         if 'conn' in locals() and conn:
             conn.close()
-    return None
+    return None, None, None, False
 
 def save_agent_message_sync(thread_id: str, assistant_text: str) -> int | None:
     try:
@@ -933,7 +1100,12 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     is_first_message = len(sessions[thread_id]) == 0
 
     # 0. Persiste no banco a mensagem do usuário imediatamente para registrar o timestamp correto
-    user_chat_id = await run_in_thread(save_user_message_sync, thread_id, user_message)
+    save_result = await run_in_thread(save_user_message_sync, thread_id, user_message)
+    user_chat_id, saved_user_id, saved_cnpj, needs_enrichment = save_result
+
+    # Dispara enriquecimento de dados da empresa em background (fire-and-forget)
+    if needs_enrichment and saved_user_id and saved_cnpj:
+        asyncio.create_task(_enrich_company_data_bg(saved_user_id, saved_cnpj))
 
     # Notifica o auditor assim que a mensagem chega (antes da IA pensar)
     _notify_auditor_new_message(thread_id, user_chat_id or 0, user_message, 'usuario')
@@ -1913,13 +2085,13 @@ async def dashboard_chats_per_user(days: int = 30, limit: int = 10):
                 # Identify top 10 users by total volume
                 cur.execute("""
                     WITH user_totals AS (
-                        SELECT u.id, u.name, u.email, COUNT(DISTINCT c.id) as total
+                        SELECT u.id, u.name, u.email, u.cnpj, u.company_data, COUNT(DISTINCT c.id) as total
                         FROM chat c
                         JOIN "user" u ON u.id = c.user_id
                         WHERE c.origem = 'usuario'
                           AND c.created_at >= NOW() - INTERVAL '%s days'
                           AND u.email NOT IN ('admin@test.com')
-                        GROUP BY u.id, u.name, u.email
+                        GROUP BY u.id, u.name, u.email, u.cnpj, u.company_data
                     ),
                     user_feedbacks AS (
                         SELECT c.user_id, AVG(ct.feedback_rating) as avg_rating,
@@ -1930,7 +2102,8 @@ async def dashboard_chats_per_user(days: int = 30, limit: int = 10):
                         WHERE c.created_at >= NOW() - INTERVAL '%s days'
                         GROUP BY c.user_id
                     )
-                    SELECT t.name, t.email, t.total, ROUND(f.avg_rating, 1) as avg_rating, 
+                    SELECT t.name, t.email, t.total, t.cnpj, t.company_data,
+                           ROUND(f.avg_rating, 1) as avg_rating, 
                            f.thumb_up, f.thumb_down
                     FROM user_totals t
                     LEFT JOIN user_feedbacks f ON f.user_id = t.id
@@ -1950,7 +2123,9 @@ async def dashboard_chats_per_user(days: int = 30, limit: int = 10):
                         "avg_rating": float(r["avg_rating"]) if r["avg_rating"] is not None else None,
                         "thumb_avg": thumb_avg,
                         "thumb_up": up,
-                        "thumb_down": down
+                        "thumb_down": down,
+                        "cnpj": r.get("cnpj", ""),
+                        "razao_social": (r["company_data"] or {}).get("razao_social") if r.get("company_data") else None,
                     })
 
         # Build series per user (daily data)
@@ -2636,6 +2811,7 @@ async def admin_list_threads(
                            a.title        AS agent_title,
                            u.name         AS user_name,
                            u.email        AS user_email,
+                           u.company_data,
                            MIN(c.created_at) AS created_at,
                            COUNT(DISTINCT c.id) FILTER (WHERE c.message NOT LIKE 'Thread iniciada:%%') AS message_count,
                            MAX(ct.feedback_rating) AS feedback_rating,
@@ -2663,7 +2839,7 @@ async def admin_list_threads(
                     WHERE 1=1
                     {search_clause}
                     {auditor_clause}
-                    GROUP BY t.id, t.subject, a.name, a.title, u.name, u.email
+                    GROUP BY t.id, t.subject, a.name, a.title, u.name, u.email, u.company_data
                     ORDER BY created_at DESC
                     LIMIT %s OFFSET %s;
                 """
