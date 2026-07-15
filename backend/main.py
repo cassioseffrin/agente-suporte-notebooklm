@@ -896,50 +896,56 @@ async def fetch_company_data(cnpj: str) -> dict | None:
     """Busca dados da empresa via BrasilAPI (primário) ou ReceitaWS (fallback).
     Timeout de 500ms por requisição. Retorna dict normalizado ou None."""
     cnpj_limpo = _normalize_cnpj(cnpj)
+    print(f"[CNPJ-enrich] Iniciando busca para CNPJ {cnpj} (limpo: {cnpj_limpo})")
     if len(cnpj_limpo) != 14:
-        print(f"[CNPJ-enrich] CNPJ inválido (len={len(cnpj_limpo)}): {cnpj}")
+        print(f"[CNPJ-enrich] CNPJ inválido (tamanho {len(cnpj_limpo)} != 14): {cnpj}")
         return None
 
     timeout = httpx.Timeout(0.5)  # 500ms
 
     # Tentativa 1: BrasilAPI
     try:
+        print(f"[CNPJ-enrich] Tentando BrasilAPI para CNPJ: {cnpj_limpo} com timeout de 500ms...")
         async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.get(f"https://brasilapi.com.br/api/cnpj/v1/{cnpj_limpo}")
             resp.raise_for_status()
             data = resp.json()
             result = _parse_brasilapi(data)
-            print(f"[CNPJ-enrich] BrasilAPI OK para {cnpj_limpo}: {result.get('razao_social')}")
+            print(f"[CNPJ-enrich] BrasilAPI retornou com sucesso para {cnpj_limpo}: {result.get('razao_social')}")
             return result
     except Exception as e:
-        print(f"[CNPJ-enrich] BrasilAPI falhou para {cnpj_limpo}: {e}")
+        print(f"[CNPJ-enrich] BrasilAPI falhou/timeout para {cnpj_limpo}: {e}")
 
     # Tentativa 2: ReceitaWS (fallback)
     try:
+        print(f"[CNPJ-enrich] Tentando ReceitaWS (fallback) para CNPJ: {cnpj_limpo} com timeout de 500ms...")
         async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.get(f"https://www.receitaws.com.br/v1/cnpj/{cnpj_limpo}")
             resp.raise_for_status()
             data = resp.json()
             if data.get("status") == "ERROR":
-                print(f"[CNPJ-enrich] ReceitaWS retornou ERROR para {cnpj_limpo}")
+                print(f"[CNPJ-enrich] ReceitaWS retornou erro de API para {cnpj_limpo}: {data.get('message')}")
                 return None
             result = _parse_receitaws(data)
-            print(f"[CNPJ-enrich] ReceitaWS OK para {cnpj_limpo}: {result.get('razao_social')}")
+            print(f"[CNPJ-enrich] ReceitaWS retornou com sucesso para {cnpj_limpo}: {result.get('razao_social')}")
             return result
     except Exception as e:
-        print(f"[CNPJ-enrich] ReceitaWS falhou para {cnpj_limpo}: {e}")
+        print(f"[CNPJ-enrich] ReceitaWS falhou/timeout para {cnpj_limpo}: {e}")
 
+    print(f"[CNPJ-enrich] Ambas as APIs falharam/timeout para o CNPJ: {cnpj_limpo}")
     return None
 
 
 async def _enrich_company_data_bg(user_id: int, cnpj: str):
     """Fire-and-forget: busca dados da empresa e salva no banco."""
+    print(f"[CNPJ-enrich] Iniciando tarefa em background para user_id={user_id}, cnpj={cnpj}")
     try:
         company = await fetch_company_data(cnpj)
         if not company:
-            print(f"[CNPJ-enrich] Nenhum dado obtido para user_id={user_id}, cnpj={cnpj}")
+            print(f"[CNPJ-enrich] Tarefa em background não obteve dados para user_id={user_id}, cnpj={cnpj}")
             return
 
+        print(f"[CNPJ-enrich] Salvando dados obtidos no banco para user_id={user_id}...")
         conn = get_db_connection()
         try:
             with conn:
@@ -948,11 +954,11 @@ async def _enrich_company_data_bg(user_id: int, cnpj: str):
                         'UPDATE "user" SET company_data = %s WHERE id = %s;',
                         (Json(company), user_id)
                     )
-            print(f"[CNPJ-enrich] company_data salvo para user_id={user_id}: {company.get('razao_social')}")
+            print(f"[CNPJ-enrich] Sucesso! company_data persistido no banco para user_id={user_id}: {company.get('razao_social')}")
         finally:
             conn.close()
     except Exception as e:
-        print(f"[CNPJ-enrich] Erro ao enriquecer user_id={user_id}: {e}")
+        print(f"[CNPJ-enrich] Erro grave na tarefa em background para user_id={user_id}: {e}")
 
 def _ensure_thread_in_db_and_get_ids(cur, thread_id: str) -> tuple[int | None, int | None, str | None, bool]:
     """
@@ -1339,7 +1345,15 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
     is_first_message = len(sessions[thread_id]) == 0
 
     # 0. Persiste no banco a mensagem do usuário imediatamente para registrar o timestamp correto
-    user_chat_id = await run_in_thread(save_user_message_sync, thread_id, user_message)
+    save_result = await run_in_thread(save_user_message_sync, thread_id, user_message)
+    user_chat_id, saved_user_id, saved_cnpj, needs_enrichment = save_result
+
+    # Dispara enriquecimento de dados da empresa em background (fire-and-forget)
+    if needs_enrichment and saved_user_id and saved_cnpj:
+        print(f"[CNPJ-enrich] Rota /chat/stream detectou novo chat/usuario. Disparando task async para user_id={saved_user_id}, cnpj={saved_cnpj}")
+        asyncio.create_task(_enrich_company_data_bg(saved_user_id, saved_cnpj))
+    else:
+        print(f"[CNPJ-enrich] Rota /chat/stream pulando enriquecimento: needs_enrichment={needs_enrichment}, user_id={saved_user_id}, cnpj={saved_cnpj}")
 
     # Notifica o auditor assim que a mensagem chega (antes da IA pensar)
     _notify_auditor_new_message(thread_id, user_chat_id or 0, user_message, 'usuario')
