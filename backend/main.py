@@ -2568,6 +2568,9 @@ async def get_history(
                 """, (user_id,))
                 total = cur.fetchone()["total"]
 
+        for t in threads:
+            t["generating"] = t["thread_id"] in active_generations
+
         return {
             "threads": threads,
             "total": total,
