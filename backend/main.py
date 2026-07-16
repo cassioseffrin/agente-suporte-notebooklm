@@ -277,9 +277,6 @@ def _get_user_name_for_thread(thread_id: str) -> str:
                     if isinstance(company_data, dict):
                         razao = company_data.get("razao_social")
                         if razao:
-                            words = razao.split()
-                            if len(words) > 4:
-                                razao = " ".join(words[:4])
                             return razao
                     return u_name
                 return "Desconhecido"
