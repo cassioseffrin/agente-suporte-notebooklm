@@ -253,20 +253,36 @@ def _broadcast_thread_update(thread_id: str):
 
 
 def _get_user_name_for_thread(thread_id: str) -> str:
-    """Busca o nome do usuário pelo thread_id no banco."""
+    """Busca o nome do usuário pelo thread_id no banco, preferindo a razão social."""
     try:
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT u.name FROM "user" u
+                    SELECT u.company_data, u.name FROM "user" u
                     JOIN chat c ON c.user_id = u.id
                     JOIN chat_thread ct ON ct.chat_id = c.id
                     WHERE ct.thread_id = %s
                     LIMIT 1;
                 """, (thread_id,))
                 row = cur.fetchone()
-                return row[0] if row else "Desconhecido"
+                if row:
+                    company_data, u_name = row
+                    if isinstance(company_data, str):
+                        try:
+                            import json
+                            company_data = json.loads(company_data)
+                        except Exception:
+                            pass
+                    if isinstance(company_data, dict):
+                        razao = company_data.get("razao_social")
+                        if razao:
+                            words = razao.split()
+                            if len(words) > 4:
+                                razao = " ".join(words[:4])
+                            return razao
+                    return u_name
+                return "Desconhecido"
     except Exception:
         return "Desconhecido"
     finally:
@@ -2522,7 +2538,15 @@ async def get_history(
                 cur.execute("""
                     SELECT t.id as thread_id, t.subject, a.name as agent_name, a.title as agent_title,
                            MIN(c.created_at) as created_at,
-                           MAX(ct.feedback_rating) as feedback_rating
+                           MAX(ct.feedback_rating) as feedback_rating,
+                           (
+                               SELECT c2.message 
+                               FROM chat c2
+                               JOIN chat_thread ct2 ON ct2.chat_id = c2.id
+                               WHERE ct2.thread_id = t.id AND c2.message NOT LIKE 'Thread iniciada:%%'
+                               ORDER BY c2.created_at DESC, c2.id DESC
+                               LIMIT 1
+                           ) as last_message
                     FROM thread t
                     JOIN chat_thread ct ON ct.thread_id = t.id
                     JOIN chat c ON ct.chat_id = c.id
@@ -2833,7 +2857,7 @@ async def admin_list_threads(
                            u.name         AS user_name,
                            u.email        AS user_email,
                            u.company_data,
-                           MIN(c.created_at) AS created_at,
+                           MAX(c.created_at) AS created_at,
                            COUNT(DISTINCT c.id) FILTER (WHERE c.message NOT LIKE 'Thread iniciada:%%') AS message_count,
                            MAX(ct.feedback_rating) AS feedback_rating,
                            COUNT(c.id) FILTER (WHERE c.feedback_thumb = 1) AS thumb_up_count,
