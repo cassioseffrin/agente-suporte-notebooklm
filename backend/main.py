@@ -5,8 +5,9 @@ Mantém contrato com o app Flutter existente:
   POST /chat             → { content: [str], images: [] }
   GET  /updateNotebooks  → sincroniza notebooks do NotebookLM com tabela agent no Postgres
 
-LLM: OpenAI gpt-4o-mini
-RAG: notebooklm ask (CLI subprocess)
+LLM: OpenAI gpt-4o-mini (apenas para query rewrite da pergunta)
+RAG: notebooklm ask (CLI subprocess / streaming direto)
+Resposta: entregue diretamente do NotebookLM sem reescrita
 Sessões: isoladas por threadId, histórico em memória
 """
 
@@ -362,7 +363,7 @@ async def query_notebooklm(user_message: str, notebook_id: str, profile: str = "
     TIME_BUDGET = 500  # segundos máx para todas as tentativas (nginx=600s, sobra p/ rewrite+openai)
     t0 = time.monotonic()
 
-    cmd = _get_notebooklm_cmd(profile, "ask", user_message, "-n", notebook_id, "--json", "--request-timeout", str(NOTEBOOKLM_TIMEOUT))
+    cmd = _get_notebooklm_cmd(profile, "ask", user_message, "-n", notebook_id, "--json")
     print(f"[notebooklm] profile={profile!r} | notebook={notebook_id!r} | cmd={' '.join(cmd[:5])}...")
 
     for attempt in range(1, max_retries + 1):
@@ -414,6 +415,104 @@ async def query_notebooklm(user_message: str, notebook_id: str, profile: str = "
                 await asyncio.sleep(2)
 
     print(f"[notebooklm] FALHOU após {max_retries} tentativas ({time.monotonic() - t0:.0f}s)")
+    return ""
+
+
+# Mensagem padrão quando o NotebookLM não encontra informações nos manuais
+NOTEBOOKLM_EMPTY_RESPONSE = (
+    "Não foi possível encontrar essa informação nos manuais do sistema. "
+    "Sugerimos consultar o suporte técnico para obter assistência."
+)
+
+
+async def query_notebooklm_streaming(user_message: str, notebook_id: str, profile: str = "default", push_fn=None):
+    """Consulta o NotebookLM CLI e emite a resposta progressivamente via push_fn.
+    
+    Usa o mesmo CLI do query_notebooklm (com --json e retry), mas em vez de
+    retornar tudo de uma vez, emite a resposta em parágrafos via push_fn
+    para manter o efeito de streaming no SSE.
+    
+    push_fn(event_type, data_dict) é chamada para cada evento.
+    Retorna a resposta final (string) ou string vazia se falhar.
+    """
+    if not notebook_id:
+        return ""
+
+    import time
+    TIME_BUDGET = 500
+    t0 = time.monotonic()
+    max_retries = 3
+
+    cmd = _get_notebooklm_cmd(
+        profile, "ask", user_message, "-n", notebook_id, "--json"
+    )
+    print(f"[notebooklm-stream] profile={profile!r} | notebook={notebook_id!r}")
+
+    for attempt in range(1, max_retries + 1):
+        elapsed = time.monotonic() - t0
+        if elapsed > TIME_BUDGET:
+            print(f"[notebooklm-stream] orçamento de tempo esgotado ({elapsed:.0f}s/{TIME_BUDGET}s)")
+            break
+
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(
+                proc.communicate(),
+                timeout=NOTEBOOKLM_TIMEOUT,
+            )
+
+            if proc.returncode == 0:
+                raw = stdout.decode()
+                data = json.loads(raw)
+                answer = data.get("answer", "")
+                if answer.strip():
+                    if attempt > 1:
+                        print(f"[notebooklm-stream] OK na tentativa {attempt}/{max_retries}")
+
+                    # --- Streaming da resposta em parágrafos ---
+                    if push_fn:
+                        _push_status = push_fn
+                        _push_status("status", {"stage": "generating", "detail": "Preparando resposta..."})
+                        
+                        paragraphs = answer.split("\n")
+                        for idx, paragraph in enumerate(paragraphs):
+                            if paragraph.strip():
+                                token_text = paragraph + ("\n" if idx < len(paragraphs) - 1 else "")
+                                push_fn("token", {"text": token_text})
+                                await asyncio.sleep(0.03)  # Pequeno delay para efeito visual
+                            elif idx < len(paragraphs) - 1:
+                                push_fn("token", {"text": "\n"})
+                                await asyncio.sleep(0.01)
+
+                    elapsed_final = time.monotonic() - t0
+                    print(f"[notebooklm-stream] OK em {elapsed_final:.1f}s | {len(answer)} chars")
+                    return answer
+
+                print(f"[notebooklm-stream] tentativa {attempt}/{max_retries}: rc=0 mas answer vazio")
+            else:
+                stderr_text = stderr.decode()[:300]
+                stdout_text = stdout.decode()[:300]
+                print(
+                    f"[notebooklm-stream] tentativa {attempt}/{max_retries}: "
+                    f"rc={proc.returncode} | stderr={stderr_text!r} | stdout={stdout_text!r}"
+                )
+
+            if attempt < max_retries:
+                await asyncio.sleep(2 * attempt)
+
+        except asyncio.TimeoutError:
+            print(f"[notebooklm-stream] TIMEOUT ({NOTEBOOKLM_TIMEOUT}s) — sem retry")
+            return ""
+        except Exception as e:
+            print(f"[notebooklm-stream] tentativa {attempt}/{max_retries}: erro: {e}")
+            if attempt < max_retries:
+                await asyncio.sleep(2)
+
+    print(f"[notebooklm-stream] FALHOU após {max_retries} tentativas ({time.monotonic() - t0:.0f}s)")
     return ""
 
 
@@ -1111,7 +1210,6 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         raise HTTPException(status_code=404, detail=f"Agent '{assistant_name}' não encontrado.")
     
     agent_notebook_id = agent_info["id"]
-    agent_system_prompt = agent_info.get("system_prompt", "Você é um assistente útil.")
     agent_profile = agent_info.get("notebooklm_profile", "default")
 
     if thread_id not in sessions:
@@ -1151,46 +1249,32 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     print(f"[DEBUG Chat] Original : {user_message!r}")
     print(f"[DEBUG Chat] Rewritten: {search_query!r}")
 
-    # 2. NotebookLM - busca contexto nos manuais com a query expandida usando o ID dinâmico
-    notebooklm_context = await query_notebooklm(search_query, agent_notebook_id, profile=agent_profile)
+    # 2. NotebookLM - busca resposta direta nos manuais (sem reescrita por OpenAI)
+    notebooklm_answer = await query_notebooklm(search_query, agent_notebook_id, profile=agent_profile)
 
-    context_preview = notebooklm_context[:200].replace('\n', ' ') + "..." if notebooklm_context else "VAZIO"
-    print(f"[DEBUG Chat] Contexto : {context_preview}")
+    answer_preview = notebooklm_answer[:200].replace('\n', ' ') + "..." if notebooklm_answer else "VAZIO"
+    print(f"[DEBUG Chat] Resposta : {answer_preview}")
     print(f"{'='*50}\n")
 
-    # 3. Monta histórico + contexto injetado (usa mensagem original do usuário)
-    messages = build_messages(thread_id, user_message, notebooklm_context)
+    # 3. Resposta direta do NotebookLM (sem reescrita OpenAI para evitar alucinações)
+    assistant_text = notebooklm_answer.strip() if notebooklm_answer else NOTEBOOKLM_EMPTY_RESPONSE
 
-    # 4. OpenAI gpt-4o-mini - formata resposta com base no contexto do NotebookLM
-    try:
-        response = await openai_client.chat.completions.create(
-            model="gpt-4o-mini",
-            max_tokens=10240,
-            messages=[{"role": "system", "content": agent_system_prompt or "Você é um assistente útil."}] + messages,
-            timeout=120.0
-        )
-        assistant_text = response.choices[0].message.content
-
-    except Exception as e:
-        print(f"[openai] erro: {e}")
-        raise HTTPException(status_code=500, detail="Erro ao gerar resposta")
-
-    # 5. Histórico - salva mensagem original do usuário (não a query reescrita)
+    # 4. Histórico - salva mensagem original do usuário (não a query reescrita)
     sessions[thread_id].append({"role": "user",      "content": user_message})
     sessions[thread_id].append({"role": "assistant", "content": assistant_text})
 
-    # 5b. Persiste no banco a mensagem do agente
+    # 4b. Persiste no banco a mensagem do agente
     assistant_chat_id = await run_in_thread(save_agent_message_sync, thread_id, assistant_text)
 
-    # 5b2. Notificar auditores sobre a resposta da IA
+    # 4c. Notificar auditores sobre a resposta da IA
     if assistant_chat_id:
         _notify_auditor_new_message(thread_id, assistant_chat_id, assistant_text, 'agente')
 
-    # 5c. Atualiza subject automaticamente caso seja a primeira mensagem
+    # 4d. Atualiza subject automaticamente caso seja a primeira mensagem
     if is_first_message:
         asyncio.create_task(generate_and_update_subject(thread_id, user_message, assistant_text))
 
-    # 6. Retorna no formato que o Flutter já espera
+    # 5. Retorna no formato que o Flutter já espera
     return {
         "content": [assistant_text],
         "images":  [],
@@ -1204,12 +1288,11 @@ async def _run_stream_processing(
     user_message: str,
     assistant_name: str,
     agent_notebook_id: str,
-    agent_system_prompt: str,
     agent_profile: str,
     is_first_message: bool,
 ):
     """
-    Runs the full chat processing pipeline: query rewrite → NotebookLM → OpenAI.
+    Runs the full chat processing pipeline: query rewrite → NotebookLM streaming direto.
 
     DECOUPLED from the SSE connection — this task always runs to completion and
     persists results to the database and session, even if the client disconnects
@@ -1228,8 +1311,8 @@ async def _run_stream_processing(
 
     try:
         active_generations.add(thread_id)
-        # --- Etapa 1: Query Rewriting ---
-        _push("status", {"stage": "rewriting", "detail": "Reescrevendo consulta..."})
+        # --- Etapa 1: Query Rewriting (OpenAI reescreve apenas a PERGUNTA) ---
+        _push("status", {"stage": "rewriting", "detail": "Preparando sua consulta..."})
         search_query = await rewrite_query_with_context(thread_id, user_message)
 
         print(f"\n{'='*50}")
@@ -1239,60 +1322,23 @@ async def _run_stream_processing(
         print(f"[STREAM] Original : {user_message!r}")
         print(f"[STREAM] Rewritten: {search_query!r}")
 
-        # --- Etapa 2: NotebookLM RAG ---
+        # --- Etapa 2: NotebookLM — busca + resposta direta com streaming real ---
         _push("status", {"stage": "searching", "detail": "Buscando nos manuais..."})
-        notebooklm_context = await query_notebooklm(search_query, agent_notebook_id, profile=agent_profile)
 
-        context_preview = notebooklm_context[:200].replace('\n', ' ') + "..." if notebooklm_context else "VAZIO"
-        print(f"[STREAM] Contexto : {context_preview}")
+        assistant_text = await query_notebooklm_streaming(
+            search_query, agent_notebook_id, profile=agent_profile, push_fn=_push
+        )
+
+        answer_preview = assistant_text[:200].replace('\n', ' ') + "..." if assistant_text else "VAZIO"
+        print(f"[STREAM] Resposta NotebookLM: {answer_preview}")
         print(f"{'='*50}\n")
 
-        has_notebooklm_context = bool(notebooklm_context and notebooklm_context.strip())
+        # Se NotebookLM não retornou nada, emite mensagem padrão
+        if not assistant_text or not assistant_text.strip():
+            assistant_text = NOTEBOOKLM_EMPTY_RESPONSE
+            _push("token", {"text": assistant_text})
 
-        # --- Etapa 3: OpenAI generation (with streaming) ---
-        _push("status", {"stage": "generating", "detail": "Gerando resposta com IA..."})
-
-        messages = build_messages(thread_id, user_message, notebooklm_context)
-        full_messages = [{"role": "system", "content": agent_system_prompt or "Você é um assistente útil."}] + messages
-
-        assistant_text = ""
-        openai_ok = False
-
-        try:
-            stream = await openai_client.chat.completions.create(
-                model="gpt-4o-mini",
-                max_tokens=10240,
-                messages=full_messages,
-                timeout=120.0,
-                stream=True,
-            )
-
-            async for chunk in stream:
-                delta = chunk.choices[0].delta if chunk.choices else None
-                if delta and delta.content:
-                    token_text = delta.content
-                    assistant_text += token_text
-                    _push("token", {"text": token_text})
-
-            openai_ok = True
-
-            # Log diagnóstico
-            response_preview = assistant_text[:200].replace('\n', ' ') if assistant_text else "VAZIO"
-            print(f"[STREAM] Resposta OpenAI: {response_preview}...")
-
-        except Exception as e:
-            print(f"[STREAM openai] erro: {e}")
-            if has_notebooklm_context:
-                assistant_text = notebooklm_context
-                _push("fallback", {
-                    "content": notebooklm_context,
-                    "reason": "Não foi possível refinar a resposta com IA. Exibindo resposta direta dos manuais."
-                })
-            else:
-                _push("error", {"detail": "Erro ao gerar resposta. Tente novamente."})
-                return
-
-        # --- Etapa 4: Persistence (ALWAYS runs, even if client disconnected) ---
+        # --- Etapa 3: Persistência (SEMPRE roda, mesmo se cliente desconectou) ---
         _push("status", {"stage": "saving", "detail": "Salvando..."})
 
         sessions[thread_id].append({"role": "user",      "content": user_message})
@@ -1300,7 +1346,7 @@ async def _run_stream_processing(
 
         assistant_chat_id = await run_in_thread(save_agent_message_sync, thread_id, assistant_text)
 
-        # Notificar auditores e usuário sobre a resposta da IA
+        # Notificar auditores e usuário sobre a resposta
         if assistant_chat_id:
             _notify_auditor_new_message(thread_id, assistant_chat_id, assistant_text, 'agente')
             _notify_user_new_message(thread_id, assistant_chat_id, assistant_text, 'agente')
@@ -1312,7 +1358,7 @@ async def _run_stream_processing(
         _push("done", {
             "chat_id": assistant_chat_id,
             "content": assistant_text,
-            "was_fallback": not openai_ok,
+            "was_fallback": False,
         })
 
     except Exception as e:
@@ -1353,7 +1399,6 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
         raise HTTPException(status_code=404, detail=f"Agent '{assistant_name}' não encontrado.")
 
     agent_notebook_id    = agent_info["id"]
-    agent_system_prompt  = agent_info.get("system_prompt", "Você é um assistente útil.")
     agent_profile        = agent_info.get("notebooklm_profile", "default")
 
     if thread_id not in sessions:
@@ -1405,7 +1450,6 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
             user_message=user_message,
             assistant_name=assistant_name,
             agent_notebook_id=agent_notebook_id,
-            agent_system_prompt=agent_system_prompt,
             agent_profile=agent_profile,
             is_first_message=is_first_message,
         )
