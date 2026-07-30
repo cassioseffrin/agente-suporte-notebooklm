@@ -41,7 +41,7 @@ from pydantic import BaseModel
 
 OPENAI_API_KEY         = os.environ.get("OPENAI_API_KEY", "")
 BACKEND_API_KEY        = os.environ.get("BACKEND_API_KEY", "")
-VOICEBOX_URL           = os.environ.get("VOICEBOX_URL", "http://192.168.50.194:17493")
+VOICEBOX_URL           = os.environ.get("VOICEBOX_URL", "")
 
 HISTORY_LIMIT      = 10   # últimas N mensagens enviadas ao OpenAI (5 turnos)
 NOTEBOOKLM_TIMEOUT = 300
