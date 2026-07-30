@@ -2871,105 +2871,115 @@ async def transcribe_audio(
 # Admin - TTS (Text to Speech) para notificações do auditor
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Admin - TTS (Text to Speech) para notificações do auditor
+# ---------------------------------------------------------------------------
+
 class TTSRequest(BaseModel):
     text: str
+    voice: Optional[str] = "openai"  # "openai" (default) ou "kokoro" / "voicebox"
 
 tts_locks: dict[str, asyncio.Lock] = {}
 
 @app.post("/admin/tts")
 async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
-    """Gera áudio TTS usando Voicebox local com cache em disco e lock de execução única (single-flight)."""
+    """Gera áudio TTS usando OpenAI ou Voicebox (Kokoro) conforme selecionado pelo frontend."""
     verify_api_key(authorization)
 
     text = request.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="Texto vazio")
 
-    # Cache key: hash MD5 do texto
-    cache_key = hashlib.md5(text.encode("utf-8")).hexdigest()
+    selected_voice = (request.voice or "openai").lower().strip()
+
+    # Cache key isolada por voz selecionada e texto: hash MD5
+    cache_key = hashlib.md5(f"{selected_voice}:{text}".encode("utf-8")).hexdigest()
     cache_path_wav = TTS_CACHE_DIR / f"{cache_key}.wav"
     cache_path_mp3 = TTS_CACHE_DIR / f"{cache_key}.mp3"
 
-    # 1. Checagem de Cache Primário (WAV do Voicebox)
+    # 1. Checagem de Cache (WAV ou MP3)
     if cache_path_wav.exists():
-        print(f"[admin/tts] Cache HIT (Voicebox WAV): {cache_key[:8]}")
-        audio_bytes = cache_path_wav.read_bytes()
+        print(f"[admin/tts] Cache HIT (WAV - {selected_voice}): {cache_key[:8]}")
         return StreamingResponse(
-            iter([audio_bytes]),
+            iter([cache_path_wav.read_bytes()]),
             media_type="audio/wav",
             headers={"Content-Disposition": "inline; filename=notification.wav"},
         )
 
-    # 2. Checagem de Cache Secundário (MP3 da OpenAI)
     if cache_path_mp3.exists():
-        print(f"[admin/tts] Cache HIT (OpenAI MP3): {cache_key[:8]}")
-        audio_bytes = cache_path_mp3.read_bytes()
+        print(f"[admin/tts] Cache HIT (MP3 - {selected_voice}): {cache_key[:8]}")
         return StreamingResponse(
-            iter([audio_bytes]),
+            iter([cache_path_mp3.read_bytes()]),
             media_type="audio/mpeg",
             headers={"Content-Disposition": "inline; filename=notification.mp3"},
         )
 
-    # 3. Single-flight Lock: Garante que apenas 1 requisição gere o áudio no Voicebox quando 4 clientes pedem ao mesmo tempo
+    # 2. Single-flight Lock: Garante que apenas 1 requisição gere o áudio por vez
     if cache_key not in tts_locks:
         tts_locks[cache_key] = asyncio.Lock()
 
     async with tts_locks[cache_key]:
-        # Checa novamente se outro cliente gerou o cache enquanto este esperava o lock
+        # Re-checagem pós-lock
         if cache_path_wav.exists():
-            print(f"[admin/tts] Cache HIT pós-lock: {cache_key[:8]}")
-            audio_bytes = cache_path_wav.read_bytes()
             return StreamingResponse(
-                iter([audio_bytes]),
+                iter([cache_path_wav.read_bytes()]),
                 media_type="audio/wav",
                 headers={"Content-Disposition": "inline; filename=notification.wav"},
             )
+        if cache_path_mp3.exists():
+            return StreamingResponse(
+                iter([cache_path_mp3.read_bytes()]),
+                media_type="audio/mpeg",
+                headers={"Content-Disposition": "inline; filename=notification.mp3"},
+            )
 
-        print(f"[admin/tts] Solicitando geração única ao Voicebox para: {text[:40]!r}...")
-        try:
-            async with httpx.AsyncClient(timeout=120.0) as client:
-                response = await client.post(
-                    f"{VOICEBOX_URL}/generate/stream",
-                    json={
-                        "profile_id": "c6ec1d7c-f2bf-43a2-855d-5bb6280bc14a",  # Perfil Marcio
-                        "text": text,
-                        "language": "pt",
-                    }
-                )
-                if response.status_code == 200:
-                    audio_bytes = response.content
-                    try:
-                        cache_path_wav.write_bytes(audio_bytes)
-                        print(f"[admin/tts] Áudio Voicebox salvo em cache: {cache_key[:8]}")
-                    except Exception as e:
-                        print(f"[admin/tts] Erro ao salvar cache: {e}")
-
-                    return StreamingResponse(
-                        iter([audio_bytes]),
-                        media_type="audio/wav",
-                        headers={"Content-Disposition": "inline; filename=notification.wav"},
+        # SE A VOZ FOR KOKORO (VOICEBOX)
+        if selected_voice in ["kokoro", "voicebox", "dora"] and VOICEBOX_URL:
+            print(f"[admin/tts] Gerando via Voicebox (Kokoro - Feminina PT) para: {text[:40]!r}...")
+            try:
+                async with httpx.AsyncClient(timeout=120.0) as client:
+                    response = await client.post(
+                        f"{VOICEBOX_URL}/generate/stream",
+                        json={
+                            "profile_id": "4cb7db6f-ecf2-474c-8e54-1ac3d0df2ef2",  # Dora (Feminina PT - Kokoro)
+                            "engine": "kokoro",
+                            "text": text,
+                            "language": "pt",
+                        }
                     )
-                else:
-                    print(f"[admin/tts] Voicebox retornou erro {response.status_code}: {response.text}")
-        except Exception as e:
-            print(f"[admin/tts] Falha ao chamar Voicebox: {e}")
+                    if response.status_code == 200:
+                        audio_bytes = response.content
+                        try:
+                            cache_path_wav.write_bytes(audio_bytes)
+                        except Exception as e:
+                            print(f"[admin/tts] Erro ao salvar cache WAV: {e}")
 
-        # Fallback para OpenAI se o Voicebox estiver desligado ou indisponível
+                        return StreamingResponse(
+                            iter([audio_bytes]),
+                            media_type="audio/wav",
+                            headers={"Content-Disposition": "inline; filename=notification.wav"},
+                        )
+                    else:
+                        print(f"[admin/tts] Voicebox erro {response.status_code}: {response.text}")
+            except Exception as e:
+                print(f"[admin/tts] Falha no Voicebox: {e}")
+
+        # SE A VOZ FOR OPENAI (DEFAULT) OU SE VOICEBOX FALHAR
+        print(f"[admin/tts] Gerando via OpenAI TTS (Coral) para: {text[:40]!r}...")
         try:
-            print(f"[admin/tts] Usando fallback OpenAI para {cache_key[:8]}...")
             response = await openai_client.audio.speech.create(
                 model="gpt-4o-mini-tts",
                 voice="coral",
                 input=text,
                 instructions="Fale em português do Brasil com tom profissional.",
                 response_format="mp3",
-                speed=1.5,
+                speed=1.0,
             )
             audio_bytes = response.content
             try:
                 cache_path_mp3.write_bytes(audio_bytes)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[admin/tts] Erro ao salvar cache MP3: {e}")
 
             return StreamingResponse(
                 iter([audio_bytes]),
@@ -2977,7 +2987,7 @@ async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
                 headers={"Content-Disposition": "inline; filename=notification.mp3"},
             )
         except Exception as e:
-            print(f"[admin/tts] Erro no fallback OpenAI: {e}")
+            print(f"[admin/tts] Erro na geração OpenAI TTS: {e}")
             raise HTTPException(status_code=500, detail=f"Erro ao gerar áudio TTS: {e}")
 
 
