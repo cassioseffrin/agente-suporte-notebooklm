@@ -41,6 +41,7 @@ from pydantic import BaseModel
 
 OPENAI_API_KEY         = os.environ.get("OPENAI_API_KEY", "")
 BACKEND_API_KEY        = os.environ.get("BACKEND_API_KEY", "")
+VOICEBOX_URL           = os.environ.get("VOICEBOX_URL", "http://192.168.50.194:17493")
 
 HISTORY_LIMIT      = 10   # últimas N mensagens enviadas ao OpenAI (5 turnos)
 NOTEBOOKLM_TIMEOUT = 300
@@ -239,11 +240,12 @@ TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 def _broadcast_admin_event(event: dict):
     """Envia evento para todos os dashboards conectados via SSE /admin/events."""
-    for q in admin_broadcast_queues:
+    print(f"[SSE Broadcast] Transmitindo evento '{event.get('type')}' para {len(admin_broadcast_queues)} cliente(s) conectado(s): {event}")
+    for q in list(admin_broadcast_queues):
         try:
             q.put_nowait(event)
         except asyncio.QueueFull:
-            pass
+            print("[SSE Broadcast] Fila cheia para um cliente SSE dashboard, ignorando...")
 
 
 def _broadcast_thread_update(thread_id: str):
@@ -1186,14 +1188,18 @@ def _ensure_thread_in_db_and_get_ids(cur, thread_id: str) -> tuple[int | None, i
     return user_id, agent_id, cnpj, needs_enrichment
 
 
-def save_user_message_sync(thread_id: str, user_message: str) -> tuple[int | None, int | None, str | None, bool]:
-    """Salva mensagem do usuário e retorna (chat_id, user_id, cnpj, needs_enrichment)."""
+def save_user_message_sync(thread_id: str, user_message: str) -> tuple[int | None, int | None, str | None, bool, bool]:
+    """Salva mensagem do usuário e retorna (chat_id, user_id, cnpj, needs_enrichment, is_first_message)."""
     try:
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
                 uid, aid, cnpj, needs_enrichment = _ensure_thread_in_db_and_get_ids(cur, thread_id)
                 if uid and aid:
+                    cur.execute("SELECT COUNT(*) FROM chat_thread WHERE thread_id = %s;", (thread_id,))
+                    count = cur.fetchone()[0]
+                    is_first_message = (count == 0)
+
                     cur.execute("""
                         INSERT INTO chat (user_id, agent_id, message, origem)
                         VALUES (%s, %s, %s, 'usuario')
@@ -1204,13 +1210,13 @@ def save_user_message_sync(thread_id: str, user_message: str) -> tuple[int | Non
                         INSERT INTO chat_thread (thread_id, chat_id)
                         VALUES (%s, %s);
                     """, (thread_id, user_chat_id))
-                    return user_chat_id, uid, cnpj, needs_enrichment
+                    return user_chat_id, uid, cnpj, needs_enrichment, is_first_message
     except Exception as e:
         print(f"[DB-save-user] Erro: {e}")
     finally:
         if 'conn' in locals() and conn:
             conn.close()
-    return None, None, None, False
+    return None, None, None, False, False
 
 def save_agent_message_sync(thread_id: str, assistant_text: str) -> int | None:
     try:
@@ -1265,12 +1271,10 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
 
     if thread_id not in sessions:
         sessions[thread_id] = []
-        
-    is_first_message = len(sessions[thread_id]) == 0
 
-    # 0. Persiste no banco a mensagem do usuário imediatamente para registrar o timestamp correto
+    # 0. Persiste no banco a mensagem do usuário e verifica se é a primeira mensagem da thread
     save_result = await run_in_thread(save_user_message_sync, thread_id, user_message)
-    user_chat_id, saved_user_id, saved_cnpj, needs_enrichment = save_result
+    user_chat_id, saved_user_id, saved_cnpj, needs_enrichment, is_first_message = save_result
 
     # Dispara enriquecimento de dados da empresa em background (fire-and-forget)
     if needs_enrichment and saved_user_id and saved_cnpj:
@@ -1279,7 +1283,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     # Notifica o auditor assim que a mensagem chega (antes da IA pensar)
     _notify_auditor_new_message(thread_id, user_chat_id or 0, user_message, 'usuario')
 
-    # Broadcast para dashboards se for primeira mensagem
+    # Broadcast para dashboards se for primeira mensagem da conversa
     if is_first_message:
         agent_title = agent_info.get("title", assistant_name)
         user_name = _get_user_name_for_thread(thread_id)
@@ -1455,11 +1459,9 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
     if thread_id not in sessions:
         sessions[thread_id] = []
 
-    is_first_message = len(sessions[thread_id]) == 0
-
-    # 0. Persiste no banco a mensagem do usuário imediatamente para registrar o timestamp correto
+    # 0. Persiste no banco a mensagem do usuário e verifica se é a primeira mensagem da thread
     save_result = await run_in_thread(save_user_message_sync, thread_id, user_message)
-    user_chat_id, saved_user_id, saved_cnpj, needs_enrichment = save_result
+    user_chat_id, saved_user_id, saved_cnpj, needs_enrichment, is_first_message = save_result
 
     # Dispara enriquecimento de dados da empresa em background (fire-and-forget)
     if needs_enrichment and saved_user_id and saved_cnpj:
@@ -1471,7 +1473,7 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
     # Notifica o auditor assim que a mensagem chega (antes da IA pensar)
     _notify_auditor_new_message(thread_id, user_chat_id or 0, user_message, 'usuario')
 
-    # Broadcast para dashboards se for primeira mensagem
+    # Broadcast para dashboards se for primeira mensagem da conversa
     if is_first_message:
         agent_title = agent_info.get("title", assistant_name)
         user_name = _get_user_name_for_thread(thread_id)
@@ -2794,15 +2796,84 @@ async def delete_thread(
 
 
 # ---------------------------------------------------------------------------
+# Voicebox Audio - Transcrição de Áudio (STT - Speech to Text)
+# ---------------------------------------------------------------------------
+
+@app.post("/transcribe")
+async def transcribe_audio(
+    file: UploadFile = File(...),
+    language: Optional[str] = "pt"
+):
+    """
+    Transcreve áudio do usuário utilizando o serviço Voicebox na LAN (Mac Mini).
+    Substitui a API OpenAI Whisper.
+    """
+    if not VOICEBOX_URL:
+        raise HTTPException(status_code=500, detail="VOICEBOX_URL não configurado")
+
+    try:
+        audio_bytes = await file.read()
+        if not audio_bytes:
+            raise HTTPException(status_code=400, detail="Arquivo de áudio vazio")
+
+        filename = file.filename or "audio.wav"
+        content_type = file.content_type or "audio/wav"
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            files = {"file": (filename, audio_bytes, content_type)}
+            data = {}
+            if language:
+                data["language"] = language
+
+            print(f"[transcribe] Enviando {len(audio_bytes)} bytes para Voicebox em {VOICEBOX_URL}/transcribe...")
+            response = await client.post(
+                f"{VOICEBOX_URL}/transcribe",
+                files=files,
+                data=data,
+            )
+
+            if response.status_code != 200:
+                print(f"[transcribe] Erro Voicebox ({response.status_code}): {response.text}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Erro no serviço Voicebox: {response.text}"
+                )
+
+            res_json = response.json()
+            transcribed_text = res_json.get("text", "").strip()
+            duration = res_json.get("duration")
+
+            print(f"[transcribe] Sucesso! Texto transcrito ({len(transcribed_text)} chars): {transcribed_text[:80]!r}")
+            return {
+                "text": transcribed_text,
+                "duration": duration,
+            }
+
+    except httpx.RequestError as e:
+        print(f"[transcribe] Falha de conexão com o Voicebox ({VOICEBOX_URL}): {e}")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Serviço Voicebox indisponível no Mac Mini ({VOICEBOX_URL})"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[transcribe] Erro ao transcrever áudio: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao transcrever áudio: {e}")
+
+
+# ---------------------------------------------------------------------------
 # Admin - TTS (Text to Speech) para notificações do auditor
 # ---------------------------------------------------------------------------
 
 class TTSRequest(BaseModel):
     text: str
 
+tts_locks: dict[str, asyncio.Lock] = {}
+
 @app.post("/admin/tts")
 async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
-    """Gera áudio TTS usando OpenAI gpt-4o-mini-tts (voz coral, pt-BR). Cache em disco."""
+    """Gera áudio TTS usando Voicebox local com cache em disco e lock de execução única (single-flight)."""
     verify_api_key(authorization)
 
     text = request.text.strip()
@@ -2811,45 +2882,98 @@ async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
 
     # Cache key: hash MD5 do texto
     cache_key = hashlib.md5(text.encode("utf-8")).hexdigest()
-    cache_path = TTS_CACHE_DIR / f"{cache_key}.mp3"
+    cache_path_wav = TTS_CACHE_DIR / f"{cache_key}.wav"
+    cache_path_mp3 = TTS_CACHE_DIR / f"{cache_key}.mp3"
 
-    if cache_path.exists():
-        print(f"[admin/tts] Cache hit: {cache_key}")
-        audio_bytes = cache_path.read_bytes()
+    # 1. Checagem de Cache Primário (WAV do Voicebox)
+    if cache_path_wav.exists():
+        print(f"[admin/tts] Cache HIT (Voicebox WAV): {cache_key[:8]}")
+        audio_bytes = cache_path_wav.read_bytes()
+        return StreamingResponse(
+            iter([audio_bytes]),
+            media_type="audio/wav",
+            headers={"Content-Disposition": "inline; filename=notification.wav"},
+        )
+
+    # 2. Checagem de Cache Secundário (MP3 da OpenAI)
+    if cache_path_mp3.exists():
+        print(f"[admin/tts] Cache HIT (OpenAI MP3): {cache_key[:8]}")
+        audio_bytes = cache_path_mp3.read_bytes()
         return StreamingResponse(
             iter([audio_bytes]),
             media_type="audio/mpeg",
             headers={"Content-Disposition": "inline; filename=notification.mp3"},
         )
 
-    try:
-        response = await openai_client.audio.speech.create(
-            model="gpt-4o-mini-tts",
-            voice="coral",
-            input=text,
-            instructions="Fale em português do Brasil, com tom profissional e claro, como uma notificação de sistema.",
-            response_format="mp3",
-            speed=1.5,
-        )
+    # 3. Single-flight Lock: Garante que apenas 1 requisição gere o áudio no Voicebox quando 4 clientes pedem ao mesmo tempo
+    if cache_key not in tts_locks:
+        tts_locks[cache_key] = asyncio.Lock()
 
-        # response is an HttpxBinaryResponseContent — read all bytes
-        audio_bytes = response.content
+    async with tts_locks[cache_key]:
+        # Checa novamente se outro cliente gerou o cache enquanto este esperava o lock
+        if cache_path_wav.exists():
+            print(f"[admin/tts] Cache HIT pós-lock: {cache_key[:8]}")
+            audio_bytes = cache_path_wav.read_bytes()
+            return StreamingResponse(
+                iter([audio_bytes]),
+                media_type="audio/wav",
+                headers={"Content-Disposition": "inline; filename=notification.wav"},
+            )
 
-        # Salvar no cache
+        print(f"[admin/tts] Solicitando geração única ao Voicebox para: {text[:40]!r}...")
         try:
-            cache_path.write_bytes(audio_bytes)
-            print(f"[admin/tts] Cache saved: {cache_key}")
-        except Exception as e:
-            print(f"[admin/tts] Erro ao salvar cache: {e}")
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                response = await client.post(
+                    f"{VOICEBOX_URL}/generate/stream",
+                    json={
+                        "profile_id": "c6ec1d7c-f2bf-43a2-855d-5bb6280bc14a",  # Perfil Marcio
+                        "text": text,
+                        "language": "pt",
+                    }
+                )
+                if response.status_code == 200:
+                    audio_bytes = response.content
+                    try:
+                        cache_path_wav.write_bytes(audio_bytes)
+                        print(f"[admin/tts] Áudio Voicebox salvo em cache: {cache_key[:8]}")
+                    except Exception as e:
+                        print(f"[admin/tts] Erro ao salvar cache: {e}")
 
-        return StreamingResponse(
-            iter([audio_bytes]),
-            media_type="audio/mpeg",
-            headers={"Content-Disposition": "inline; filename=notification.mp3"},
-        )
-    except Exception as e:
-        print(f"[admin/tts] Erro: {e}")
-        raise HTTPException(status_code=500, detail=f"Erro ao gerar áudio TTS: {e}")
+                    return StreamingResponse(
+                        iter([audio_bytes]),
+                        media_type="audio/wav",
+                        headers={"Content-Disposition": "inline; filename=notification.wav"},
+                    )
+                else:
+                    print(f"[admin/tts] Voicebox retornou erro {response.status_code}: {response.text}")
+        except Exception as e:
+            print(f"[admin/tts] Falha ao chamar Voicebox: {e}")
+
+        # Fallback para OpenAI se o Voicebox estiver desligado ou indisponível
+        try:
+            print(f"[admin/tts] Usando fallback OpenAI para {cache_key[:8]}...")
+            response = await openai_client.audio.speech.create(
+                model="gpt-4o-mini-tts",
+                voice="coral",
+                input=text,
+                instructions="Fale em português do Brasil com tom profissional.",
+                response_format="mp3",
+                speed=1.5,
+            )
+            audio_bytes = response.content
+            try:
+                cache_path_mp3.write_bytes(audio_bytes)
+            except Exception:
+                pass
+
+            return StreamingResponse(
+                iter([audio_bytes]),
+                media_type="audio/mpeg",
+                headers={"Content-Disposition": "inline; filename=notification.mp3"},
+            )
+        except Exception as e:
+            print(f"[admin/tts] Erro no fallback OpenAI: {e}")
+            raise HTTPException(status_code=500, detail=f"Erro ao gerar áudio TTS: {e}")
 
 
 # ---------------------------------------------------------------------------
