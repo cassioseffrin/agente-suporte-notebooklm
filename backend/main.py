@@ -16,6 +16,7 @@ import uuid
 import os
 import json
 import hashlib
+import re
 from collections import defaultdict
 from datetime import datetime
 from typing import Optional
@@ -352,6 +353,54 @@ def _get_notebooklm_cmd(profile: str, *args) -> list[str]:
     return ["notebooklm", "--storage", str(session_file)] + list(args)
 
 
+def clean_notebooklm_response(text: str) -> str:
+    """Limpa citações numéricas de fontes (ex: [1], [1, 2]) e substitui referências
+    a 'notebook' por 'manual'/'manuais' na resposta do NotebookLM.
+    """
+    if not text:
+        return text
+
+    # 1. Remover citações entre colchetes como [1], [1, 2], [1-3], [1][2] e numerais circulados ①-⑩ / ❶-❿
+    text = re.sub(r'\s*\[\s*\d+(?:[\s,–-]+\d+)*\s*\]', '', text)
+    text = re.sub(r'\s*[①-⑩❶-❿]', '', text)
+
+    # Corrigir espaços em branco extras antes de pontuações ou no meio do texto
+    text = re.sub(r'\s+([.,;:!?])', r'\1', text)
+    text = re.sub(r'[ \t]{2,}', ' ', text)
+
+    # 2. Substituir variações de "notebook" por "manual" / "manuais"
+    replacements = [
+        (r'(?i)\bnas fontes do seu notebook\b', 'nas fontes do manual'),
+        (r'(?i)\bnas fontes de seu notebook\b', 'nas fontes do manual'),
+        (r'(?i)\bnas fontes dos seus notebooks\b', 'nas fontes dos manuais'),
+        (r'(?i)\bnas fontes do notebook\b', 'nas fontes do manual'),
+        (r'(?i)\bfontes do seu notebook\b', 'fontes do manual'),
+        (r'(?i)\bfontes de seu notebook\b', 'fontes do manual'),
+        (r'(?i)\bfontes do notebook\b', 'fontes do manual'),
+        (r'(?i)\bnos seus notebooks\b', 'nos manuais'),
+        (r'(?i)\bnos notebooks\b', 'nos manuais'),
+        (r'(?i)\bno seu notebook\b', 'no manual'),
+        (r'(?i)\bno notebook\b', 'no manual'),
+        (r'(?i)\bdo seu notebook\b', 'do manual'),
+        (r'(?i)\bde seu notebook\b', 'do manual'),
+        (r'(?i)\bdo notebook\b', 'do manual'),
+        (r'(?i)\bseu notebook\b', 'o manual'),
+        (r'(?i)\bnotebooks\b', 'manuais'),
+        (r'(?i)\bnotebook\b', 'manual'),
+    ]
+
+    for pattern, repl in replacements:
+        def replace_match(match, r=repl):
+            matched_str = match.group(0)
+            if matched_str[0].isupper():
+                return r[0].upper() + r[1:]
+            return r
+
+        text = re.sub(pattern, replace_match, text)
+
+    return text
+
+
 async def query_notebooklm(user_message: str, notebook_id: str, profile: str = "default", max_retries: int = 3) -> str:
     """Consulta o NotebookLM CLI com retry para falhas rápidas.
     NÃO faz retry em timeout (300s já consome quase todo o budget).
@@ -388,6 +437,7 @@ async def query_notebooklm(user_message: str, notebook_id: str, profile: str = "
                 data = json.loads(raw)
                 answer = data.get("answer", "")
                 if answer.strip():
+                    answer = clean_notebooklm_response(answer)
                     if attempt > 1:
                         print(f"[notebooklm] OK na tentativa {attempt}/{max_retries}")
                     return answer
@@ -470,6 +520,7 @@ async def query_notebooklm_streaming(user_message: str, notebook_id: str, profil
                 data = json.loads(raw)
                 answer = data.get("answer", "")
                 if answer.strip():
+                    answer = clean_notebooklm_response(answer)
                     if attempt > 1:
                         print(f"[notebooklm-stream] OK na tentativa {attempt}/{max_retries}")
 
