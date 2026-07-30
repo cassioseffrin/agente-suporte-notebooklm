@@ -2806,59 +2806,64 @@ async def transcribe_audio(
 ):
     """
     Transcreve áudio do usuário utilizando o serviço Voicebox na LAN (Mac Mini).
-    Substitui a API OpenAI Whisper.
+    Possui fallback automático para a API OpenAI Whisper se o Voicebox estiver offline ou desconfigurado.
     """
-    if not VOICEBOX_URL:
-        raise HTTPException(status_code=500, detail="VOICEBOX_URL não configurado")
+    audio_bytes = await file.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="Arquivo de áudio vazio")
 
-    try:
-        audio_bytes = await file.read()
-        if not audio_bytes:
-            raise HTTPException(status_code=400, detail="Arquivo de áudio vazio")
+    filename = file.filename or "audio.wav"
+    content_type = file.content_type or "audio/wav"
 
-        filename = file.filename or "audio.wav"
-        content_type = file.content_type or "audio/wav"
+    # 1. Tentar Voicebox se VOICEBOX_URL estiver configurado
+    if VOICEBOX_URL:
+        try:
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                files = {"file": (filename, audio_bytes, content_type)}
+                data = {"language": language} if language else {}
 
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            files = {"file": (filename, audio_bytes, content_type)}
-            data = {}
-            if language:
-                data["language"] = language
-
-            print(f"[transcribe] Enviando {len(audio_bytes)} bytes para Voicebox em {VOICEBOX_URL}/transcribe...")
-            response = await client.post(
-                f"{VOICEBOX_URL}/transcribe",
-                files=files,
-                data=data,
-            )
-
-            if response.status_code != 200:
-                print(f"[transcribe] Erro Voicebox ({response.status_code}): {response.text}")
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail=f"Erro no serviço Voicebox: {response.text}"
+                print(f"[transcribe] Enviando {len(audio_bytes)} bytes para Voicebox em {VOICEBOX_URL}/transcribe...")
+                response = await client.post(
+                    f"{VOICEBOX_URL}/transcribe",
+                    files=files,
+                    data=data,
                 )
 
-            res_json = response.json()
-            transcribed_text = res_json.get("text", "").strip()
-            duration = res_json.get("duration")
+                if response.status_code == 200:
+                    res_json = response.json()
+                    transcribed_text = res_json.get("text", "").strip()
+                    duration = res_json.get("duration")
 
-            print(f"[transcribe] Sucesso! Texto transcrito ({len(transcribed_text)} chars): {transcribed_text[:80]!r}")
-            return {
-                "text": transcribed_text,
-                "duration": duration,
-            }
+                    print(f"[transcribe] Voicebox OK! Texto transcrito ({len(transcribed_text)} chars): {transcribed_text[:80]!r}")
+                    return {
+                        "text": transcribed_text,
+                        "duration": duration,
+                    }
+                else:
+                    print(f"[transcribe] Voicebox retornou erro {response.status_code}: {response.text}")
+        except Exception as e:
+            print(f"[transcribe] Falha ao conectar ao Voicebox ({VOICEBOX_URL}): {e}")
 
-    except httpx.RequestError as e:
-        print(f"[transcribe] Falha de conexão com o Voicebox ({VOICEBOX_URL}): {e}")
-        raise HTTPException(
-            status_code=503,
-            detail=f"Serviço Voicebox indisponível no Mac Mini ({VOICEBOX_URL})"
+    # 2. Fallback automático para OpenAI Whisper se o Voicebox falhar ou não estiver configurado
+    try:
+        print(f"[transcribe] Usando fallback OpenAI Whisper (whisper-1)...")
+        from io import BytesIO
+        audio_file = BytesIO(audio_bytes)
+        audio_file.name = filename
+
+        transcription = await openai_client.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_file,
+            language=language or "pt",
         )
-    except HTTPException:
-        raise
+        transcribed_text = transcription.text.strip()
+        print(f"[transcribe] OpenAI Whisper OK! Texto transcrito ({len(transcribed_text)} chars): {transcribed_text[:80]!r}")
+        return {
+            "text": transcribed_text,
+            "duration": None,
+        }
     except Exception as e:
-        print(f"[transcribe] Erro ao transcrever áudio: {e}")
+        print(f"[transcribe] Erro grave no fallback OpenAI Whisper: {e}")
         raise HTTPException(status_code=500, detail=f"Erro ao transcrever áudio: {e}")
 
 
