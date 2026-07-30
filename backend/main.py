@@ -2933,15 +2933,24 @@ async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
                 headers={"Content-Disposition": "inline; filename=notification.mp3"},
             )
 
-        # SE A VOZ FOR KOKORO (VOICEBOX)
-        if selected_voice in ["kokoro", "voicebox", "dora"] and VOICEBOX_URL:
-            print(f"[admin/tts] Gerando via Voicebox (Kokoro - Feminina PT) para: {text[:40]!r}...")
+        # Perfis do Voicebox (Kokoro)
+        voice_profiles = {
+            "dora": "4cb7db6f-ecf2-474c-8e54-1ac3d0df2ef2",     # Dora (Feminina PT)
+            "kokoro": "4cb7db6f-ecf2-474c-8e54-1ac3d0df2ef2",   # Default Kokoro
+            "voicebox": "4cb7db6f-ecf2-474c-8e54-1ac3d0df2ef2", # Alias
+            "alex": "f75aa665-aa58-45e3-99eb-12ce6ea65955",     # Alex (Masculina PT)
+            "santa": "3c664bf0-90d2-41e3-a31b-ebf9ea448eb6",    # Santa (Masculina PT)
+        }
+
+        if selected_voice in voice_profiles and VOICEBOX_URL:
+            profile_id = voice_profiles[selected_voice]
+            print(f"[admin/tts] Gerando via Voicebox (Kokoro: {selected_voice}) para: {text[:40]!r}...")
             try:
                 async with httpx.AsyncClient(timeout=120.0) as client:
                     response = await client.post(
                         f"{VOICEBOX_URL}/generate/stream",
                         json={
-                            "profile_id": "4cb7db6f-ecf2-474c-8e54-1ac3d0df2ef2",  # Dora (Feminina PT - Kokoro)
+                            "profile_id": profile_id,
                             "engine": "kokoro",
                             "text": text,
                             "language": "pt",
