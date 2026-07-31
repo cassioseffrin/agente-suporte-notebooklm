@@ -2600,6 +2600,75 @@ async def sync_agent_faq_to_notebooklm(agent_id: str):
     }
 
 
+class AgentSyncPromptRequest(BaseModel):
+    system_prompt: Optional[str] = None
+
+
+@app.post("/agents/{agent_id}/sync-prompt")
+async def sync_agent_prompt_to_notebooklm(agent_id: str, request: Optional[AgentSyncPromptRequest] = None):
+    """
+    Sincroniza o system_prompt do agente para as instruções do NotebookLM (Custom Prompt)
+    utilizando a biblioteca notebooklm-py.
+    """
+    from pathlib import Path as _Path
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    "SELECT id, title, system_prompt, COALESCE(notebooklm_profile, 'default') as notebooklm_profile FROM agent WHERE id = %s;",
+                    (agent_id,)
+                )
+                row = cur.fetchone()
+                if not row:
+                    raise HTTPException(status_code=404, detail="Agente não encontrado.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar agente: {e}")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+    prompt_to_sync = (request.system_prompt if request and request.system_prompt is not None else row["system_prompt"]) or ""
+    if not prompt_to_sync.strip():
+        raise HTTPException(status_code=400, detail="System prompt está vazio. Adicione um prompt antes de sincronizar.")
+
+    agent_profile = (row.get("notebooklm_profile") or "default").strip()
+    profile_file = _Path.home() / ".notebooklm" / "profiles" / agent_profile / "storage_state.json"
+    legacy_file = _Path.home() / ".notebooklm" / "storage_state.json"
+
+    if profile_file.exists():
+        session_file = profile_file
+    elif agent_profile == "default" and legacy_file.exists():
+        session_file = legacy_file
+    else:
+        session_file = profile_file
+
+    if not session_file.exists():
+        raise HTTPException(status_code=400, detail=f"Sessão de autenticação do perfil '{agent_profile}' não encontrada.")
+
+    try:
+        from notebooklm import NotebookLMClient, ChatGoal, ChatResponseLength
+        client = await NotebookLMClient.from_storage(str(session_file))
+        async with client:
+            await client.chat.configure(
+                notebook_id=agent_id,
+                goal=ChatGoal.CUSTOM,
+                custom_prompt=prompt_to_sync,
+                response_length=ChatResponseLength.DEFAULT
+            )
+        return {
+            "status": "ok",
+            "agent_id": agent_id,
+            "profile": agent_profile,
+            "message": "System prompt sincronizado com sucesso no NotebookLM."
+        }
+    except Exception as e:
+        print(f"[sync-prompt] Erro ao sincronizar no NotebookLM: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao sincronizar com NotebookLM: {e}")
+
+
 # ---------------------------------------------------------------------------
 # Consultas de Histórico
 # ---------------------------------------------------------------------------
