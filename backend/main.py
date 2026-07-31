@@ -111,6 +111,15 @@ def ensure_tables():
                 END $$;
                 """)
 
+                # Migration: add logo_base64 column if missing (existing DBs)
+                cur.execute("""
+                DO $$ BEGIN
+                    ALTER TABLE agent ADD COLUMN logo_base64 TEXT;
+                EXCEPTION
+                    WHEN duplicate_column THEN NULL;
+                END $$;
+                """)
+
                 # 2. Tabela auditor
                 cur.execute("""
                 CREATE TABLE IF NOT EXISTS auditor (
@@ -830,7 +839,7 @@ async def get_agents():
     try:
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT id, name, title, sort_order FROM agent WHERE active = TRUE AND hide = FALSE ORDER BY sort_order ASC;")
+                cur.execute("SELECT id, name, title, sort_order, logo_base64 FROM agent WHERE active = TRUE AND hide = FALSE ORDER BY sort_order ASC;")
                 rows = cur.fetchall()
                 # Removemos datetime objectos caso existissem, mas select é só id, name, title
                 return {"agents": rows}
@@ -2433,7 +2442,7 @@ async def get_agents_all():
                     SELECT id, title, name, system_prompt, email, overview,
                            sort_order, active, creation, modification,
                            COALESCE(notebooklm_profile, 'default') as notebooklm_profile,
-                           hide
+                           hide, logo_base64
                     FROM agent
                     ORDER BY sort_order ASC, title ASC;
                 """)
@@ -2453,6 +2462,7 @@ async def get_agents_all():
                         "modification": r["modification"].isoformat() if r["modification"] else None,
                         "notebooklm_profile": r["notebooklm_profile"],
                         "hide": r["hide"],
+                        "logo_base64": r["logo_base64"],
                         # faq_content intentionally omitted from list (fetched on-demand via GET /agents/{id})
                     })
                 return {"agents": agents}
@@ -2474,7 +2484,7 @@ async def get_agent_by_id(agent_id: str):
                     SELECT id, title, name, system_prompt, email, overview,
                            sort_order, active, creation, modification, faq_content,
                            COALESCE(notebooklm_profile, 'default') as notebooklm_profile,
-                           hide
+                           hide, logo_base64
                     FROM agent WHERE id = %s;
                 """, (agent_id,))
                 r = cur.fetchone()
@@ -2494,6 +2504,7 @@ async def get_agent_by_id(agent_id: str):
                     "faq_content": r["faq_content"] or "",
                     "notebooklm_profile": r["notebooklm_profile"],
                     "hide": r["hide"],
+                    "logo_base64": r["logo_base64"],
                 }
     except HTTPException:
         raise
@@ -2515,6 +2526,7 @@ class AgentUpdateRequest(BaseModel):
     faq_content: Optional[str] = None
     notebooklm_profile: Optional[str] = None
     hide: Optional[bool] = None
+    logo_base64: Optional[str] = None
 
 
 @app.put("/agents/{agent_id}")
@@ -2539,7 +2551,7 @@ async def update_agent(agent_id: str, request: AgentUpdateRequest):
                     RETURNING id, title, name, system_prompt, email, overview,
                               sort_order, active, creation, modification,
                               COALESCE(notebooklm_profile, 'default') as notebooklm_profile,
-                              hide;
+                              hide, logo_base64;
                 """, fields)
                 row = cur.fetchone()
                 if not row:
