@@ -3013,7 +3013,34 @@ async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
 
         if selected_voice in voice_profiles and VOICEBOX_URL:
             profile_id = voice_profiles[selected_voice]
-            print(f"[admin/tts] Gerando via Voicebox (Kokoro: {selected_voice}) para: {text[:40]!r}...")
+
+            # Corrigir ortografia, pontuação e acentuação via GPT-4o-mini antes de enviar ao Voicebox
+            text_to_speak = text
+            try:
+                corr_resp = await openai_client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": (
+                                "Você é um normalizador de texto para síntese de voz (TTS). "
+                                "Corrija a ortografia, acentuação, pontuação e expanda abreviações (ex: 'vc' -> 'você', 'tb' -> 'também') do texto em português. "
+                                "NÃO altere a intenção nem adicione saudações ou explicações. Retorne APENAS o texto corrigido."
+                            ),
+                        },
+                        {"role": "user", "content": text},
+                    ],
+                    temperature=0,
+                    max_tokens=500,
+                )
+                corrected_text = corr_resp.choices[0].message.content.strip()
+                if corrected_text:
+                    print(f"[admin/tts] Texto normalizado via GPT-4o-mini: {text!r} -> {corrected_text!r}")
+                    text_to_speak = corrected_text
+            except Exception as e:
+                print(f"[admin/tts] Erro ao normalizar texto com GPT-4o-mini (usando original): {e}")
+
+            print(f"[admin/tts] Gerando via Voicebox (Kokoro: {selected_voice}) para: {text_to_speak[:40]!r}...")
             try:
                 async with httpx.AsyncClient(timeout=120.0) as client:
                     response = await client.post(
@@ -3021,7 +3048,7 @@ async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
                         json={
                             "profile_id": profile_id,
                             "engine": "kokoro",
-                            "text": text,
+                            "text": text_to_speak,
                             "language": "pt",
                         }
                     )
