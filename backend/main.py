@@ -1282,13 +1282,18 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     # --- Proteção contra mensagens duplicadas / enviadas enquanto IA processa ---
     if thread_id in active_generations:
         print(f"[DUPLICATE] Thread {thread_id} já está em processamento. Mensagem ignorada: {user_message!r}")
-        # Salva a mensagem duplicada no banco para auditoria
+        # Salva a mensagem duplicada do usuário no banco para auditoria
         await run_in_thread(save_user_message_sync, thread_id, user_message)
         _notify_auditor_new_message(thread_id, 0, user_message, 'usuario')
+        # Salva e notifica a resposta de "aguarde" como mensagem do agente
+        dup_chat_id = await run_in_thread(save_agent_message_sync, thread_id, DUPLICATE_WAIT_RESPONSE)
+        if dup_chat_id:
+            _notify_auditor_new_message(thread_id, dup_chat_id, DUPLICATE_WAIT_RESPONSE, 'agente')
+            _notify_user_new_message(thread_id, dup_chat_id, DUPLICATE_WAIT_RESPONSE, 'agente')
         return {
             "content": [DUPLICATE_WAIT_RESPONSE],
             "images":  [],
-            "chat_id": None
+            "chat_id": dup_chat_id
         }
 
     # Busca o agente no banco de dados para pegar notebook ID, system prompt e profile.
@@ -1488,16 +1493,21 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
     # --- Proteção contra mensagens duplicadas / enviadas enquanto IA processa ---
     if thread_id in active_generations:
         print(f"[DUPLICATE-STREAM] Thread {thread_id} já está em processamento. Mensagem ignorada: {user_message!r}")
-        # Salva a mensagem duplicada no banco para auditoria
+        # Salva a mensagem duplicada do usuário no banco para auditoria
         await run_in_thread(save_user_message_sync, thread_id, user_message)
         _notify_auditor_new_message(thread_id, 0, user_message, 'usuario')
+        # Salva e notifica a resposta de "aguarde" como mensagem do agente
+        dup_chat_id = await run_in_thread(save_agent_message_sync, thread_id, DUPLICATE_WAIT_RESPONSE)
+        if dup_chat_id:
+            _notify_auditor_new_message(thread_id, dup_chat_id, DUPLICATE_WAIT_RESPONSE, 'agente')
+            _notify_user_new_message(thread_id, dup_chat_id, DUPLICATE_WAIT_RESPONSE, 'agente')
 
         # Retorna SSE imediato com a mensagem de aguarde
         def _sse_duplicate():
             payload = json.dumps({"text": DUPLICATE_WAIT_RESPONSE}, ensure_ascii=False)
             yield f"event: token\ndata: {payload}\n\n"
             done_payload = json.dumps({
-                "chat_id": None,
+                "chat_id": dup_chat_id,
                 "content": DUPLICATE_WAIT_RESPONSE,
                 "was_fallback": False,
             }, ensure_ascii=False)
