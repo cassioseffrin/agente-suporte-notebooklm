@@ -1400,7 +1400,8 @@ async def _run_stream_processing(
             pass
 
     try:
-        active_generations.add(thread_id)
+        # active_generations.add() é feito no handler do /chat/stream ANTES de criar esta task,
+        # para evitar race condition com requests duplicados.
         # --- Etapa 1: Query Rewriting (OpenAI reescreve apenas a PERGUNTA) ---
         _push("status", {"stage": "rewriting", "detail": "Preparando sua consulta..."})
         search_query = await rewrite_query_with_context(thread_id, user_message)
@@ -1558,6 +1559,11 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
     # ensuring responses are ALWAYS persisted to DB and session even if the
     # client disconnects mid-stream.
     event_queue: asyncio.Queue = asyncio.Queue()
+
+    # Marca IMEDIATAMENTE como em processamento — ANTES de criar a task async.
+    # Isso elimina a race condition onde uma segunda requisição chegava antes
+    # da task iniciar e passava pela verificação de active_generations.
+    active_generations.add(thread_id)
 
     asyncio.create_task(
         _run_stream_processing(
