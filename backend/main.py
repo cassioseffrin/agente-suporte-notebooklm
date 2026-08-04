@@ -1281,10 +1281,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
 
     # --- Proteção contra mensagens duplicadas / enviadas enquanto IA processa ---
     if thread_id in active_generations:
-        print(f"[DUPLICATE] Thread {thread_id} já está em processamento. Mensagem ignorada: {user_message!r}")
-        # Salva a mensagem duplicada no banco para auditoria
-        await run_in_thread(save_user_message_sync, thread_id, user_message)
-        _notify_auditor_new_message(thread_id, 0, user_message, 'usuario')
+        print(f"[DUPLICATE] Thread {thread_id} já está em processamento. Requisição duplicada ignorada: {user_message!r}")
         return {
             "content": [DUPLICATE_WAIT_RESPONSE],
             "images":  [],
@@ -1509,10 +1506,7 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
 
     # --- Proteção contra mensagens duplicadas / enviadas enquanto IA processa ---
     if thread_id in active_generations:
-        print(f"[DUPLICATE-STREAM] Thread {thread_id} já está em processamento. Mensagem ignorada: {user_message!r}")
-        # Salva a mensagem duplicada no banco para auditoria
-        await run_in_thread(save_user_message_sync, thread_id, user_message)
-        _notify_auditor_new_message(thread_id, 0, user_message, 'usuario')
+        print(f"[DUPLICATE-STREAM] Thread {thread_id} já está em processamento. Requisição duplicada ignorada: {user_message!r}")
 
         # Retorna SSE imediato com a mensagem de aguarde
         def _sse_duplicate():
