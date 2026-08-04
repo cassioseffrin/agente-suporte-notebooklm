@@ -485,6 +485,15 @@ NOTEBOOKLM_EMPTY_RESPONSE = (
     "Sugerimos consultar o suporte técnico para obter assistência."
 )
 
+# Mensagem retornada quando o usuário envia mensagem enquanto outra ainda está sendo processada
+DUPLICATE_WAIT_RESPONSE = (
+    "⏳ Sua pergunta anterior ainda está sendo processada! "
+    "Por favor, aguarde enquanto procuro a melhor resposta para você. "
+    "Nossa base de conhecimento é bastante completa e detalhada, "
+    "por isso as respostas podem levar em média **1 minuto**. "
+    "Fique tranquilo(a), assim que a resposta estiver pronta ela aparecerá aqui automaticamente. 😊"
+)
+
 
 async def query_notebooklm_streaming(user_message: str, notebook_id: str, profile: str = "default", push_fn=None):
     """Consulta o NotebookLM CLI e emite a resposta progressivamente via push_fn.
@@ -1270,6 +1279,18 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     if not user_message:
         raise HTTPException(status_code=400, detail="Mensagem vazia")
 
+    # --- Proteção contra mensagens duplicadas / enviadas enquanto IA processa ---
+    if thread_id in active_generations:
+        print(f"[DUPLICATE] Thread {thread_id} já está em processamento. Mensagem ignorada: {user_message!r}")
+        # Salva a mensagem duplicada no banco para auditoria
+        await run_in_thread(save_user_message_sync, thread_id, user_message)
+        _notify_auditor_new_message(thread_id, 0, user_message, 'usuario')
+        return {
+            "content": [DUPLICATE_WAIT_RESPONSE],
+            "images":  [],
+            "chat_id": None
+        }
+
     # Busca o agente no banco de dados para pegar notebook ID, system prompt e profile.
     agent_info = get_agent_info_by_name(assistant_name)
     if not agent_info:
@@ -1305,45 +1326,50 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         })
 
     # 1. Query Rewriting - expande perguntas vagas usando histórico da thread
-    search_query = await rewrite_query_with_context(thread_id, user_message)
+    try:
+        active_generations.add(thread_id)
 
-    print(f"\n{'='*50}")
-    print(f"[DEBUG Chat] Thread: {thread_id}")
-    print(f"[DEBUG Chat] Assistant: {assistant_name}")
-    print(f"[DEBUG Chat] Original : {user_message!r}")
-    print(f"[DEBUG Chat] Rewritten: {search_query!r}")
+        search_query = await rewrite_query_with_context(thread_id, user_message)
 
-    # 2. NotebookLM - busca resposta direta nos manuais (sem reescrita por OpenAI)
-    notebooklm_answer = await query_notebooklm(search_query, agent_notebook_id, profile=agent_profile)
+        print(f"\n{'='*50}")
+        print(f"[DEBUG Chat] Thread: {thread_id}")
+        print(f"[DEBUG Chat] Assistant: {assistant_name}")
+        print(f"[DEBUG Chat] Original : {user_message!r}")
+        print(f"[DEBUG Chat] Rewritten: {search_query!r}")
 
-    answer_preview = notebooklm_answer[:200].replace('\n', ' ') + "..." if notebooklm_answer else "VAZIO"
-    print(f"[DEBUG Chat] Resposta : {answer_preview}")
-    print(f"{'='*50}\n")
+        # 2. NotebookLM - busca resposta direta nos manuais (sem reescrita por OpenAI)
+        notebooklm_answer = await query_notebooklm(search_query, agent_notebook_id, profile=agent_profile)
 
-    # 3. Resposta direta do NotebookLM (sem reescrita OpenAI para evitar alucinações)
-    assistant_text = notebooklm_answer.strip() if notebooklm_answer else NOTEBOOKLM_EMPTY_RESPONSE
+        answer_preview = notebooklm_answer[:200].replace('\n', ' ') + "..." if notebooklm_answer else "VAZIO"
+        print(f"[DEBUG Chat] Resposta : {answer_preview}")
+        print(f"{'='*50}\n")
 
-    # 4. Histórico - salva mensagem original do usuário (não a query reescrita)
-    sessions[thread_id].append({"role": "user",      "content": user_message})
-    sessions[thread_id].append({"role": "assistant", "content": assistant_text})
+        # 3. Resposta direta do NotebookLM (sem reescrita OpenAI para evitar alucinações)
+        assistant_text = notebooklm_answer.strip() if notebooklm_answer else NOTEBOOKLM_EMPTY_RESPONSE
 
-    # 4b. Persiste no banco a mensagem do agente
-    assistant_chat_id = await run_in_thread(save_agent_message_sync, thread_id, assistant_text)
+        # 4. Histórico - salva mensagem original do usuário (não a query reescrita)
+        sessions[thread_id].append({"role": "user",      "content": user_message})
+        sessions[thread_id].append({"role": "assistant", "content": assistant_text})
 
-    # 4c. Notificar auditores sobre a resposta da IA
-    if assistant_chat_id:
-        _notify_auditor_new_message(thread_id, assistant_chat_id, assistant_text, 'agente')
+        # 4b. Persiste no banco a mensagem do agente
+        assistant_chat_id = await run_in_thread(save_agent_message_sync, thread_id, assistant_text)
 
-    # 4d. Atualiza subject automaticamente caso seja a primeira mensagem
-    if is_first_message:
-        asyncio.create_task(generate_and_update_subject(thread_id, user_message, assistant_text))
+        # 4c. Notificar auditores sobre a resposta da IA
+        if assistant_chat_id:
+            _notify_auditor_new_message(thread_id, assistant_chat_id, assistant_text, 'agente')
 
-    # 5. Retorna no formato que o Flutter já espera
-    return {
-        "content": [assistant_text],
-        "images":  [],
-        "chat_id": assistant_chat_id
-    }
+        # 4d. Atualiza subject automaticamente caso seja a primeira mensagem
+        if is_first_message:
+            asyncio.create_task(generate_and_update_subject(thread_id, user_message, assistant_text))
+
+        # 5. Retorna no formato que o Flutter já espera
+        return {
+            "content": [assistant_text],
+            "images":  [],
+            "chat_id": assistant_chat_id
+        }
+    finally:
+        active_generations.discard(thread_id)
 
 
 async def _run_stream_processing(
@@ -1457,6 +1483,34 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
 
     if not user_message:
         raise HTTPException(status_code=400, detail="Mensagem vazia")
+
+    # --- Proteção contra mensagens duplicadas / enviadas enquanto IA processa ---
+    if thread_id in active_generations:
+        print(f"[DUPLICATE-STREAM] Thread {thread_id} já está em processamento. Mensagem ignorada: {user_message!r}")
+        # Salva a mensagem duplicada no banco para auditoria
+        await run_in_thread(save_user_message_sync, thread_id, user_message)
+        _notify_auditor_new_message(thread_id, 0, user_message, 'usuario')
+
+        # Retorna SSE imediato com a mensagem de aguarde
+        def _sse_duplicate():
+            payload = json.dumps({"text": DUPLICATE_WAIT_RESPONSE}, ensure_ascii=False)
+            yield f"event: token\ndata: {payload}\n\n"
+            done_payload = json.dumps({
+                "chat_id": None,
+                "content": DUPLICATE_WAIT_RESPONSE,
+                "was_fallback": False,
+            }, ensure_ascii=False)
+            yield f"event: done\ndata: {done_payload}\n\n"
+
+        return StreamingResponse(
+            _sse_duplicate(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
 
     agent_info = get_agent_info_by_name(assistant_name)
     if not agent_info:
