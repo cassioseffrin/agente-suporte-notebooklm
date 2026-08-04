@@ -1282,18 +1282,13 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     # --- Proteção contra mensagens duplicadas / enviadas enquanto IA processa ---
     if thread_id in active_generations:
         print(f"[DUPLICATE] Thread {thread_id} já está em processamento. Mensagem ignorada: {user_message!r}")
-        # Salva a mensagem duplicada do usuário no banco para auditoria
+        # Salva a mensagem duplicada no banco para auditoria
         await run_in_thread(save_user_message_sync, thread_id, user_message)
         _notify_auditor_new_message(thread_id, 0, user_message, 'usuario')
-        # Salva e notifica a resposta de "aguarde" como mensagem do agente
-        dup_chat_id = await run_in_thread(save_agent_message_sync, thread_id, DUPLICATE_WAIT_RESPONSE)
-        if dup_chat_id:
-            _notify_auditor_new_message(thread_id, dup_chat_id, DUPLICATE_WAIT_RESPONSE, 'agente')
-            _notify_user_new_message(thread_id, dup_chat_id, DUPLICATE_WAIT_RESPONSE, 'agente')
         return {
             "content": [DUPLICATE_WAIT_RESPONSE],
             "images":  [],
-            "chat_id": dup_chat_id
+            "chat_id": None
         }
 
     # Busca o agente no banco de dados para pegar notebook ID, system prompt e profile.
@@ -1329,6 +1324,28 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
             "agent_name": agent_title,
             "first_message": user_message[:300],
         })
+
+    # --- Cache de Sessão: Se a pergunta for idêntica à última feita nesta thread, reutiliza a resposta sem reprocessar no NotebookLM ---
+    history = sessions.get(thread_id, [])
+    if history and len(history) >= 2:
+        last_user_msg = history[-2]
+        last_assistant_msg = history[-1]
+        if (
+            last_user_msg.get("role") == "user"
+            and last_user_msg.get("content") == user_message
+            and last_assistant_msg.get("role") == "assistant"
+        ):
+            cached_answer = last_assistant_msg.get("content")
+            if cached_answer:
+                print(f"[CACHE-HIT] Thread {thread_id} repetiu a pergunta {user_message!r}. Retornando resposta em cache sem reprocessar no NotebookLM.")
+                assistant_chat_id = await run_in_thread(save_agent_message_sync, thread_id, cached_answer)
+                if assistant_chat_id:
+                    _notify_auditor_new_message(thread_id, assistant_chat_id, cached_answer, 'agente')
+                return {
+                    "content": [cached_answer],
+                    "images": [],
+                    "chat_id": assistant_chat_id
+                }
 
     # 1. Query Rewriting - expande perguntas vagas usando histórico da thread
     try:
@@ -1493,21 +1510,16 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
     # --- Proteção contra mensagens duplicadas / enviadas enquanto IA processa ---
     if thread_id in active_generations:
         print(f"[DUPLICATE-STREAM] Thread {thread_id} já está em processamento. Mensagem ignorada: {user_message!r}")
-        # Salva a mensagem duplicada do usuário no banco para auditoria
+        # Salva a mensagem duplicada no banco para auditoria
         await run_in_thread(save_user_message_sync, thread_id, user_message)
         _notify_auditor_new_message(thread_id, 0, user_message, 'usuario')
-        # Salva e notifica a resposta de "aguarde" como mensagem do agente
-        dup_chat_id = await run_in_thread(save_agent_message_sync, thread_id, DUPLICATE_WAIT_RESPONSE)
-        if dup_chat_id:
-            _notify_auditor_new_message(thread_id, dup_chat_id, DUPLICATE_WAIT_RESPONSE, 'agente')
-            _notify_user_new_message(thread_id, dup_chat_id, DUPLICATE_WAIT_RESPONSE, 'agente')
 
         # Retorna SSE imediato com a mensagem de aguarde
         def _sse_duplicate():
             payload = json.dumps({"text": DUPLICATE_WAIT_RESPONSE}, ensure_ascii=False)
             yield f"event: token\ndata: {payload}\n\n"
             done_payload = json.dumps({
-                "chat_id": dup_chat_id,
+                "chat_id": None,
                 "content": DUPLICATE_WAIT_RESPONSE,
                 "was_fallback": False,
             }, ensure_ascii=False)
@@ -1558,6 +1570,44 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
             "agent_name": agent_title,
             "first_message": user_message[:300],
         })
+
+    # --- Cache de Sessão: Se a pergunta for idêntica à última feita nesta thread, reutiliza a resposta sem reprocessar no NotebookLM ---
+    history = sessions.get(thread_id, [])
+    if history and len(history) >= 2:
+        last_user_msg = history[-2]
+        last_assistant_msg = history[-1]
+        if (
+            last_user_msg.get("role") == "user"
+            and last_user_msg.get("content") == user_message
+            and last_assistant_msg.get("role") == "assistant"
+        ):
+            cached_answer = last_assistant_msg.get("content")
+            if cached_answer:
+                print(f"[CACHE-HIT-STREAM] Thread {thread_id} repetiu a pergunta {user_message!r}. Retornando resposta em cache sem reprocessar no NotebookLM.")
+                assistant_chat_id = await run_in_thread(save_agent_message_sync, thread_id, cached_answer)
+                if assistant_chat_id:
+                    _notify_auditor_new_message(thread_id, assistant_chat_id, cached_answer, 'agente')
+                    _notify_user_new_message(thread_id, assistant_chat_id, cached_answer, 'agente')
+
+                def _sse_cached():
+                    payload = json.dumps({"text": cached_answer}, ensure_ascii=False)
+                    yield f"event: token\ndata: {payload}\n\n"
+                    done_payload = json.dumps({
+                        "chat_id": assistant_chat_id,
+                        "content": cached_answer,
+                        "was_fallback": False,
+                    }, ensure_ascii=False)
+                    yield f"event: done\ndata: {done_payload}\n\n"
+
+                return StreamingResponse(
+                    _sse_cached(),
+                    media_type="text/event-stream",
+                    headers={
+                        "Cache-Control": "no-cache",
+                        "Connection": "keep-alive",
+                        "X-Accel-Buffering": "no",
+                    },
+                )
 
     def _sse(event: str, data: dict) -> str:
         """Format a single SSE event."""
