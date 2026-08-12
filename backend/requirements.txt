@@ -6,3 +6,4 @@ python-dotenv>=1.0.1
 psycopg2-binary>=2.9.0
 python-multipart>=0.0.9
 httpx>=0.27.0
+notebooklm-py[browser]>=0.8.0

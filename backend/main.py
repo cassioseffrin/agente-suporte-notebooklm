@@ -5,7 +5,8 @@ Mantém contrato com o app Flutter existente:
   POST /chat             → { content: [str], images: [] }
   GET  /updateNotebooks  → sincroniza notebooks do NotebookLM com tabela agent no Postgres
 
-LLM: OpenAI gpt-4o-mini (apenas para query rewrite da pergunta)
+LLM: GPT-OSS gptoss-reasoning via LiteLLM (query rewrite, subject, FAQ, TTS normalization)
+Áudio: OpenAI Whisper (transcrição) + gpt-4o-mini-tts (síntese de voz) como fallback
 RAG: notebooklm ask (CLI subprocess / streaming direto)
 Resposta: entregue diretamente do NotebookLM sem reescrita
 Sessões: isoladas por threadId, histórico em memória
@@ -14,6 +15,8 @@ Sessões: isoladas por threadId, histórico em memória
 import asyncio
 import uuid
 import os
+import sys
+import shutil
 import json
 import hashlib
 import re
@@ -42,6 +45,11 @@ from pydantic import BaseModel
 OPENAI_API_KEY         = os.environ.get("OPENAI_API_KEY", "")
 BACKEND_API_KEY        = os.environ.get("BACKEND_API_KEY", "")
 VOICEBOX_URL           = os.environ.get("VOICEBOX_URL", "")
+
+# GPT-OSS via LiteLLM (DGX Spark)
+LITELLM_API_BASE       = os.environ.get("LITELLM_API_BASE", "https://apiai.arpasistemas.com.br/v1")
+LITELLM_API_KEY        = os.environ.get("LITELLM_API_KEY", "")
+LITELLM_MODEL          = os.environ.get("LITELLM_MODEL", "gptoss-reasoning")
 
 HISTORY_LIMIT      = 10   # últimas N mensagens enviadas ao OpenAI (5 turnos)
 NOTEBOOKLM_TIMEOUT = 300
@@ -312,6 +320,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Cliente LLM principal (GPT-OSS via LiteLLM - compatível com OpenAI API)
+llm_client = AsyncOpenAI(
+    api_key=LITELLM_API_KEY,
+    base_url=LITELLM_API_BASE,
+)
+
+# Cliente OpenAI original - mantido APENAS para áudio (Whisper + TTS)
 openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 # ---------------------------------------------------------------------------
@@ -360,8 +375,19 @@ def _get_notebooklm_cmd(profile: str, *args) -> list[str]:
         session_file = legacy_file
     else:
         session_file = profile_file
+
+    # Buscar executável do notebooklm no venv local ou sys.executable antes do PATH global
+    binary = "notebooklm"
+    venv_bin = _Path(__file__).resolve().parent.parent / "venv" / "bin" / "notebooklm"
+    sys_bin = _Path(sys.executable).parent / "notebooklm"
+    if venv_bin.exists():
+        binary = str(venv_bin)
+    elif sys_bin.exists():
+        binary = str(sys_bin)
+    elif shutil.which("notebooklm"):
+        binary = shutil.which("notebooklm")
         
-    return ["notebooklm", "--storage", str(session_file)] + list(args)
+    return [binary, "--storage", str(session_file)] + list(args)
 
 
 def clean_notebooklm_response(text: str) -> str:
@@ -604,8 +630,8 @@ async def rewrite_query_with_context(thread_id: str, user_message: str) -> str:
     )
 
     try:
-        result = await openai_client.chat.completions.create(
-            model="gpt-4o-mini",
+        result = await llm_client.chat.completions.create(
+            model=LITELLM_MODEL,
             max_tokens=256,
             temperature=0,
             timeout=60.0,
@@ -621,7 +647,8 @@ async def rewrite_query_with_context(thread_id: str, user_message: str) -> str:
                 }
             ]
         )
-        rewritten = result.choices[0].message.content.strip()
+        raw_content = result.choices[0].message.content
+        rewritten = raw_content.strip() if raw_content else user_message
         if rewritten and rewritten != user_message:
             print(f"[query-rewrite] original: {user_message!r}")
             print(f"[query-rewrite] reescrita: {rewritten!r}")
@@ -815,14 +842,15 @@ async def generate_and_update_subject(thread_id: str, user_message: str, assista
     """Gera um subject curto baseado na primeira mensagem e salva no banco."""
     prompt = f"Gere um título conciso (máximo 60 caracteres) para a seguinte interação de suporte. Apenas retorne o título, sem aspas e sem explicações.\nUsuário: {user_message}\nAssistente: {assistant_message}"
     try:
-        response = await openai_client.chat.completions.create(
-            model="gpt-4o-mini",
+        response = await llm_client.chat.completions.create(
+            model=LITELLM_MODEL,
             max_tokens=60,
             temperature=0.3,
             timeout=10.0,
             messages=[{"role": "user", "content": prompt}]
         )
-        new_subject = response.choices[0].message.content.strip()[:200]
+        raw_content = response.choices[0].message.content
+        new_subject = (raw_content.strip() if raw_content else "Nova conversa")[:200]
         
         conn = get_db_connection()
         with conn:
@@ -1898,8 +1926,11 @@ async def upload_auth_state(
         )
         stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=30)
         valid = proc.returncode == 0
+        stderr_txt = stderr.decode().strip()
+        stdout_txt = stdout.decode().strip()
+        err_msg = stderr_txt or stdout_txt
         if not valid:
-            print(f"[uploadAuthState] validação falhou (profile={profile}): {stderr.decode()[:200]}")
+            print(f"[uploadAuthState] validação falhou (profile={profile}): {err_msg[:300]}")
         else:
             print(f"[uploadAuthState] sessão validada com sucesso (profile={profile}).")
     except asyncio.TimeoutError:
@@ -3143,8 +3174,8 @@ async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
             # Corrigir ortografia, pontuação e acentuação via GPT-4o-mini antes de enviar ao Voicebox
             text_to_speak = text
             try:
-                corr_resp = await openai_client.chat.completions.create(
-                    model="gpt-4o-mini",
+                corr_resp = await llm_client.chat.completions.create(
+                    model=LITELLM_MODEL,
                     messages=[
                         {
                             "role": "system",
@@ -3159,12 +3190,13 @@ async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
                     temperature=0,
                     max_tokens=500,
                 )
-                corrected_text = corr_resp.choices[0].message.content.strip()
+                raw_content = corr_resp.choices[0].message.content
+                corrected_text = raw_content.strip() if raw_content else ""
                 if corrected_text:
-                    print(f"[admin/tts] Texto normalizado via GPT-4o-mini: {text!r} -> {corrected_text!r}")
+                    print(f"[admin/tts] Texto normalizado via GPT-OSS: {text!r} -> {corrected_text!r}")
                     text_to_speak = corrected_text
             except Exception as e:
-                print(f"[admin/tts] Erro ao normalizar texto com GPT-4o-mini (usando original): {e}")
+                print(f"[admin/tts] Erro ao normalizar texto com GPT-OSS (usando original): {e}")
 
             print(f"[admin/tts] Gerando via Voicebox (Kokoro: {selected_voice}) para: {text_to_speak[:40]!r}...")
             try:
@@ -3781,8 +3813,8 @@ async def _generate_faq_from_messages(messages_data: list[dict], existing_faq: s
     user_content += f"Gere os pares Pergunta/Resposta para a FAQ se não for duplicado:"
 
     try:
-        result = await openai_client.chat.completions.create(
-            model="gpt-4o-mini",
+        result = await llm_client.chat.completions.create(
+            model=LITELLM_MODEL,
             max_tokens=4096,
             temperature=0.2,
             timeout=120.0,
@@ -3794,9 +3826,10 @@ async def _generate_faq_from_messages(messages_data: list[dict], existing_faq: s
                 }
             ]
         )
-        return result.choices[0].message.content.strip()
+        raw_content = result.choices[0].message.content
+        return raw_content.strip() if raw_content else ""
     except Exception as e:
-        print(f"[faq] Erro ao gerar FAQ com OpenAI: {e}")
+        print(f"[faq] Erro ao gerar FAQ com GPT-OSS: {e}")
         raise
 
 
