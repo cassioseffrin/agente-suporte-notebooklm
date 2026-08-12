@@ -45,6 +45,7 @@ from pydantic import BaseModel
 OPENAI_API_KEY         = os.environ.get("OPENAI_API_KEY", "")
 BACKEND_API_KEY        = os.environ.get("BACKEND_API_KEY", "")
 VOICEBOX_URL           = os.environ.get("VOICEBOX_URL", "")
+KOKORO_URL             = os.environ.get("KOKORO_URL", VOICEBOX_URL or "https://tts.arpasistemas.com.br")
 
 # GPT-OSS via LiteLLM (DGX Spark)
 LITELLM_API_BASE       = os.environ.get("LITELLM_API_BASE", "https://apiai.arpasistemas.com.br/v1")
@@ -3103,20 +3104,20 @@ async def transcribe_audio(
 
 class TTSRequest(BaseModel):
     text: str
-    voice: Optional[str] = "openai"  # "openai" (default) ou "kokoro" / "voicebox"
+    voice: Optional[str] = "kokoro"  # "kokoro" (default), "dora", "alex", "santa" ou "openai"
 
 tts_locks: dict[str, asyncio.Lock] = {}
 
 @app.post("/admin/tts")
 async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
-    """Gera áudio TTS usando OpenAI ou Voicebox (Kokoro) conforme selecionado pelo frontend."""
+    """Gera áudio TTS usando Kokoro ou OpenAI conforme selecionado pelo frontend."""
     verify_api_key(authorization)
 
     text = request.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="Texto vazio")
 
-    selected_voice = (request.voice or "openai").lower().strip()
+    selected_voice = (request.voice or "kokoro").lower().strip()
 
     # Cache key isolada por voz selecionada e texto: hash MD5
     cache_key = hashlib.md5(f"{selected_voice}:{text}".encode("utf-8")).hexdigest()
@@ -3159,19 +3160,19 @@ async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
                 headers={"Content-Disposition": "inline; filename=notification.mp3"},
             )
 
-        # Perfis do Voicebox (Kokoro)
+        # Mapeamento de vozes para Kokoro TTS (OpenAI-compatible)
         voice_profiles = {
-            "dora": "4cb7db6f-ecf2-474c-8e54-1ac3d0df2ef2",     # Dora (Feminina PT)
-            "kokoro": "4cb7db6f-ecf2-474c-8e54-1ac3d0df2ef2",   # Default Kokoro
-            "voicebox": "4cb7db6f-ecf2-474c-8e54-1ac3d0df2ef2", # Alias
-            "alex": "f75aa665-aa58-45e3-99eb-12ce6ea65955",     # Alex (Masculina PT)
-            "santa": "3c664bf0-90d2-41e3-a31b-ebf9ea448eb6",    # Santa (Masculina PT)
+            "dora": os.environ.get("KOKORO_VOICE_DORA", "pf_dora"),       # Dora (Feminina PT)
+            "kokoro": os.environ.get("KOKORO_VOICE_DEFAULT", "af_heart"),  # Kokoro default
+            "voicebox": os.environ.get("KOKORO_VOICE_DEFAULT", "af_heart"),# Alias
+            "alex": os.environ.get("KOKORO_VOICE_ALEX", "pm_alex"),       # Alex (Masculina PT)
+            "santa": os.environ.get("KOKORO_VOICE_SANTA", "pm_santa"),    # Santa (Masculina PT)
         }
 
-        if selected_voice in voice_profiles and VOICEBOX_URL:
-            profile_id = voice_profiles[selected_voice]
+        if selected_voice != "openai" and KOKORO_URL:
+            kokoro_voice = voice_profiles.get(selected_voice, selected_voice)
 
-            # Corrigir ortografia, pontuação e acentuação via GPT-4o-mini antes de enviar ao Voicebox
+            # Corrigir ortografia, pontuação e acentuação via GPT-OSS antes de enviar ao Kokoro TTS
             text_to_speak = text
             try:
                 corr_resp = await llm_client.chat.completions.create(
@@ -3198,18 +3199,32 @@ async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
             except Exception as e:
                 print(f"[admin/tts] Erro ao normalizar texto com GPT-OSS (usando original): {e}")
 
-            print(f"[admin/tts] Gerando via Voicebox (Kokoro: {selected_voice}) para: {text_to_speak[:40]!r}...")
+            # Construir URL do endpoint Kokoro (/v1/audio/speech)
+            clean_base = KOKORO_URL.rstrip("/")
+            if clean_base.endswith("/v1/audio/speech"):
+                speech_url = clean_base
+            elif clean_base.endswith("/v1"):
+                speech_url = f"{clean_base}/audio/speech"
+            else:
+                speech_url = f"{clean_base}/v1/audio/speech"
+
+            print(f"[admin/tts] Gerando via Kokoro TTS (voz: {kokoro_voice!r}) em {speech_url} para: {text_to_speak[:40]!r}...")
             try:
                 async with httpx.AsyncClient(timeout=120.0) as client:
-                    response = await client.post(
-                        f"{VOICEBOX_URL}/generate/stream",
-                        json={
-                            "profile_id": profile_id,
-                            "engine": "kokoro",
-                            "text": text_to_speak,
-                            "language": "pt",
-                        }
-                    )
+                    payload = {
+                        "model": "kokoro",
+                        "input": text_to_speak,
+                        "voice": kokoro_voice,
+                        "response_format": "wav",
+                    }
+                    response = await client.post(speech_url, json=payload)
+
+                    # Fallback para "af_heart" caso a voz especificada não esteja disponível
+                    if response.status_code != 200 and kokoro_voice != "af_heart":
+                        print(f"[admin/tts] Kokoro erro {response.status_code} para voz {kokoro_voice!r}. Tentando fallback 'af_heart'...")
+                        payload["voice"] = "af_heart"
+                        response = await client.post(speech_url, json=payload)
+
                     if response.status_code == 200:
                         audio_bytes = response.content
                         try:
@@ -3223,9 +3238,9 @@ async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
                             headers={"Content-Disposition": "inline; filename=notification.wav"},
                         )
                     else:
-                        print(f"[admin/tts] Voicebox erro {response.status_code}: {response.text}")
+                        print(f"[admin/tts] Kokoro erro {response.status_code}: {response.text}")
             except Exception as e:
-                print(f"[admin/tts] Falha no Voicebox: {e}")
+                print(f"[admin/tts] Falha ao conectar ao Kokoro ({KOKORO_URL}): {e}")
 
         # SE A VOZ FOR OPENAI (DEFAULT) OU SE VOICEBOX FALHAR
         print(f"[admin/tts] Gerando via OpenAI TTS (Coral) para: {text[:40]!r}...")
