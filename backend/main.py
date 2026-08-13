@@ -46,6 +46,7 @@ OPENAI_API_KEY         = os.environ.get("OPENAI_API_KEY", "")
 BACKEND_API_KEY        = os.environ.get("BACKEND_API_KEY", "")
 VOICEBOX_URL           = os.environ.get("VOICEBOX_URL", "")
 KOKORO_URL             = os.environ.get("KOKORO_URL", VOICEBOX_URL or "https://tts.arpasistemas.com.br")
+KOKORO_TOKEN           = os.environ.get("KOKORO_TOKEN", "")
 
 # GPT-OSS via LiteLLM (DGX Spark)
 LITELLM_API_BASE       = os.environ.get("LITELLM_API_BASE", "https://apiai.arpasistemas.com.br/v1")
@@ -3233,6 +3234,10 @@ async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
 
             print(f"[admin/tts] Gerando via Kokoro TTS (voz: {kokoro_voice!r}) em {speech_url} para: {text_to_speak[:40]!r}...")
             try:
+                headers = {}
+                if KOKORO_TOKEN:
+                    headers["Authorization"] = f"Bearer {KOKORO_TOKEN}"
+
                 async with httpx.AsyncClient(timeout=120.0) as client:
                     payload = {
                         "model": "kokoro",
@@ -3240,13 +3245,13 @@ async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
                         "voice": kokoro_voice,
                         "response_format": "wav",
                     }
-                    response = await client.post(speech_url, json=payload)
+                    response = await client.post(speech_url, json=payload, headers=headers)
 
                     # Fallback para "af_heart" caso a voz especificada não esteja disponível
                     if response.status_code != 200 and kokoro_voice != "af_heart":
                         print(f"[admin/tts] Kokoro erro {response.status_code} para voz {kokoro_voice!r}. Tentando fallback 'af_heart'...")
                         payload["voice"] = "af_heart"
-                        response = await client.post(speech_url, json=payload)
+                        response = await client.post(speech_url, json=payload, headers=headers)
 
                     if response.status_code == 200:
                         audio_bytes = response.content
