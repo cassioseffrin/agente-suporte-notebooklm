@@ -10,6 +10,23 @@ arpa.drive@gmail.com
 
 
 
+
+
+
+
+Passo a passo para atualizar na Produção (Debian)
+No terminal do seu servidor Debian, execute:
+
+cd /home/arpa/agente-suporte-notebooklm
+git pull
+Atualizar as dependências no venv:
+
+
+/home/arpa/agente-suporte-notebooklm/venv/bin/pip install --upgrade -r backend/requirements.txt
+
+
+
+
  O OpenAI serve como um "orquestrador de sessões + formatador", não como fonte de conhecimento. Aqui está o breakdown:
 
 O que o NotebookLM faz

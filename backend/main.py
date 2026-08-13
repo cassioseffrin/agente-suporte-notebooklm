@@ -633,7 +633,7 @@ async def rewrite_query_with_context(thread_id: str, user_message: str) -> str:
     try:
         result = await llm_client.chat.completions.create(
             model=LITELLM_MODEL,
-            max_tokens=256,
+            max_tokens=512,
             temperature=0,
             timeout=60.0,
             messages=[
@@ -648,7 +648,8 @@ async def rewrite_query_with_context(thread_id: str, user_message: str) -> str:
                 }
             ]
         )
-        raw_content = result.choices[0].message.content
+        raw_content = result.choices[0].message.content or ""
+        raw_content = re.sub(r'<think>.*?</think>', '', raw_content, flags=re.DOTALL)
         rewritten = raw_content.strip() if raw_content else user_message
         if rewritten and rewritten != user_message:
             print(f"[query-rewrite] original: {user_message!r}")
@@ -841,18 +842,38 @@ async def update_thread_subject(thread_id: str, request: SubjectRequest, authori
 
 async def generate_and_update_subject(thread_id: str, user_message: str, assistant_message: str):
     """Gera um subject curto baseado na primeira mensagem e salva no banco."""
-    prompt = f"Gere um título conciso (máximo 60 caracteres) para a seguinte interação de suporte. Apenas retorne o título, sem aspas e sem explicações.\nUsuário: {user_message}\nAssistente: {assistant_message}"
+    user_msg_truncated = user_message[:300]
+    assistant_msg_truncated = assistant_message[:300]
+    
+    prompt = (
+        "Gere um título conciso (máximo 60 caracteres) em português do Brasil para a seguinte interação de suporte. "
+        "Retorne APENAS o título, sem aspas, sem pontuação final e sem explicações.\n\n"
+        f"Usuário: {user_msg_truncated}\n"
+        f"Assistente: {assistant_msg_truncated}"
+    )
     try:
         response = await llm_client.chat.completions.create(
             model=LITELLM_MODEL,
-            max_tokens=60,
+            max_tokens=512,
             temperature=0.3,
-            timeout=10.0,
+            timeout=30.0,
             messages=[{"role": "user", "content": prompt}]
         )
-        raw_content = response.choices[0].message.content
-        new_subject = (raw_content.strip() if raw_content else "Nova conversa")[:200]
+        msg = response.choices[0].message
+        raw_content = msg.content or ""
         
+        # Remover tags de raciocínio se presentes (<think>...</think>)
+        raw_content = re.sub(r'<think>.*?</think>', '', raw_content, flags=re.DOTALL)
+        
+        # Limpar aspas e espaços
+        new_subject = raw_content.strip().strip('"\'`')
+        if not new_subject:
+            new_subject = "Nova conversa"
+        else:
+            new_subject = new_subject[:200]
+        
+        print(f"[subject thread] Novo assunto gerado para {thread_id}: {new_subject!r}")
+
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
@@ -3189,10 +3210,12 @@ async def admin_tts(request: TTSRequest, authorization: str = Header(None)):
                         {"role": "user", "content": text},
                     ],
                     temperature=0,
-                    max_tokens=500,
+                    max_tokens=1024,
+                    timeout=30.0,
                 )
-                raw_content = corr_resp.choices[0].message.content
-                corrected_text = raw_content.strip() if raw_content else ""
+                raw_content = corr_resp.choices[0].message.content or ""
+                raw_content = re.sub(r'<think>.*?</think>', '', raw_content, flags=re.DOTALL)
+                corrected_text = raw_content.strip()
                 if corrected_text:
                     print(f"[admin/tts] Texto normalizado via GPT-OSS: {text!r} -> {corrected_text!r}")
                     text_to_speak = corrected_text
