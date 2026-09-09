@@ -8,9 +8,23 @@ Vmb!@2026
 arpa.drive@gmail.com 
 90Zpt89dt7
 
+# atualizar a biblioteca notebooklm-py para a versão 0.8.2
+
+cd /home/arpa/agente-suporte-notebooklm
+/home/arpa/agente-suporte-notebooklm/venv/bin/pip install --upgrade "notebooklm-py[browser]==0.8.2"
+sudo systemctl restart agente-suporte
+sudo systemctl status agente-suporte
 
 
 
+
+# Ver o tamanho das fontes do notebooklm presentes no notebook id d6b5295e-e808-45d2-aa67-315d94dfc6e3
+ 
+ #sistema control 
+ python3 backend/inspect_control_sources.py fefc0dee-766c-430e-a173-9d6b388e3ce7
+
+ #sistema control novo
+ python3 backend/inspect_control_sources.py 31309341-208e-47b3-b853-6f30f250c3ad
 
 
 
@@ -32,7 +46,7 @@ Atualizar as dependências no venv:
 O que o NotebookLM faz
 100% do RAG - busca real nos manuais do sistema
 Retorna o conteúdo bruto/relevante para a pergunta
-
+cd 
 
 O que o OpenAI faz
 Isolamento de sessão por thread - o sessions[thread_id] garante que N usuários simultâneos não se contaminam, pois o NotebookLM é stateless e não tem conceito de sessão
