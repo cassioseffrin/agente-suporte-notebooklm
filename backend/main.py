@@ -401,11 +401,12 @@ def clean_notebooklm_response(text: str) -> str:
 
     # 1. Remover citações entre colchetes:
     #    - numéricas: [1], [1, 2], [1-3], [1][2]
-    #    - textuais: [Excerpts from "..."], [Trechos de "..."], ou qualquer texto entre colchetes
+    #    - palavras-chave: [Excerpts from ...], [Trechos de ...], [Fonte: ...], [Sources: ...]
+    #    - nomes de arquivos de fontes: [100. Pedido.pdf, FAQ.md], [Manual.pdf]
     #    - numerais circulados: ①-⑩ / ❶-❿
-    text = re.sub(r'\s*\[\s*\d+(?:[\s,–-]+\d+)*\s*\]', '', text)
-    text = re.sub(r'\s*\[Excerpts from [^\]]+\]', '', text, flags=re.IGNORECASE)
-    text = re.sub(r'\s*\[Trechos de [^\]]+\]', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\s*\[\s*\d+(?:[\s,–-]+\d+)*\s*\](?!\()', '', text)
+    text = re.sub(r'\s*\[(?:Excerpts? from|Trechos? de|Fontes?|Sources?)\b[^\]]*\](?!\()', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\s*\[[^\]]*\.(?:pdf|txt|md|docx?|xlsx?|csv|rtf|odt|html?)[^\]]*\](?!\()', '', text, flags=re.IGNORECASE)
     text = re.sub(r'\s*[①-⑩❶-❿]', '', text)
 
     # Corrigir espaços em branco extras antes de pontuações ou no meio do texto
