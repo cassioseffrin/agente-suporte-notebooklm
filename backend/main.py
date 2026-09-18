@@ -457,7 +457,7 @@ async def query_notebooklm(user_message: str, notebook_id: str, profile: str = "
     TIME_BUDGET = 500  # segundos máx para todas as tentativas (nginx=600s, sobra p/ rewrite+openai)
     t0 = time.monotonic()
 
-    cmd = _get_notebooklm_cmd(profile, "ask", user_message, "-n", notebook_id, "--json")
+    cmd = _get_notebooklm_cmd(profile, "ask", user_message, "-n", notebook_id, "--new", "-y", "--json")
     print(f"[notebooklm] profile={profile!r} | notebook={notebook_id!r} | cmd={' '.join(cmd[:5])}...")
 
     for attempt in range(1, max_retries + 1):
@@ -548,7 +548,7 @@ async def query_notebooklm_streaming(user_message: str, notebook_id: str, profil
     max_retries = 3
 
     cmd = _get_notebooklm_cmd(
-        profile, "ask", user_message, "-n", notebook_id, "--json"
+        profile, "ask", user_message, "-n", notebook_id, "--new", "-y", "--json"
     )
     print(f"[notebooklm-stream] profile={profile!r} | notebook={notebook_id!r}")
 
