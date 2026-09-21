@@ -2370,84 +2370,161 @@ async def dashboard_totals(days: int = 30):
             conn.close()
 
 
+def format_cnpj_or_doc(doc: str) -> str:
+    if not doc:
+        return ""
+    clean = "".join(ch for ch in str(doc) if ch.isalnum())
+    if len(clean) == 14 and clean.isdigit():
+        return f"{clean[:2]}.{clean[2:5]}.{clean[5:8]}/{clean[8:12]}-{clean[12:]}"
+    elif len(clean) == 11 and clean.isdigit():
+        return f"{clean[:3]}.{clean[3:6]}.{clean[6:9]}-{clean[9:]}"
+    return doc
+
+
 @app.get("/dashboard/chats-per-user")
 async def dashboard_chats_per_user(days: int = 30, limit: int = 10):
     """
-    Retorna o número de chats por usuário nos últimos N dias (padrão 30).
-    Top 10 usuários com mais chats. Agrupa por usuário e por dia.
+    Retorna o número de chats agrupados por CNPJ nos últimos N dias (padrão 30).
+    Top N CNPJs com mais chats. Agrupa por CNPJ e por dia.
     """
     try:
         conn = get_db_connection()
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Top 10 users by total chats in the period
+                # Daily counts grouped by cleaned CNPJ
                 cur.execute("""
-                    SELECT u.name, u.email, DATE(c.created_at) as day, COUNT(*) as total
+                    WITH cleaned_users AS (
+                        SELECT 
+                            id,
+                            name,
+                            email,
+                            company_data,
+                            COALESCE(NULLIF(REGEXP_REPLACE(TRIM(cnpj), '[^0-9a-zA-Z]', '', 'g'), ''), 'SEM_CNPJ_' || id::text) as clean_cnpj,
+                            cnpj as raw_cnpj
+                        FROM "user"
+                        WHERE email NOT IN ('admin@test.com')
+                    )
+                    SELECT 
+                        u.clean_cnpj,
+                        DATE(c.created_at) as day,
+                        COUNT(*) as total
                     FROM chat c
-                    JOIN "user" u ON u.id = c.user_id
+                    JOIN cleaned_users u ON u.id = c.user_id
                     WHERE c.origem = 'usuario'
                       AND c.created_at >= NOW() - INTERVAL '%s days'
-                      AND u.email NOT IN ('admin@test.com')
-                    GROUP BY u.name, u.email, DATE(c.created_at)
+                    GROUP BY u.clean_cnpj, DATE(c.created_at)
                     ORDER BY day ASC, total DESC;
                 """, (days,))
                 rows = cur.fetchall()
 
-                # Identify top 10 users by total volume
+                # Identify top CNPJs by total volume
                 cur.execute("""
-                    WITH user_totals AS (
-                        SELECT u.id, u.name, u.email, u.cnpj, u.company_data, COUNT(DISTINCT c.id) as total
+                    WITH cleaned_users AS (
+                        SELECT 
+                            id,
+                            name,
+                            email,
+                            company_data,
+                            COALESCE(NULLIF(REGEXP_REPLACE(TRIM(cnpj), '[^0-9a-zA-Z]', '', 'g'), ''), 'SEM_CNPJ_' || id::text) as clean_cnpj,
+                            cnpj as raw_cnpj
+                        FROM "user"
+                        WHERE email NOT IN ('admin@test.com')
+                    ),
+                    cnpj_totals AS (
+                        SELECT 
+                            u.clean_cnpj,
+                            COUNT(DISTINCT c.id) as total,
+                            MAX(COALESCE(NULLIF(TRIM(u.company_data->>'nome_fantasia'), ''), NULLIF(TRIM(u.company_data->>'razao_social'), ''))) as display_company,
+                            MAX(u.company_data->>'razao_social') as razao_social,
+                            MAX(u.company_data->>'nome_fantasia') as nome_fantasia,
+                            MAX(u.raw_cnpj) as raw_cnpj,
+                            STRING_AGG(DISTINCT NULLIF(TRIM(u.name), ''), ', ') as user_names,
+                            STRING_AGG(DISTINCT NULLIF(TRIM(u.email), ''), ', ') as user_emails
                         FROM chat c
-                        JOIN "user" u ON u.id = c.user_id
+                        JOIN cleaned_users u ON u.id = c.user_id
                         WHERE c.origem = 'usuario'
                           AND c.created_at >= NOW() - INTERVAL '%s days'
-                          AND u.email NOT IN ('admin@test.com')
-                        GROUP BY u.id, u.name, u.email, u.cnpj, u.company_data
+                        GROUP BY u.clean_cnpj
                     ),
-                    user_feedbacks AS (
-                        SELECT c.user_id, AVG(ct.feedback_rating) as avg_rating,
-                               SUM(CASE WHEN c.feedback_thumb = 1 THEN 1 ELSE 0 END) as thumb_up,
-                               SUM(CASE WHEN c.feedback_thumb = -1 THEN 1 ELSE 0 END) as thumb_down
+                    cnpj_feedbacks AS (
+                        SELECT 
+                            u.clean_cnpj,
+                            AVG(ct.feedback_rating) as avg_rating,
+                            SUM(CASE WHEN c.feedback_thumb = 1 THEN 1 ELSE 0 END) as thumb_up,
+                            SUM(CASE WHEN c.feedback_thumb = -1 THEN 1 ELSE 0 END) as thumb_down
                         FROM chat_thread ct
                         JOIN chat c ON c.id = ct.chat_id
+                        JOIN cleaned_users u ON u.id = c.user_id
                         WHERE c.created_at >= NOW() - INTERVAL '%s days'
-                        GROUP BY c.user_id
+                        GROUP BY u.clean_cnpj
                     )
-                    SELECT t.name, t.email, t.total, t.cnpj, t.company_data,
-                           ROUND(f.avg_rating, 1) as avg_rating, 
-                           f.thumb_up, f.thumb_down
-                    FROM user_totals t
-                    LEFT JOIN user_feedbacks f ON f.user_id = t.id
+                    SELECT 
+                        t.clean_cnpj,
+                        t.raw_cnpj,
+                        t.total,
+                        t.display_company,
+                        t.razao_social,
+                        t.nome_fantasia,
+                        t.user_names,
+                        t.user_emails,
+                        ROUND(f.avg_rating, 1) as avg_rating,
+                        f.thumb_up,
+                        f.thumb_down
+                    FROM cnpj_totals t
+                    LEFT JOIN cnpj_feedbacks f ON f.clean_cnpj = t.clean_cnpj
                     ORDER BY t.total DESC
                     LIMIT %s;
                 """, (days, days, limit))
+                top_cnpjs_data = cur.fetchall()
+
                 top_users = []
-                for r in cur.fetchall():
+                top_items = []
+                for r in top_cnpjs_data:
+                    clean_cnpj = r["clean_cnpj"]
+                    raw_cnpj = r["raw_cnpj"] or clean_cnpj
+                    formatted_cnpj = format_cnpj_or_doc(raw_cnpj)
+                    if formatted_cnpj.startswith("SEM_CNPJ_"):
+                        formatted_cnpj = "Sem CNPJ"
+
+                    company_name = r["display_company"] or (r["user_names"].split(",")[0].strip() if r["user_names"] else "")
+                    if formatted_cnpj and company_name:
+                        series_label = f"{formatted_cnpj} - {company_name}"
+                    elif formatted_cnpj:
+                        series_label = formatted_cnpj
+                    else:
+                        series_label = company_name or "Desconhecido"
+
                     up = r["thumb_up"] or 0
                     down = r["thumb_down"] or 0
                     total_thumbs = up + down
                     thumb_avg = round((up / total_thumbs) * 100) if total_thumbs > 0 else None
+
+                    top_items.append({
+                        "clean_cnpj": clean_cnpj,
+                        "label": series_label
+                    })
+
                     top_users.append({
-                        "name": r["name"] or r["email"], 
-                        "email": r["email"], 
-                        "total": r["total"], 
+                        "name": company_name or formatted_cnpj,
+                        "email": r["user_emails"] or "",
+                        "total": r["total"],
                         "avg_rating": float(r["avg_rating"]) if r["avg_rating"] is not None else None,
                         "thumb_avg": thumb_avg,
                         "thumb_up": up,
                         "thumb_down": down,
-                        "cnpj": r.get("cnpj", ""),
-                        "razao_social": (r["company_data"] or {}).get("razao_social") if r.get("company_data") else None,
+                        "cnpj": formatted_cnpj,
+                        "razao_social": r["razao_social"],
+                        "nome_fantasia": r["nome_fantasia"],
+                        "user_names": r["user_names"],
                     })
 
-        # Build series per user (daily data)
+        # Build series per CNPJ (daily data)
         from collections import defaultdict as _dd
-        user_daily: dict = _dd(lambda: _dd(int))
+        cnpj_daily: dict = _dd(lambda: _dd(int))
         for row in rows:
-            label = row["name"] or row["email"]
+            clean_cnpj = row["clean_cnpj"]
             day_str = row["day"].isoformat() if hasattr(row["day"], "isoformat") else str(row["day"])
-            user_daily[label][day_str] += row["total"]
-
-        top_labels = [u["name"] or u["email"] for u in top_users]
+            cnpj_daily[clean_cnpj][day_str] += row["total"]
 
         # Collect all days in range
         all_days = sorted({
@@ -2456,10 +2533,12 @@ async def dashboard_chats_per_user(days: int = 30, limit: int = 10):
         })
 
         series = []
-        for label in top_labels:
+        for item in top_items:
+            clean_cnpj = item["clean_cnpj"]
+            label = item["label"]
             series.append({
                 "name": label,
-                "data": [user_daily[label].get(d, 0) for d in all_days]
+                "data": [cnpj_daily[clean_cnpj].get(d, 0) for d in all_days]
             })
 
         return {
@@ -3378,11 +3457,12 @@ async def admin_list_threads(
                             t.subject ILIKE %s
                             OR u.email ILIKE %s
                             OR u.name ILIKE %s
+                            OR u.cnpj ILIKE %s
                             OR t.id::text ILIKE %s
                         )
                     """
                     like = f"%{search.strip()}%"
-                    params = [like, like, like, like]
+                    params = [like, like, like, like, like]
 
                 auditor_clause = ""
                 if auditor_only:
@@ -3402,6 +3482,8 @@ async def admin_list_threads(
                            a.title        AS agent_title,
                            u.name         AS user_name,
                            u.email        AS user_email,
+                           u.cnpj         AS cnpj,
+                           u.cnpj         AS user_cnpj,
                            u.company_data,
                            MAX(c.created_at) AS created_at,
                            COUNT(DISTINCT c.id) FILTER (WHERE c.message NOT LIKE 'Thread iniciada:%%') AS message_count,
@@ -3430,7 +3512,7 @@ async def admin_list_threads(
                     WHERE 1=1
                     {search_clause}
                     {auditor_clause}
-                    GROUP BY t.id, t.subject, a.name, a.title, u.name, u.email, u.company_data
+                    GROUP BY t.id, t.subject, a.name, a.title, u.name, u.email, u.cnpj, u.company_data
                     ORDER BY created_at DESC
                     LIMIT %s OFFSET %s;
                 """
