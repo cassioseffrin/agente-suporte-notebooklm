@@ -43,7 +43,7 @@ from pathlib import Path
 
 # DEFAULT_NOTEBOOK_ID = "31309341-208e-47b3-b853-6f30f250c3ad" #doccontrol
 # DEFAULT_NOTEBOOK_ID = "fefc0dee-766c-430e-a173-9d6b388e3ce7" #control oficial
-DEFAULT_NOTEBOOK_ID = "2540dcae-d405-4469-8593-6b537c170572" #reforma
+DEFAULT_NOTEBOOK_ID = "c14ec983-b856-4062-a556-da21fd588cfa" #reforma
 
 def get_storage_path() -> Path:
     profile_path = Path.home() / ".notebooklm" / "profiles" / "default" / "storage_state.json"
