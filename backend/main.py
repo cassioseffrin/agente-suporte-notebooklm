@@ -29,7 +29,9 @@ import psycopg2
 from psycopg2.extras import RealDictCursor, Json
 import httpx
 
+from pathlib import Path
 from dotenv import load_dotenv  # Carregar variáveis do .env
+load_dotenv(Path(__file__).parent / ".env")
 load_dotenv()
 
 from openai import AsyncOpenAI
@@ -55,6 +57,12 @@ LITELLM_MODEL          = os.environ.get("LITELLM_MODEL", "gptoss-reasoning")
 
 HISTORY_LIMIT      = 10   # últimas N mensagens enviadas ao OpenAI (5 turnos)
 NOTEBOOKLM_TIMEOUT = 300
+
+# Laya Router (classificação de intenção tributária — busca dupla)
+LAYA_URL               = os.environ.get("LAYA_URL", "http://192.168.50.135:8007")
+LAYA_TOKEN             = os.environ.get("LAYA_TOKEN", "sk-293480lakjfgdlqkj459021laksdfgjnkljhwerlk234")
+LAYA_REFORMA_THRESHOLD = float(os.environ.get("LAYA_REFORMA_THRESHOLD", "0.25"))
+REFORMA_AGENT_NAME     = os.environ.get("REFORMA_AGENT_NAME", "REFORMA_TRIBUTARIA")
 
 # ---------------------------------------------------------------------------
 # PostgreSQL - conexão e helpers
@@ -125,6 +133,15 @@ def ensure_tables():
                 cur.execute("""
                 DO $$ BEGIN
                     ALTER TABLE agent ADD COLUMN logo_base64 TEXT;
+                EXCEPTION
+                    WHEN duplicate_column THEN NULL;
+                END $$;
+                """)
+
+                # Migration: add laya_criteria column if missing (Laya Router)
+                cur.execute("""
+                DO $$ BEGIN
+                    ALTER TABLE agent ADD COLUMN laya_criteria TEXT;
                 EXCEPTION
                     WHEN duplicate_column THEN NULL;
                 END $$;
@@ -204,12 +221,18 @@ def ensure_tables():
 
 
 def get_agent_info_by_name(name: str):
-    """Busca id (notebook_id), system_prompt e notebooklm_profile pelo nome do agente."""
+    """Busca id (notebook_id), system_prompt, notebooklm_profile e laya_criteria pelo nome do agente."""
     conn = get_db_connection()
     try:
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT id, title, system_prompt, COALESCE(notebooklm_profile, 'default') as notebooklm_profile FROM agent WHERE name = %s LIMIT 1", (name,))
+                cur.execute(
+                    "SELECT id, title, name, system_prompt, "
+                    "COALESCE(notebooklm_profile, 'default') as notebooklm_profile, "
+                    "laya_criteria "
+                    "FROM agent WHERE name = %s LIMIT 1",
+                    (name,)
+                )
                 return cur.fetchone()
     finally:
         conn.close()
@@ -619,6 +642,190 @@ async def query_notebooklm_streaming(user_message: str, notebook_id: str, profil
 
     print(f"[notebooklm-stream] FALHOU após {max_retries} tentativas ({time.monotonic() - t0:.0f}s)")
     return ""
+
+
+# ---------------------------------------------------------------------------
+# Laya Router — classificação de intenção tributária
+# ---------------------------------------------------------------------------
+
+DEFAULT_AGENT_CRITERIA_TEMPLATE = (
+    "usar o sistema ERP: cadastrar, vender, orçamento, venda a prazo, contas a receber, estoque, caixa, relatórios"
+)
+
+DEFAULT_REFORMA_CRITERIA = (
+    "reforma tributária: IBS, CBS, imposto seletivo, split payment, cashback"
+)
+
+
+async def classify_with_laya(question: str, agent_name: str, agent_criteria: str, reforma_criteria: str) -> dict:
+    """Classifica a pergunta usando o Laya Router para determinar se há tema tributário.
+    
+    Retorna dict com:
+        needs_reforma (bool): se deve buscar também na Reforma Tributária
+        reforma_probability (float): probabilidade do tema tributário
+        confidence (float): confiança geral da classificação
+    
+    Em caso de erro, retorna needs_reforma=False (fallback seguro).
+    """
+    agent_key = "notebook_manual_sistema"
+    reforma_key = "notebook_tema_tributario"
+
+    payload = {
+        "state": {
+            "document": question
+        },
+        "model": "multilingual",
+        "lang": "pt",
+        "questions": {
+            "destino": {
+                "type": "choice",
+                "instructions": "Qual é o assunto da pergunta?",
+                "criteria": {
+                    agent_key: agent_criteria or DEFAULT_AGENT_CRITERIA_TEMPLATE,
+                    reforma_key: reforma_criteria or DEFAULT_REFORMA_CRITERIA,
+                }
+            }
+        }
+    }
+
+    try:
+        headers = {"Content-Type": "application/json"}
+        if LAYA_TOKEN:
+            headers["Authorization"] = f"Bearer {LAYA_TOKEN}"
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                f"{LAYA_URL}/v1/systemone",
+                json=payload,
+                headers=headers,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+        answers = data.get("answers", {}).get("destino", {})
+        probabilities = answers.get("probabilities", {})
+        reforma_prob = probabilities.get(reforma_key, 0.0)
+        confidence = answers.get("confidence", 0.0)
+        choice = answers.get("choice", "")
+
+        needs_reforma = reforma_prob >= LAYA_REFORMA_THRESHOLD
+
+        print(
+            f"[laya-router] question={question[:80]!r} | "
+            f"choice={choice} | reforma_prob={reforma_prob:.4f} | "
+            f"threshold={LAYA_REFORMA_THRESHOLD} | needs_reforma={needs_reforma} | "
+            f"confidence={confidence:.4f}"
+        )
+
+        return {
+            "needs_reforma": needs_reforma,
+            "reforma_probability": reforma_prob,
+            "confidence": confidence,
+            "choice": choice,
+            "probabilities": probabilities,
+        }
+
+    except Exception as e:
+        print(f"[laya-router] ERRO na classificação (fallback=sem reforma): {e}")
+        return {
+            "needs_reforma": False,
+            "reforma_probability": 0.0,
+            "confidence": 0.0,
+            "choice": "",
+            "probabilities": {},
+        }
+
+
+# Prompt para composição de resposta dupla (app + reforma tributária)
+DUAL_RESPONSE_COMPOSE_PROMPT = """\
+Você é um assistente técnico especializado. Recebeu duas fontes de informação sobre a mesma pergunta:
+
+1. **Resposta do sistema/aplicativo** — como a funcionalidade opera dentro do software.
+2. **Resposta sobre a Reforma Tributária** — regras legais, tributos IBS/CBS, prazos e normativas.
+
+Sua tarefa é COMPOR UMA RESPOSTA ÚNICA E COERENTE que integre ambas as informações de forma natural.
+
+REGRAS:
+- Comece respondendo a parte prática/operacional do sistema.
+- Em seguida, adicione uma seção "📋 **Reforma Tributária**" com as informações legais/tributárias relevantes.
+- Mantenha a linguagem clara e profissional, em português do Brasil.
+- NÃO invente informações — use APENAS o que foi fornecido nas duas respostas.
+- Se uma das respostas estiver vazia ou sem conteúdo relevante, use apenas a outra.
+- Responda em Markdown."""
+
+
+async def compose_dual_response(
+    app_answer: str,
+    reforma_answer: str,
+    user_question: str,
+    agent_title: str,
+) -> str:
+    """Compõe resposta unificada usando LLM quando há busca dupla (app + reforma).
+    
+    Recebe as duas respostas dos notebooks e retorna um texto unificado e coerente.
+    Em caso de erro, retorna a concatenação simples das respostas.
+    """
+    if not reforma_answer or not reforma_answer.strip():
+        return app_answer  # Sem resposta da reforma, retorna só a do app
+
+    if not app_answer or not app_answer.strip():
+        return reforma_answer  # Sem resposta do app, retorna só a da reforma
+
+    try:
+        result = await llm_client.chat.completions.create(
+            model=LITELLM_MODEL,
+            max_tokens=2048,
+            temperature=0.3,
+            timeout=60.0,
+            messages=[
+                {"role": "system", "content": DUAL_RESPONSE_COMPOSE_PROMPT},
+                {
+                    "role": "user",
+                    "content": (
+                        f"[PERGUNTA DO USUÁRIO]\n{user_question}\n\n"
+                        f"[RESPOSTA DO SISTEMA — {agent_title}]\n{app_answer}\n\n"
+                        f"[RESPOSTA SOBRE A REFORMA TRIBUTÁRIA]\n{reforma_answer}\n\n"
+                        f"Componha a resposta unificada:"
+                    ),
+                },
+            ],
+        )
+        raw = result.choices[0].message.content or ""
+        # Limpar tags de thinking se existirem
+        raw = re.sub(r'<think>.*?</think>', '', raw, flags=re.DOTALL)
+        composed = raw.strip()
+
+        if composed:
+            print(f"[dual-compose] OK — {len(composed)} chars")
+            return composed
+
+    except Exception as e:
+        print(f"[dual-compose] ERRO (fallback=concatenação): {e}")
+
+    # Fallback: concatenação simples
+    return (
+        f"{app_answer}\n\n"
+        f"---\n\n"
+        f"📋 **Reforma Tributária**\n\n"
+        f"{reforma_answer}"
+    )
+
+
+async def _push_answer_as_tokens(answer: str, push_fn):
+    """Emite uma resposta completa como tokens SSE, parágrafo a parágrafo.
+    Reutiliza a mesma lógica de streaming do query_notebooklm_streaming."""
+    if not push_fn or not answer:
+        return
+    push_fn("status", {"stage": "generating", "detail": "Preparando resposta..."})
+    paragraphs = answer.split("\n")
+    for idx, paragraph in enumerate(paragraphs):
+        if paragraph.strip():
+            token_text = paragraph + ("\n" if idx < len(paragraphs) - 1 else "")
+            push_fn("token", {"text": token_text})
+            await asyncio.sleep(0.03)
+        elif idx < len(paragraphs) - 1:
+            push_fn("token", {"text": "\n"})
+            await asyncio.sleep(0.01)
 
 
 async def rewrite_query_with_context(thread_id: str, user_message: str) -> str:
@@ -1413,15 +1620,58 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         print(f"[DEBUG Chat] Original : {user_message!r}")
         print(f"[DEBUG Chat] Rewritten: {search_query!r}")
 
-        # 2. NotebookLM - busca resposta direta nos manuais (sem reescrita por OpenAI)
-        notebooklm_answer = await query_notebooklm(search_query, agent_notebook_id, profile=agent_profile)
+        # 2. Laya classification + NotebookLM (em paralelo)
+        is_reforma_agent = (assistant_name.upper() == REFORMA_AGENT_NAME.upper())
 
-        answer_preview = notebooklm_answer[:200].replace('\n', ' ') + "..." if notebooklm_answer else "VAZIO"
+        if is_reforma_agent or not LAYA_URL or not LAYA_TOKEN:
+            # Fluxo original: busca direta sem classificação
+            notebooklm_answer = await query_notebooklm(search_query, agent_notebook_id, profile=agent_profile)
+            assistant_text = notebooklm_answer.strip() if notebooklm_answer else NOTEBOOKLM_EMPTY_RESPONSE
+        else:
+            # Fluxo com Laya: classificação + busca principal em paralelo
+            agent_laya_criteria = agent_info.get("laya_criteria", "") or ""
+            reforma_info = get_agent_info_by_name(REFORMA_AGENT_NAME)
+            reforma_criteria = reforma_info.get("laya_criteria", "") if reforma_info else ""
+
+            laya_task = asyncio.create_task(
+                classify_with_laya(search_query, assistant_name, agent_laya_criteria, reforma_criteria)
+            )
+            main_task = asyncio.create_task(
+                query_notebooklm(search_query, agent_notebook_id, profile=agent_profile)
+            )
+
+            laya_result = await laya_task
+            needs_reforma = laya_result.get("needs_reforma", False)
+
+            reforma_answer = ""
+            if needs_reforma and reforma_info:
+                reforma_notebook_id = reforma_info["id"]
+                reforma_profile = reforma_info.get("notebooklm_profile", "default")
+                reforma_task = asyncio.create_task(
+                    query_notebooklm(search_query, reforma_notebook_id, profile=reforma_profile)
+                )
+                main_answer, reforma_answer = await asyncio.gather(main_task, reforma_task)
+            else:
+                main_answer = await main_task
+
+            if needs_reforma and reforma_answer and reforma_answer.strip():
+                agent_title = agent_info.get("title", assistant_name)
+                assistant_text = await compose_dual_response(
+                    app_answer=main_answer,
+                    reforma_answer=reforma_answer,
+                    user_question=user_message,
+                    agent_title=agent_title,
+                )
+            else:
+                assistant_text = main_answer.strip() if main_answer else NOTEBOOKLM_EMPTY_RESPONSE
+
+        answer_preview = assistant_text[:200].replace('\n', ' ') + "..." if assistant_text else "VAZIO"
         print(f"[DEBUG Chat] Resposta : {answer_preview}")
         print(f"{'='*50}\n")
 
-        # 3. Resposta direta do NotebookLM (sem reescrita OpenAI para evitar alucinações)
-        assistant_text = notebooklm_answer.strip() if notebooklm_answer else NOTEBOOKLM_EMPTY_RESPONSE
+        # 3. Resposta final
+        if not assistant_text or not assistant_text.strip():
+            assistant_text = NOTEBOOKLM_EMPTY_RESPONSE
 
         # 4. Histórico - salva mensagem original do usuário (não a query reescrita)
         sessions[thread_id].append({"role": "user",      "content": user_message})
@@ -1456,16 +1706,20 @@ async def _run_stream_processing(
     agent_notebook_id: str,
     agent_profile: str,
     is_first_message: bool,
+    agent_title: str = "",
+    agent_laya_criteria: str = "",
 ):
     """
-    Runs the full chat processing pipeline: query rewrite → NotebookLM streaming direto.
+    Runs the full chat processing pipeline:
+      query rewrite → Laya classification (parallel) → NotebookLM search(es) → compose if dual.
+
+    When Laya detects tax relevance (reforma tributária probability > threshold),
+    both the main notebook and the Reforma Tributária notebook are queried in parallel,
+    and the responses are composed into a unified answer via LLM.
 
     DECOUPLED from the SSE connection — this task always runs to completion and
     persists results to the database and session, even if the client disconnects
     mid-stream. Events are pushed to event_queue for the SSE generator to consume.
-
-    Fixes the bug where a client disconnect during NotebookLM processing caused
-    the response to be silently lost (never saved to DB or session).
     """
     def _push(event_type: str, data: dict):
         """Push an event to the SSE queue. Non-blocking, safe to call even if
@@ -1489,15 +1743,74 @@ async def _run_stream_processing(
         print(f"[STREAM] Original : {user_message!r}")
         print(f"[STREAM] Rewritten: {search_query!r}")
 
-        # --- Etapa 2: NotebookLM — busca + resposta direta com streaming real ---
-        _push("status", {"stage": "searching", "detail": "Buscando nos manuais..."})
+        # --- Etapa 2: Laya classification + NotebookLM principal (em paralelo) ---
+        # Se o agente selecionado JÁ é o da Reforma, pula a classificação Laya
+        is_reforma_agent = (assistant_name.upper() == REFORMA_AGENT_NAME.upper())
 
-        assistant_text = await query_notebooklm_streaming(
-            search_query, agent_notebook_id, profile=agent_profile, push_fn=_push
-        )
+        if is_reforma_agent or not LAYA_URL or not LAYA_TOKEN:
+            # Fluxo original: busca direta sem classificação
+            _push("status", {"stage": "searching", "detail": "Buscando nos manuais..."})
+            assistant_text = await query_notebooklm_streaming(
+                search_query, agent_notebook_id, profile=agent_profile, push_fn=_push
+            )
+        else:
+            # Fluxo com Laya: classificação + busca principal em paralelo
+            _push("status", {"stage": "classifying", "detail": "Analisando tema da pergunta..."})
+
+            # Buscar critérios da Reforma Tributária do banco
+            reforma_info = get_agent_info_by_name(REFORMA_AGENT_NAME)
+            reforma_criteria = reforma_info.get("laya_criteria", "") if reforma_info else ""
+
+            # Disparar classificação Laya + busca no notebook principal em PARALELO
+            laya_task = asyncio.create_task(
+                classify_with_laya(search_query, assistant_name, agent_laya_criteria, reforma_criteria)
+            )
+
+            _push("status", {"stage": "searching", "detail": "Buscando nos manuais..."})
+            main_task = asyncio.create_task(
+                query_notebooklm(search_query, agent_notebook_id, profile=agent_profile)
+            )
+
+            # Aguardar Laya (rápido ~100ms)
+            laya_result = await laya_task
+            needs_reforma = laya_result.get("needs_reforma", False)
+
+            reforma_answer = ""
+            if needs_reforma and reforma_info:
+                # Disparar busca na Reforma Tributária em paralelo com a busca principal
+                _push("status", {"stage": "searching_reforma", "detail": "Consultando reforma tributária..."})
+                reforma_notebook_id = reforma_info["id"]
+                reforma_profile = reforma_info.get("notebooklm_profile", "default")
+
+                reforma_task = asyncio.create_task(
+                    query_notebooklm(search_query, reforma_notebook_id, profile=reforma_profile)
+                )
+
+                # Aguardar ambas as buscas
+                main_answer, reforma_answer = await asyncio.gather(main_task, reforma_task)
+            else:
+                # Só a busca principal
+                main_answer = await main_task
+
+            # Compor resposta final
+            if needs_reforma and reforma_answer and reforma_answer.strip():
+                _push("status", {"stage": "composing", "detail": "Compondo resposta unificada..."})
+                assistant_text = await compose_dual_response(
+                    app_answer=main_answer,
+                    reforma_answer=reforma_answer,
+                    user_question=user_message,
+                    agent_title=agent_title or assistant_name,
+                )
+                # Emitir resposta composta como tokens
+                await _push_answer_as_tokens(assistant_text, _push)
+            else:
+                assistant_text = main_answer
+                # Emitir resposta simples como tokens
+                if assistant_text and assistant_text.strip():
+                    await _push_answer_as_tokens(assistant_text, _push)
 
         answer_preview = assistant_text[:200].replace('\n', ' ') + "..." if assistant_text else "VAZIO"
-        print(f"[STREAM] Resposta NotebookLM: {answer_preview}")
+        print(f"[STREAM] Resposta final: {answer_preview}")
         print(f"{'='*50}\n")
 
         # Se NotebookLM não retornou nada, emite mensagem padrão
@@ -1685,6 +1998,8 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
             agent_notebook_id=agent_notebook_id,
             agent_profile=agent_profile,
             is_first_message=is_first_message,
+            agent_title=agent_info.get("title", assistant_name),
+            agent_laya_criteria=agent_info.get("laya_criteria", "") or "",
         )
     )
 
@@ -2695,7 +3010,7 @@ async def get_agents_all():
                     SELECT id, title, name, system_prompt, email, overview,
                            sort_order, active, creation, modification,
                            COALESCE(notebooklm_profile, 'default') as notebooklm_profile,
-                           hide, logo_base64
+                           hide, logo_base64, laya_criteria
                     FROM agent
                     ORDER BY sort_order ASC, title ASC;
                 """)
@@ -2716,6 +3031,7 @@ async def get_agents_all():
                         "notebooklm_profile": r["notebooklm_profile"],
                         "hide": r["hide"],
                         "logo_base64": r["logo_base64"],
+                        "laya_criteria": r.get("laya_criteria") or "",
                         # faq_content intentionally omitted from list (fetched on-demand via GET /agents/{id})
                     })
                 return {"agents": agents}
@@ -2737,7 +3053,7 @@ async def get_agent_by_id(agent_id: str):
                     SELECT id, title, name, system_prompt, email, overview,
                            sort_order, active, creation, modification, faq_content,
                            COALESCE(notebooklm_profile, 'default') as notebooklm_profile,
-                           hide, logo_base64
+                           hide, logo_base64, laya_criteria
                     FROM agent WHERE id = %s;
                 """, (agent_id,))
                 r = cur.fetchone()
@@ -2758,6 +3074,7 @@ async def get_agent_by_id(agent_id: str):
                     "notebooklm_profile": r["notebooklm_profile"],
                     "hide": r["hide"],
                     "logo_base64": r["logo_base64"],
+                    "laya_criteria": r.get("laya_criteria") or "",
                 }
     except HTTPException:
         raise
@@ -2780,6 +3097,7 @@ class AgentUpdateRequest(BaseModel):
     notebooklm_profile: Optional[str] = None
     hide: Optional[bool] = None
     logo_base64: Optional[str] = None
+    laya_criteria: Optional[str] = None
 
 
 @app.put("/agents/{agent_id}")
@@ -2804,7 +3122,7 @@ async def update_agent(agent_id: str, request: AgentUpdateRequest):
                     RETURNING id, title, name, system_prompt, email, overview,
                               sort_order, active, creation, modification,
                               COALESCE(notebooklm_profile, 'default') as notebooklm_profile,
-                              hide, logo_base64;
+                              hide, logo_base64, laya_criteria;
                 """, fields)
                 row = cur.fetchone()
                 if not row:
@@ -2813,6 +3131,7 @@ async def update_agent(agent_id: str, request: AgentUpdateRequest):
                     **dict(row),
                     "creation": row["creation"].isoformat() if row["creation"] else None,
                     "modification": row["modification"].isoformat() if row["modification"] else None,
+                    "laya_criteria": row.get("laya_criteria") or "",
                 }
     except HTTPException:
         raise
