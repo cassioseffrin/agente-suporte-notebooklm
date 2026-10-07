@@ -1,0 +1,56 @@
+{
+  "respostas_padrao": {
+    "saudacao": "Olá! Como posso ajudar você hoje com as rotinas e dúvidas do sistema?",
+    "dado_do_negocio": "Não tenho acesso direto ao banco de dados da sua empresa para consultar valores, relatórios específicos ou dados confidenciais. Posso te orientar sobre em quais telas e relatórios do sistema você encontra essas informações!",
+    "vago": "Olá! Poderia detalhar melhor a sua dúvida sobre o sistema ou a operação que deseja realizar?",
+    "sem_sentido": "Não consegui compreender a sua mensagem. Poderia formular sua dúvida sobre o sistema novamente?",
+    "fora_do_escopo": "Essa informação não está disponível nas rotinas do sistema. Caso precise de suporte com as funções e cadastros do ERP, estou à disposição!"
+  },
+  "procedimentos_prefixos": [
+    "como", "onde", "porque", "por que", "o que significa", "preciso", "e possivel", "e como",
+    "qual menu", "qual caminho", "qual opcao", "qual cfop", "qual cfp", "qual link",
+    "qual e o menu", "qual e o caminho", "qual e a opcao", "qual e o cfop"
+  ],
+  "dados_negocio_padroes": [
+    "\\b(mais|menos) vendid[oa]s?\\b",
+    "\\bquantos? (clientes|produtos|pedidos|vendas|fornecedores)\\b",
+    "\\bquanto (eu )?(faturei|vendi|recebi|gastei|comprei)\\b",
+    "\\b(maior|menor) (valor|preco)\\b",
+    "\\b(total|soma) d[eoa]s? (contas|vendas|faturamento|pedidos|compras)\\b",
+    "\\bestoque d[oae] (produto|item)\\b",
+    "\\bqual (cliente|produto|vendedor|fornecedor) (mais|menos|tem (maior|menor))\\b",
+    "\\bqual (cliente|produto|vendedor|fornecedor)\\b.*\\b(mais|menos)\\b",
+    "\\b(quantas? licencas?|mais de uma licenca|licencas? (eu )?(tenho|temos))\\b"
+  ],
+  "fora_escopo_padroes": [
+    "\\bpalavra[- ]?passe\\b"
+  ],
+  "social_palavras": [
+    "oi", "ola", "opa", "ai", "e", "bom", "boa", "dia", "tarde", "noite",
+    "tudo", "bem", "certo", "obrigado", "obrigada", "valeu", "ok", "blz"
+  ],
+  "vago_padroes": [
+    "^quero explicacao$",
+    "^me explica$",
+    "^me explique$",
+    "^me ajuda$",
+    "^ajuda$",
+    "^preciso de ajuda$",
+    "^quero ajuda$",
+    "^minha ultima duvida$",
+    "^estava apenas testando aqui$",
+    "^estou testando$",
+    "^testando$",
+    "^teste$"
+  ],
+  "termos_erp": [
+    "cfop", "cfp", "ncm", "cst", "cest", "icms", "ipi", "pis", "cofins",
+    "nfe", "nfce", "nfse", "mdfe", "cte", "sped", "xml", "pdv", "tef",
+    "sat", "gtin", "ean", "cnpj", "cpf", "boleto", "cheque", "aliquota",
+    "danfe", "nota", "estoque", "pedido", "orcamento", "caixa", "etiqueta",
+    "relatorio", "cliente", "produto", "venda", "compra", "backup", "sangria"
+  ],
+  "prefixos_erp": [
+    "cfop", "ncm", "cst", "icms", "nfe", "nfce", "nfse", "mdfe", "sped", "xml", "pdv", "gtin", "ean"
+  ]
+}

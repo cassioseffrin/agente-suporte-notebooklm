@@ -1,0 +1,1001 @@
+texto,gabarito_direto,regra,pDireto_A,pDireto_B,pDireto_C
+"isso mesmo",false,indefinido,0.7106,0.4112,0.9674
+"mas como entro no condicional que fiz",false,indefinido,0.3208,0.8804,0.9241
+"tef",false,indefinido,0.6619,0.2644,0.8382
+"posso te explicar como funciona o processo de acerto da condicional, seja para faturar os itens comprados ou registrar o retorno das peças ao estoque.",false,indefinido,0.6706,0.1009,0.3298
+"como eu configuro o sistema para emitir nfs  pelo ambiente nacional?",false,manual,0.1778,0.0062,0.0388
+"tem como eu colocar horarios para rotas ou dias?",false,indefinido,0.2798,0.0005,0.0958
+"onde cadastro a rota de clientes",false,manual,0.3024,0.0289,0.0862
+"sistema quanto a cobrança contas a receber e negociações com cliente na forma extrajuducial. é possível Acrescentar lançamento de outras cobranças? pois o sistema preve juros e multas.. Entretanto temos custas como despesas cartorárias , taxas e correção monetária que são previstas em lei com títulos acima de ,30 dias .existe algum campo de acréscimo para lançamentos no sisema F6 contas a receber o registro para efeitos de documentos , sem termos que criar faturas extra?",false,indefinido,0.3775,0.1223,0.3134
+"como incluir o xml de uma nota ja lançada",false,manual,0.3451,0.3278,0.6451
+"como da acrscimo",false,manual,0.248,0.1234,0.4054
+"fechar caixa",false,indefinido,0.148,0.0114,0.2918
+"devolucao de vendas",false,indefinido,0.5273,0.0907,0.396
+"devolucao de vcendas",false,indefinido,0.4727,0.0955,0.4627
+"GOSTARIA  DE SABER SE NAO TEM UMA OBÇAO QUE APARECE O TOTAL  DA DIVIDA DE TODOS OS CLIENTE DO MES",false,indefinido,0.3522,0.3191,0.5641
+"como cancelar nota fiscal emitida ha mais de 1 dia",false,manual,0.5156,0.4844,0.717
+"B OM DIA GOSTARFIA DE SABER QUAL A OBÇAO QUE EU VOU PARA VER O QUE EU VENDI DE FIADO PARA MEUS CLIENTES DURANTE O MES  01 ATE 30",false,indefinido,0.8245,0.9217,0.841
+"qual é o cfp que devo colocar nas configuraçõe do sistema para autorizar baixar o xml, já ccoloquei o cnpj da emprera eo meu cfp e fica com invalido, todo vem q vou encaminhar um nota",false,manual,0.4073,0.5156,0.4378
+"preciso fazer uma nota fiscal eletrônica de remessa, então essa nota não é de venda não tem ligação com um pedido. Qual o menu que preciso acessar para emitir essa nota",false,manual,0.5312,0.0583,0.3329
+"nota de complemento de tributo",false,indefinido,0.6893,0.0673,0.6993
+"Como gerar os XMLs do mês?",false,manual,0.1645,0.0153,0.1826
+"Importar nota de compra",false,indefinido,0.4187,0.8155,0.9604
+"ALTERAR ALIQUOTA DE ICMS POR CFOP",false,indefinido,0.1871,0.1801,0.3794
+"como lançar nota fiscal de serviço passo a passo",false,manual,0.413,0.0914,0.1255
+"ALIQUOTA ICMS",false,indefinido,0.5583,0.116,0.3311
+"Como emitir um MDF-e?",false,manual,0.1613,0.248,0.32
+"Qual é o prazo legal para cancelar uma NFC-e?",false,indefinido,0.6619,0.0726,0.0194
+"Ajuste de estoque",false,indefinido,0.7663,0.22,0.6406
+"Como emitir nota de complemento de ICMS?",false,manual,0.5448,0.0666,0.1842
+"Devolução de venda, como realizar?",false,indefinido,0.3961,0.0352,0.0633
+"Carta de correção",false,indefinido,0.6893,0.3886,0.4149
+"como ohar o faturamrnto do mes",false,manual,0.1259,0.0314,0.0239
+"Como cancelar uma venda no pdv e fazer ela outra vez",false,manual,0.1848,0.3998,0.2268
+"como criar ou gerar etiquetas",false,manual,0.4263,0.0181,0.1255
+"como importar xmls de entrada no sistema através de arquivos?",false,manual,0.2598,0.3259,0.6671
+"Finalizei uma venda no pdv mais a forma de pagamento está errado como é altero essa forma de pagamento",false,indefinido,0.6619,0.096,0.8743
+"Como alterar forma de pagamento finalizar no PDV",false,manual,0.2991,0.0851,0.7763
+"Como alterar forma de pagamento quitada",false,manual,0.4187,0.1371,0.8269
+"Como faço um relatório de extrato das contas bancarias?",false,manual,0.4961,0.0067,0.3427
+"como cadastrar as alíquotas na tabela de redução de ICMS",false,manual,0.5039,0.0259,0.2565
+"o que significa CFOP não cadastrado",false,manual,0.3886,0.3998,0.5351
+"quero explicação",true,direto,0.4036,0.397,0.8929
+"Como alterar a forma de pagamento já finalizado",false,manual,0.4417,0.0942,0.7873
+"como lançar condicionais pelo sistema?",false,manual,0.3259,0.1466,0.7202
+"porque esta bloqueado o campo Cliente no Pedido de Venda? ou seja, não consigo iniciar a venda, estou logado inclusive como administrador",false,manual,0.1733,0.1225,0.7649
+"relatorio de ultima compra e data que foi comprado por cliente",false,indefinido,0.5506,0.2539,0.7574
+"COMO DAR BAIXA EM CHEQUE",false,manual,0.3277,0.0534,0.0748
+"Como utilizar o módulo de aniversariantes?",false,manual,0.3486,0.1312,0.8291
+"qual link para baixar  instalador em 32bits",false,manual,0.9118,0.7833,0.9699
+"Como gerar sped fiscal?",false,manual,0.5234,0.2095,0.6531
+"ATENCAO: NO PROCESSO DE EMISSAO DO DOCUMENTO FISCAL 2829 SERIA 1 LOTE 3 E PEIDDO 2, FORAM ENCONTRADAS AS SEGUINTES INCONSISTENCIAS REJEIICAO CPF AUTOTIZADO PARA DOWNLOAD INVALIDO",false,indefinido,0.4455,0.4766,0.4766
+"é possível atualizar diretamente pelo programa os códigos NCM?",false,manual,0.3775,0.1485,0.9152
+"e como faço para o sistema converter isso de forma automatica",false,manual,0.1624,0.3363,0.9489
+"preciso mudar todos produtos para o CFOP 5102 como fazer isso em lote",false,manual,0.3998,0.2121,0.0511
+"Como funciona o pós-venda no sistema?",false,manual,0.1456,0.0099,0.0424
+"o cliente e um bar e compra coxa e sobrecoxa congelada para vender no bar e esta registrando o cfop 1101. qual o cfop que seria o correto",false,indefinido,0.5927,0.0786,0.6114
+"onde eu cadastro cfop",false,manual,0.1711,0.15,0.859
+"vou emitir minha primeira nota no control, eu ja usava outro sistema. Como alterar a sequencia de numeração da nfe",false,indefinido,0.3594,0.6206,0.9151
+"no cadastro de produto, quando vou finalizar aparece uma mensagem assim: TABELA DE SUBSTIIÇÃO TRIBUTARIA NÃO ENCONTRADA POR FAVOR VERIFICAR",false,indefinido,0.4378,0.2878,0.2451
+"ogi9",true,direto,0.8105,0.1733,0.883
+"preciso caancelar duas nfs fora do periodo permitido",false,manual,0.85,0.7241,0.7957
+"pode fazer um cadastro de um brinco de R$10,99, ncm 71179000, são 12 unidades desse produto",false,indefinido,0.4805,0.709,0.9708
+"tem como eu fazer uma conciliação bancária?",false,indefinido,0.5117,0.0538,0.4173
+"qual produto eu mais tenho girando no meu estoque?",true,direto,0.7879,0.7873,0.98
+"Para que serve o campo Dias para contato no cadastro do produto?",false,indefinido,0.5078,0.0121,0.244
+"como faz para criar uma ração no sistema, e ele mesmo dar baixa com as notas?",false,manual,0.1471,0.7086,0.5293
+"Qual a palavra-passe do mês de outubro de 2026.",true,direto,0.867,0.0833,0.7705
+"quais os relatorios trazem o lucro vendido por exemplo no pedido 50 vendi 10 itesns cada item obtive um lucro de tantos",false,indefinido,0.8056,0.9823,0.9342
+"imprimir carne com várias prestações na mesma folha",false,indefinido,0.539,0.0914,0.942
+"GERAR RECIBO",false,indefinido,0.6792,0.1944,0.8741
+"para que serve as figuras de cfop",false,indefinido,0.7341,0.2043,0.372
+"gostaria de mudar CFOP em lote, como faço isso?",false,indefinido,0.4036,0.1294,0.6619
+"como funciona o parametro na guia impostos de enviar automaticamente os arquivos para o contador?",false,manual,0.1824,0.0633,0.6843
+"onde eu configuro os relatorios que serão enviados junto aos arquivos?",false,manual,0.4378,0.2254,0.8355
+"a data de envio automativo dos arquivos fiscais ao contador é enviado qual dia do mes?",false,indefinido,0.2254,0.0471,0.7813
+"Qual a palavra-passe do mês 10/2026.",true,direto,0.7982,0.0335,0.4301
+"abertura de caixa",false,indefinido,0.4649,0.0146,0.3748
+"oi me explique sobre emissao da nota fiscal de serviço eletronica",false,indefinido,0.8289,0.2309,0.7272
+"é possivel fazer importação de produtos com grade?",false,manual,0.4417,0.2995,0.2758
+"como mandar os relatorios de speed para contabilidade",false,manual,0.2095,0.1086,0.2587
+"estou fazendo uma nota de devolução de um fornecedor de são paulo, usei a cfop 6949, e está dando o erro:cfop inválido paar nfe com finalidade de devolução de mercadoria",false,indefinido,0.3416,0.4922,0.5622
+"Como cadastrar um produto?",false,manual,0.1722,0.0405,0.9865
+"ao pesquisar os produtos estao aparecendo em ordem do maior para o menor como posso ajusta isso",false,indefinido,0.3666,0.8064,0.9315
+"Manuais sobre conversão de banco de dados",false,indefinido,0.0176,0.0004,0.0002
+"quero apenas nome e telefone do cliente",false,indefinido,0.9676,0.9922,0.9994
+"relatorio de clientes que foran atendidos em uma data especifica",false,indefinido,0.3522,0.2659,0.6658
+"faca um breve resumo de tudo, como se fosse um indice de conteudo. Maximo 2000 palavras",false,indefinido,0.3174,0.0638,0.8289
+"Instalação e configuração do Software denominado Sistema CONTROL com mais de uma base de dados",false,indefinido,0.092,0.2814,0.2063
+"como ajusto o meu estoque",false,manual,0.434,0.0225,0.2063
+"como visualizar o ICMS em uma venda?",false,manual,0.6982,0.15,0.3208
+"tem como eu alterar os dados do cabeçalho de uma os ja fechada?",false,indefinido,0.1883,0.0792,0.7672
+"como ver o relatorio das notas fiscais separadas das de simples lançamento",false,manual,0.5964,0.053,0.2167
+"1. Cadastro de Clientes (F9) > Informações para SPC — Como funciona o controle de SPC, Serasa e negativação do cliente?",false,indefinido,0.6993,0.0799,0.019
+"2. Cadastro de Clientes (F9) > Informações para SPC — Como negativar, consultar e reabilitar um cliente?",false,indefinido,0.7098,0.1037,0.1394
+"3. Cadastros > Outros > Sistema de Proteção ao Crédito — Como cadastrar o SPC ou Serasa para utilizar na negativação?",false,indefinido,0.5622,0.0579,0.342
+"4. Cadastro de Clientes (F9) > Informações para SPC — Por que um cliente negativado não consegue comprar a prazo e como liberar novamente?",false,indefinido,0.7341,0.0567,0.0258
+"5. Relatórios > Contas a Receber > Analíticos > Com juros, multa e desconto — Como consultar a situação financeira e a negativação dos clientes no relatório?",false,indefinido,0.6225,0.1956,0.0592
+"9. Cadastro de Clientes (F9) > Informações para SPC — Qual é a diferença entre cliente vermelho e cliente azul?",false,indefinido,0.7663,0.1561,0.2251
+"8. Cadastro de Clientes (F9) — O que significa a cor cinza no cadastro do cliente?",false,indefinido,0.5622,0.0226,0.2079
+"7. Cadastro de Clientes (F9) — O que significa a cor preta no cadastro do cliente?",false,indefinido,0.4378,0.0255,0.3425
+"6. Cadastro de Clientes (F9) — O que significa a cor azul no cadastro do cliente?",false,indefinido,0.6077,0.0436,0.2918
+"5. Cadastro de Clientes (F9) — O que significa a cor vermelha no cadastro do cliente?",false,indefinido,0.5964,0.027,0.5098
+"4. Cadastros > Outros > Sistema de Proteção ao Crédito — O SPC e a Serasa precisam estar cadastrados no sistema?",false,indefinido,0.6619,0.0337,0.3942
+"3. Cadastros > Outros > Sistema de Proteção ao Crédito — Onde cadastro o SPC ou a Serasa no sistema?",false,indefinido,0.6993,0.1801,0.8193
+"2. Sobre SPC, SERASA E CONTROLE DE NEGATIVAÇÃO — Qual é a relação entre SPC, Serasa e o Controle de Negativação?",false,indefinido,0.3812,0.1067,0.3693
+"1. Sobre SPC, SERASA E CONTROLE DE NEGATIVAÇÃO — O que é o Controle de Negativação no sistema?",false,indefinido,0.4863,0.0273,0.061
+"COMO DAR BAIXA EM BOLETOS QUE FORAM PAGOS",false,manual,0.3346,0.0071,0.045
+"COMO LANÇAR NOTA DE PRODUTO",false,manual,0.4301,0.0027,0.1298
+"COMO DAR BAIXA NA NOTA",false,manual,0.1824,0.2095,0.2282
+"como sincronizar imagens",false,manual,0.3074,0.0204,0.3666
+"COMO EMITIR NOTA FISCAL DE UM AGRUPAMENTO DE VENDAS DE UM UNICO CLIENTE DAS VENDAS  A PRAZO",false,manual,0.3612,0.0988,0.0405
+"tem algo onde eu posso controlar futuras entregas de pedidos de clientes?",false,indefinido,0.3693,0.1632,0.5775
+"como visualizar os impostos em uma venda?",false,manual,0.7526,0.0349,0.1895
+"como visualizar o ICMS em uma venda?",false,manual,0.6982,0.15,0.3208
+"quero fazer o fechamento do caixa",false,indefinido,0.1968,0.0748,0.9017
+"quando aparece no pdv em venda o que significa",false,indefinido,0.3666,0.2227,0.9026
+"como visualizar o ICMS em uma venda?",false,manual,0.6982,0.15,0.3208
+"como visualizar os impostos em uma venda?",false,manual,0.7526,0.0349,0.1895
+"como excluir um cliente?",false,manual,0.6114,0.1277,0.1722
+"no sistema control, como calcular o IBS/CBS de um produto?",false,indefinido,0.5098,0.1307,0.2553
+"como emitir nfce passo a passo",false,manual,0.1285,0.1441,0.0365
+"..",true,direto,0.7186,0.5851,0.9595
+"como fazer uma nota de venda ao consumidor final?",false,manual,0.3849,0.021,0.1586
+"configurei o usuario para comissão de parcelas a receber. fiz vendas, quitei parcelas e o relatorio de comissões, relatorio 5 e 6 não funcionam, simplismente nao gera. o que estou fazendo errado?",false,indefinido,0.1848,0.0711,0.4552
+"Entrada de nota fiscal manualmente",false,indefinido,0.1541,0.1561,0.501
+"Como ver a hora de abertura e fechamento de uma determinado caixa?",false,manual,0.4225,0.0029,0.1968
+"como fazer para colocar um manual em um determinado produto, para que quando for vendido na impressão seja emitido esse manual ou que o sistema avise",false,manual,0.2043,0.0005,0.0055
+"porém quero sepadao por vendedor",false,indefinido,0.4378,0.6039,0.9876
+"preciso de um relatorio que me mostre apenas os valores recebidos, e que não venha contas a prazo, somente vir prazo se foi quitado",false,manual,0.4263,0.0421,0.9879
+"nao estou nconseguindo receber de duas forams de pagamentos",false,indefinido,0.9893,0.9949,0.6758
+"como informar a data de nascimento no cadastro do cliente",false,manual,0.6132,0.006,0.0637
+"como fazer um pagamento com dois tipo de foram de pagamento um em dinheiro e outro em pix, outro cartao?",false,manual,0.4727,0.0242,0.2965
+"COMO FATURAR E FECHAR O.S",false,manual,0.1541,0.0039,0.0346
+"erro.nao.catalogado",false,indefinido,0.9977,0.9093,0.849
+"notas em contingencia, como excluir?",false,indefinido,0.7957,0.2121,0.1285
+"Estava apenas testando aqui",true,direto,0.9884,0.096,0.8081
+"2 caibros 15cmx15cmx3m eucalipto rosa 7 caibros 5cmx10cmx3m eucalipto rosa. 2 fusos (rosca sem fim de 1/2x 1m) 20 porcas e 20 arruelas para esse fuso. 5 sarrafos 5cmx5cmx3m 4 sarrafos 2cmx10cm 1 sarrafo 2cmx5cm 1 Masso de prego 19x40 3 folhas de Eternit 6mm X2,44m 3 folhas de Eternit 6mmx1,53m 12 parafusos para Eternit 6mm. 1 Metro de britado. 5 sacos de cimento 2 malhas de ferro 15cmx15cm 2mx3m: Uma treliça H10 Consegue fazer um orçamento destes materiais?",true,indefinido,0.3849,0.2814,0.9879
+"ao fechar uma venda fiscal ele pede INFOMRE O NUMERO DO DOCUMENTO FISCAL...",false,indefinido,0.7549,0.7402,0.7074
+"cfop 5102",false,indefinido,0.5964,0.4378,0.4766
+"notas em contigência",false,indefinido,0.8105,0.0408,0.363
+"notas em contigencia, como excluir.",false,indefinido,0.8832,0.1144,0.1624
+"como fazer uma venda parcelada com carne sem emitir fiscalmente?",false,manual,0.5889,0.1901,0.1251
+"como faturar com várias espécies no retaguarda?",false,manual,0.2751,0.0812,0.1535
+"o que significa quando aparece na frente de caixa AO CONSUMIDOR em verde",false,manual,0.3346,0.0901,0.9056
+"para criar um icone no sistema para os eletrecista",false,indefinido,0.2422,0.0187,0.6652
+"bom dia",true,direto,0.7311,0.2691,0.6637
+"qual é a permissão exata para habilitar ou não um operador de caixa a cancelar ultimo documento no PDV?",false,indefinido,0.3775,0.0405,0.4097
+"como emito uma nfe derivada de uma nfce",false,manual,0.3923,0.2337,0.4688
+"não consigo acessar notas eletronicas aparece que n~so exite erro 137",false,indefinido,0.9546,0.3311,0.6334
+"como criar um formulario para ordem de serviço",false,manual,0.1919,0.0459,0.0223
+"onde habilito nas configurações para que na venda, no F12, puxe o número da remessa para fazer a nota de retorno",false,manual,0.2069,0.1307,0.9604
+"ola, o sistema control permite mudar o preço na hora da venda no PDV?",false,indefinido,0.3141,0.0983,0.625
+"QUERO SABER ONDE IR PARA VER A VENDA DE CADA CLIENTE DURANTE O ANO TODO",false,indefinido,0.2705,0.0379,0.6876
+"venda a prazo no pdv",false,indefinido,0.7607,0.2173,0.3504
+"erro falha na validacao dos dados da nota",false,indefinido,0.7186,0.1294,0.3775
+"como fazer etiqueta de produtos",false,manual,0.1339,0.0058,0.302
+"me explique como gerar etiqueta",false,indefinido,0.2942,0.0857,0.043
+"baixa xml",false,indefinido,0.4187,0.2975,0.9258
+"onde localizo relatorio de impostos a pagar?",false,manual,0.9129,0.1422,0.1302
+"onde localizo a geração de arquivo sped",false,manual,0.2942,0.0628,0.8333
+"como tirar a curva abc",false,manual,0.3812,0.1052,0.3381
+"como tirar impressão automatica",false,manual,0.5622,0.1375,0.7432
+"e de forma automatica?",false,indefinido,0.8675,0.2701,0.9837
+"rejeição: gtin (cean) com prefixo ivalido",false,indefinido,0.4378,0.5156,0.6114
+"como lançar nota no sitema?",false,manual,0.3294,0.003,0.2931
+"com o funciona gerador de codigo de barras?",false,indefinido,0.7311,0.3831,0.9925
+"como cancelar cupom no pdv?",false,manual,0.1209,0.363,0.849
+"preciso excluir uma nota de devolução mas o control não me dar opção de excluir",false,manual,0.637,0.6334,0.6584
+"como alterar a forma de pagamento no pdv?",false,manual,0.291,0.0469,0.7117
+"como fazer em manutenção de codigos tributarios para todos os produtos ficar com preço minimo igual ao preço de venda",false,manual,0.2568,0.152,0.3522
+"tem como destacar a cor do nome de um produto quando ele estiver com preço promocional na hora da venda",false,indefinido,0.304,0.0368,0.5039
+"Em uma venda com vários itens, preciso que determinados produtos não recebam o desconto aplicado no fechamento da venda. Exemplo: Produto A – R$ 100,00 – pode receber desconto Produto B – R$ 50,00 – está em promoção e NÃO pode receber outro desconto Produto C – R$ 100,00 – pode receber desconto Ao finalizar a venda, se o vendedor conceder 10% de desconto no pedido inteiro, quero que o desconto seja aplicado somente nos produtos A e C. O produto B deve continuar com R$ 50,00, pois já está com preço promocional. No Sistema Control da Arpa, existe alguma configuração no cadastro do produto, promoção ou árvore de configurações para marcar um produto como “não permite desconto adicional” ou para impedir que produtos em promoção participem do desconto geral da venda?",false,indefinido,0.152,0.8439,0.3693
+"em uma venda com varios itens preciso que um ou mais item nao receba desconto, pois ele ja esta precificado como promoção como fazer para na hora de fechar a venda o vendedor dar um desocnto em todo pedido, porem aques determinados produtos nao entrar este desconto",false,indefinido,0.4571,0.9768,0.7957
+"a partir de que prazo as contas a receber ainda podem ser cobradas? pode me informar??",false,indefinido,0.709,0.1272,0.6065
+"preciso que vc tire um relatório de contas a receber mais recentes e que por lei ainda possam ser cobradas",false,manual,0.5927,0.1086,0.1018
+"onde marcar para o vendedor visualizar o preço de venda do produto quando esta consultando o produto",false,manual,0.4187,0.5234,0.9158
+"como instalar terminal Pdv",false,manual,0.4149,0.1312,0.721
+"Ajuda para cadastrar um produto.",false,indefinido,0.4378,0.1418,0.9986
+"como trocar o valor de venda na nota",false,manual,0.5983,0.6732,0.719
+"como faco para gerar um inventario",false,manual,0.2121,0.1192,0.6431
+"Relatorio por espécie de pagamento",false,indefinido,0.8439,0.0116,0.4397
+"como parametrizar um produto para cfop 5102",false,manual,0.3157,0.304,0.4324
+"como faço para emitir ums nfe de beneficiamento",false,manual,0.3174,0.152,0.7722
+"como faço pra ver a nota que cadastrei",false,manual,0.5506,0.0048,0.6984
+"como faço para ter acesso aos tutoriais da vimbo",false,manual,0.3775,0.0072,0.3259
+"o codigo E0314",false,indefinido,0.3775,0.0354,0.12
+"erro ao emitir NFSe, codigo 100",false,indefinido,0.3277,0.4225,0.4688
+"tem algum video deste processo?",false,indefinido,0.3491,0.0001,0.02
+"Como eu faço uma NFe referenciar outra?",false,manual,0.5583,0.088,0.4282
+"como funciona o sistema financeiro de recebimentos?",false,manual,0.6156,0.0659,0.1305
+"tenho como usar um codigo de barras para dois produtos no sistema?",false,indefinido,0.5156,0.2659,0.9474
+"no pvd",false,indefinido,0.8129,0.2975,0.6225
+"como faço para excluir apenas um item na compra",false,manual,0.3141,0.8322,0.2006
+"VISUALIZAR XML",false,indefinido,0.3923,0.3812,0.8164
+"Configuração para NF-e",false,indefinido,0.0703,0.5545,0.6261
+"como emitir mdfe sem cpf do proprietario",false,manual,0.1461,0.4149,0.7372
+"No histórico fincanceiro, onde exatamente está  o limite que podemos vizualizar/",false,indefinido,0.709,0.3268,0.8754
+"como vejo o limite do cliente?",false,manual,0.7122,0.0077,0.8728
+"COMO TIRAR RELATOTIODE NOTAS FISCAIS CANCELADAS?",false,manual,0.4111,0.1645,0.1429
+"Consigo desabilitar o caixa?",false,indefinido,0.3775,0.0588,0.4424
+"Consigo reabrir um caixa já fechado?",false,indefinido,0.5156,0.0264,0.2386
+"Certo, quando eu recebo um dinheiro e ele vai pro caixa e ao fechar o caixa, fechei zerado, consigo reabrir aquele caixa e fechá-lo novamente?",false,indefinido,0.4378,0.6261,0.9399
+"Me explica como funciona a lógica do ""caixa"" no sistema Arpa",false,indefinido,0.5679,0.0034,0.3035
+"emitir nfce?",false,indefinido,0.6298,0.1993,0.461
+"Ao realizar uma operação utilizando um CEP cadastrado no sistema, a cidade vinculada a esse CEP está errada. O que pode ter ocorrido?",false,indefinido,0.4805,0.0319,0.5448
+"como colocar limite no crediário do cliente? Qual o caminho?",false,manual,0.502,0.0965,0.2591
+"quais relatorios posso usar para mostrar os rendimentos",false,indefinido,0.6114,0.1105,0.3844
+"como emitir nfce",false,manual,0.4591,0.3346,0.2337
+"como dar entrada em mercadoria pelo xml",false,manual,0.1919,0.0118,0.0833
+"como dar entrada em mercadoria pelo xml",false,manual,0.1919,0.0118,0.0833
+"como acesso o xml do mes",false,manual,0.2689,0.4273,0.9271
+"a consulta de caixa está com a data e valores errados",false,indefinido,0.2422,0.2018,0.7178
+"o sistema está com erro de valores e data",false,indefinido,0.3225,0.0048,0.2509
+"como fazer todos os controles de caixa no sistema",false,manual,0.1592,0.0007,0.0134
+"Corcampos: "" is not a valid Delphi color value",false,indefinido,0.4073,0.363,0.4571
+"como consultar a data da última compra de um produto em estoque?",false,manual,0.4494,0.051,0.6964
+"como confiro meu cartão ponto?",false,manual,0.5775,0.2942,0.7756
+"o que é uma bomba periférica de 1 cv",true,indefinido,0.7931,0.0732,0.734
+"tem como mudar a cor do sitema de branco pra preto",false,indefinido,0.2568,0.0098,0.3451
+"Qual relatóro o sistema tem para conferir todos os recebimento do dia incluindo as vendas para conferir caixa do dia?",false,indefinido,0.363,0.0081,0.2254
+"meu caixa estar solicitando que faca sangria e eu nao sei fazer, pode mim ensinar?",false,indefinido,0.4494,0.0396,0.7815
+"como alterar quantidade de estoque de um produto?",false,manual,0.2728,0.0478,0.721
+"gostaria de alterar o estoque da ( BATERIA ESTACIONARIA 12MN700 )",false,indefinido,0.7491,0.1895,0.3346
+"para emitir uma nota fiscal dentro do estado o codigo e 5405 ou 6405?",false,indefinido,0.5156,0.1689,0.1551
+"ola, queria um relatorio de todas as vendas do ultimo mes",false,indefinido,0.5078,0.5506,0.9849
+"Relatório de do estoque com quantidade valor e valor total",false,indefinido,0.7058,0.2173,0.5756
+"QUAIS SÃO OS CAMPOS OBRIGATÓRIOS PARA PREENCHER NO CADASTRO DE SERVIÇOS NO SISTEMA CONTROL?",false,indefinido,0.4883,0.2043,0.3576
+"O assunto que necessito de informações é Sobre cadastro de produtos de serviços. Cadastrando serviços no sistema control para emitir NFS-e",false,indefinido,0.6406,0.0808,0.1097
+"como fazer sangria?",false,manual,0.2187,0.0184,0.3208
+"qual o link para baixar a ferramenta que ajusta o horario do banco de dados?",false,manual,0.8452,0.911,0.9579
+"Como usar a composição ?",false,manual,0.5039,0.2539,0.4282
+"coo tirar uma nota",false,indefinido,0.7649,0.4746,0.9807
+"como eu cadastro um produto no sistema",false,manual,0.2241,0.0052,0.6549
+"como eu altero o nivel de permissão do PDV para limitar os usuarios ?",false,manual,0.0845,0.0459,0.6114
+"preciso fazer uma devolução de uma nota de copmpra",false,manual,0.5,0.0245,0.499
+"Onde cadastro uma transportadora?",false,manual,0.4844,0.0396,0.3576
+"pode me explicar como funciona a formação do preço de venda ? essa opção fica no cadastro de produtos tenho como definir preço de venda por ela ?",false,indefinido,0.5603,0.055,0.1268
+"mudar senha do usuario",false,indefinido,0.3923,0.0511,0.4017
+"como desbloquear para solicitar usu´´ario e senha no fechamento da venda",false,manual,0.2975,0.0354,0.0732
+"como tirar um relatório dos produtos que destaque as quantidades de cada produto e no final a soma total dessa coluna de quantidade?",false,manual,0.2705,0.0201,0.5538
+"limite financeiro do cadastro do cliente da a mensagem mas deixa vender mesmo assim",false,indefinido,0.6792,0.537,0.6352
+"Devolução de venda",false,indefinido,0.8105,0.4727,0.6584
+"Carta de correção",false,indefinido,0.6893,0.3886,0.4149
+"Como que faz nota de doação?",false,manual,0.7311,0.9768,0.8995
+"E como vejo um relatório de tudo que recebi no mês, com suas formas de pagamento?",false,manual,0.8808,0.0526,0.9289
+"como reeniciar o sistema para validar alogo que eu alterei",false,manual,0.2134,0.0376,0.2214
+"EU POSSO TER UM SISTEMA DE FILTRO MAIS ROBUSTO NO SISTEMA CONTROL?",false,indefinido,0.248,0.3775,0.4446
+"como reiciciar o sistema",false,manual,0.248,0.0012,0.0851
+"O que são estes campos no lançamento de entrada do sistema?",false,indefinido,0.3469,0.0362,0.9118
+"como realizar uma venda no sistema vimbo ?",false,manual,0.2134,0.1114,0.7162
+"como mudar a foto da minha logo que aparece nas notas fiscais, e qual o tamanho da imagem que tenho que colocar ?",false,manual,0.3065,0.1577,0.6885
+"como corrigir a seguinte mensagem na hora de trocar de produto para composição: impossível alterar o tipo de produto, encontrada movimentação para o item 12313. consulte o relatório razão.",false,manual,0.1919,0.0518,0.836
+"como transformar um produto em uma composição",false,manual,0.2056,0.2042,0.3253
+"preciso ver onde cadastro comissao de vendedores",false,manual,0.7058,0.2846,0.3914
+"atualiza sistema",false,indefinido,0.1023,0.1204,0.6813
+"como cadastrar uma composição",false,manual,0.413,0.1624,0.5865
+"olá",true,direto,0.8459,0.7402,0.9226
+"Como faço um relatório de vendas?",false,manual,0.4111,0.0042,0.1981
+"consultar aliquota icms de um produto?",false,indefinido,0.4688,0.3024,0.7663
+"FILTRO HIDRAULICO MB 1113",true,indefinido,0.6859,0.0289,0.3107
+"Como zerar o estoque",false,manual,0.3486,0.0666,0.3931
+"baixar varios contas a receber do cliente",false,indefinido,0.4378,0.6628,0.9885
+"Como zerar estoque",false,manual,0.4111,0.0907,0.1898
+"como ver uma nota fiscal da universal",false,manual,0.9609,0.1089,0.4158
+"estou com problema de fechar venda devido as especies",false,indefinido,0.5195,0.0515,0.0309
+"onde devo clicar para editar as configurações da natureza da operação?",false,manual,0.0308,0.0178,0.7645
+"onde ficam as configurações do sistema onde possui o regime tributário da empresa?",false,manual,0.0786,0.0675,0.2434
+"como cancelar uma transferencia",false,manual,0.15,0.2227,0.2902
+"abrir caixa onde fica?",false,indefinido,0.1422,0.0228,0.3718
+"Olá bom dia tudo certo? preciso ajustar a aliquota para uma venda em outro estado, onde posso fazer esse ajuste?",false,indefinido,0.6514,0.1603,0.6671
+"nao consegui ainda configurar a baixa de contas por parcelamento... pagamento com duas especie",false,indefinido,0.7491,0.0759,0.3074
+"mensagem de valor do limite do caixa atingido",false,indefinido,0.4688,0.4036,0.9903
+"cancelar uma venda",false,indefinido,0.272,0.2751,0.6648
+"relatorio por forma de pagamento",false,indefinido,0.7663,0.0252,0.654
+"me fale das configuraçoes do caixa",false,indefinido,0.3311,0.22,0.2433
+"como configura a consulta de caixa para não mostrar o valor",false,manual,0.148,0.1686,0.4282
+"como configura a consulta de caixa para não mostrar o valor",false,manual,0.148,0.1686,0.4282
+"como configurar o fechamento de caixa para não mostrar o saldo de caixa",false,manual,0.1551,0.0664,0.3128
+"Como Realizar a Emissão NFE de Perda ,Roubo ou Deterioração",false,manual,0.3007,0.1312,0.654
+"Manual de como importar notas de compra por XML",false,indefinido,0.0118,0.0036,0.0013
+"mesmo apertando ctrl+L ele não limpou a tela.. e venda não estava totalizada",false,indefinido,0.3007,0.0134,0.8613
+"estou com outro problema ao realizar um teste no caixa para cancelar toda a venda apertando f2 , ele não apresentou a janela para poder remover .. porém quando acessei o anydesk da máquina para fazer um teste e ver se era a resolução.. funcionou .. mas no caixa não... no caso na máquina em que está instalado o pdv",false,indefinido,0.2173,0.0781,0.7217
+"como alterar o atalho das espécie de pagamentos?",false,manual,0.3346,0.096,0.397
+"Na hora que estava instalando o sistema control em uma máquina abriu um um aviso: Não foi possivel executar o arquivo: C:\WINDOWS\system32\wbem\wmic.exe    CreateProcess falhou: código 2.  O sistema não pode encontrar o arquivo especifico",false,indefinido,0.4922,0.0424,0.1711
+"estou no sistema control e gostaria de saber se tenhos mais de uma licença por favor",true,direto,0.6002,0.3942,0.947
+"como fazer o bakap no sistema control?",false,manual,0.2337,0.0007,0.3385
+"quantas liçencas eu tenho ?",true,direto,0.6478,0.0507,0.6114
+"estou querendo enviar um email através do sistema porémm, esta tornando a informação de invalid key",false,indefinido,0.3416,0.2659,0.8864
+"COMO FAZER BACKUP DE SEGURANÇA",false,manual,0.2613,0.1209,0.063
+"Quando o cadastro do fornecedor (CNPJ) do pedido de compras for um e o da NF for outro, como faz?",false,indefinido,0.0988,0.2365,0.7349
+"como fechar o caixa",false,manual,0.2056,0.0096,0.0242
+"Como faço o lançamento de um pedido de compra quando for  uma bonificação?]",false,manual,0.3416,0.093,0.8587
+"Quais são os KPIS de controle que envolvem o Pedido de Compra e entrada de NF?",false,indefinido,0.4225,0.0307,0.1095
+"video explicativo do arpag",false,indefinido,0.4378,0.0056,0.1022
+"video explicativo do arpag",false,indefinido,0.4378,0.0056,0.1022
+"Quando eu faço a operação de ""incluir"" ou novo cadastro, na aba de Produtos. Quais são as informações minimas?",false,indefinido,0.4533,0.1285,0.3103
+"video explicativo do arpag",false,indefinido,0.4378,0.0056,0.1022
+"Quais são as informações minimas para a formação de um novo cadastro",false,indefinido,0.3923,0.0588,0.5351
+"como excluir um item do sistema",false,manual,0.2783,0.1603,0.0464
+"lentes ar",true,indefinido,0.8615,0.8069,0.6584
+"é possivel importar um plano de contas?",false,manual,0.7835,0.1797,0.3858
+"como tirar a ordem de entrega sem os valores",false,manual,0.3886,0.2436,0.4446
+"Tem como fazer no sistema a seguinte promoção: Nas compras acima de R$ 500,00 cliente ganha um brinde",false,indefinido,0.4883,0.8911,0.9959
+"tem como imprimir pedido em lote?",false,indefinido,0.5332,0.8072,0.9934
+"alterar logo de eitqueta",false,indefinido,0.2689,0.3739,0.946
+"como configurar a contigencia da nfc",false,manual,0.3141,0.2108,0.3191
+"como fazer nota de devolução",false,manual,0.502,0.0638,0.4824
+"montar um passo a passo para lançar nota de compra com video",false,indefinido,0.1993,0.0137,0.5617
+"não apareceu na cielo o app ARPAG!",false,indefinido,0.8791,0.5078,0.5156
+"cadastrar plano de contas?",false,indefinido,0.4073,0.0614,0.441
+"como fazer um pedido de venda",false,manual,0.1801,0.0452,0.7957
+"como cadastrar plano de contas?",false,manual,0.2465,0.0496,0.6794
+"qual app devo pesquisar na loja de app?",false,indefinido,0.88,0.9961,0.8306
+"quais a teclas de atalho rápido de vendas no caixa? exemplo: dinheiro, cartão de crédito, cartão de débito, pix",false,indefinido,0.5813,0.427,0.8766
+"Onde encontro o relatorio do speed fiscal?",false,manual,0.7194,0.0124,0.4484
+"como tirar um relatorio speed?",false,manual,0.5078,0.3381,0.923
+"COMO MUDAR PARA EXTERNO PARA INTERNO",false,manual,0.1541,0.0003,0.3702
+"enquadramento ipi",false,indefinido,0.5467,0.069,0.7461
+"COMO MUDA DE ATENDIMENTO EXTERNO PARA INTERNO DPS DE O.S FEITA",false,manual,0.4073,0.0088,0.1394
+"cadastrar enquadramento de IPI",false,indefinido,0.3007,0.1037,0.5775
+"coo permitir ao usuario dar desconto além di limite definido",false,indefinido,0.6926,0.8988,0.9765
+"quando clico em cartão, aparece as bandeiras, mas não quero isso, quero quer vá direto para o meu tef",false,indefinido,0.5156,0.1312,0.3702
+"não estou conseguindo lançar uma nota de compra, aparece uma mensagem SQL impossivel devido reforma tributária",false,indefinido,0.3998,0.1259,0.4149
+"seria possivel deixra fixado um cfop padrao para cadastro manual dos produtos?",false,indefinido,0.8775,0.0726,0.95
+"como configurar a confissao de divida",false,manual,0.2422,0.1919,0.5487
+"como gerar uma tabela de preço e associar ela a um cliente",false,manual,0.3346,0.0368,0.0517
+"manual de configuração de pin pad de terceiros",false,indefinido,0.0002,0.0006,0.001
+"preciso liberar permissao para o usuario lançar nota de compra, inclusive o conta a pagar referente a essa nota, porem ele nao pode ter acesso para visualizar o contas a pagar da empresa",false,manual,0.7249,0.2689,0.5852
+"seria de varios pedidos. como faço",false,indefinido,0.4149,0.7732,0.9073
+"PRECISO EMITIR UM RELATORIO DE UM CLIENTE ONDE CONTAM AS PEÇAS QUE COMPROU COM VALORES E NCM",false,manual,0.1403,0.7402,0.8864
+"como reimprimir um comprovante de uma conta que recebi no pdv",false,manual,0.2751,0.2598,0.5832
+"OI",true,direto,0.6298,0.151,0.6775
+"estou anexando contrato de alguns clientes no cadastro deles. podemos colocar um aviso pra data limite de vencimento do contrato de serviço?",false,indefinido,0.3208,0.1009,0.2628
+"OI",true,direto,0.6298,0.151,0.6775
+"quais os dados que preciso para comoeçar a emitir nfc",false,indefinido,0.2509,0.2628,0.5603
+"COMO VER AS VENDAS DE CADA PROCEDIMENTO",false,manual,0.6298,0.0256,0.1152
+"3. Como corrigir o problema de matriz e filial errada?",false,indefinido,0.6549,0.1366,0.4393
+"2. O Cenário: O que acontece quando a importação de matriz e filial dá errado?",false,indefinido,0.7372,0.5448,0.8891
+"1. O Conceito: Como funciona a estrutura de Matriz e Filial?",false,indefinido,0.3812,0.0034,0.0058
+"produtos ja existentes",false,indefinido,0.3739,0.4017,0.3868
+"obrigado",true,direto,0.5699,0.1403,0.6976
+"Quando fornecedor emite nota fiscal remessa em garantia pra meu cnpj, como cadastro no sistema?",false,indefinido,0.6893,0.1711,0.676
+"Da entrada de nota de compra nova, produtos",false,indefinido,0.7122,0.7679,0.975
+"da entrada de nota de produto nova",false,indefinido,0.7186,0.3416,0.9378
+"minha ultima duvida",true,direto,0.752,0.0097,0.4678
+"eu tenho um produto ja cadastrado, e eu comprei mais dele, eu posso so ir no produto e aumentar a quantidade ou preciso da entrada na nota",false,indefinido,0.539,0.5775,0.9843
+"como colocar cst 102 nos produtos?",false,manual,0.1451,0.0522,0.2898
+"Tem como alterar a quantidade do produto no pdv",false,indefinido,0.2095,0.2254,0.7151
+"Como emitir uma nota de devolução de compra?",false,manual,0.3346,0.0671,0.5384
+"como funciona a opção para quitar uma parcela da agenda de cobrança",false,manual,0.8389,0.0593,0.3748
+"e as vendas realizadas no pdv offline standalone são registradas no servidor como",false,indefinido,0.2659,0.0119,0.2628
+"erro CFOP de operação interestadual e idDest <> 2",false,indefinido,0.5234,0.3174,0.4533
+"quero saber o operacional do pdv offline em dois aspectos. O primeiro e se a rede do cliente cair ou o servidor desligar ele continua funcionando e segundo como os preços alterados no servidor e atualizado no pdv offline",false,indefinido,0.696,0.2568,0.6447
+"quero fazer a devoluçao de um produto de um fornecedor, cmo faço?",false,indefinido,0.3107,0.5254,0.9967
+"erro CFOP de operação interestadual e idDest <> 2",false,indefinido,0.5234,0.3174,0.4533
+"me fale do pdv offline",false,indefinido,0.5078,0.1144,0.2539
+"CFOP de operação interestadual e idDest <> 2",false,indefinido,0.8081,0.3998,0.5851
+"caminho do busca preço",false,indefinido,0.8515,0.8438,0.9877
+"quando e entro no sistema exibe a mensagem de erro: ""Erro ao conectar o banco de dados",false,indefinido,0.291,0.3141,0.9363
+"cancelar nota fora do prazo",false,indefinido,0.4073,0.5775,0.7535
+"fornecedor emitiu uma nota fiscal de entrada pra ele mesmo como devolução de venda, como eu cadastro essa devolução de venda no sistema para o estoque sair do meu sistema?",false,indefinido,0.6002,0.0706,0.7009
+"manual do caixa",false,indefinido,0.0021,0.0004,0.0005
+"quando vou abrir o sistema, exibe uma mensagem de erro: ""Erro ao conectar o banco de dados",false,indefinido,0.1968,0.3107,0.9284
+"nota de devolucao",false,indefinido,0.8549,0.0515,0.823
+"como fazer nota de devolucao",false,manual,0.3451,0.0174,0.539
+"relatorio prazo médio de recebimento de parcelas",false,indefinido,0.5078,0.0494,0.3757
+"no sistema arpa onde faco a folha de pagamento dos colcaboradores?",false,indefinido,0.6225,0.0839,0.45
+"Retorno do Provedor da NFSe: Rejeitado - [#inv0328] - Mensagem retornada pela prefeitura: Codigo: E1235, Mensagem: Falha no esquema XML do DF-e. Correçao: The http://www.sped.fazenda.gov.br/tribSSQN element is invalid - The value 47 is invalid according to its datatype http://www.sped.fazenda.gov.br/TSTribISSQN - The Enumeration constraint failed. [#inv0328] - Mensagem retornada pela prefeitura: Codigo: E2404, Mensagem: Nao foi gerada uma NFS-e com o identificador de DPS",false,indefinido,0.5078,0.4149,0.6188
+"Retorno do Provedor da NFSe: Rejeitado - [#inv0328] - Mensagem retornada pela prefeitura: Codigo: E1235, Mensagem: Falha no esquema XML do DF-e. Correção: The element cServ in namespace http://www.sped.fazenda.gov.br/nfse has invalid child element xDescServ in namespace http://www.sped.fazenda.gov.br/nfse. List of possible elements expected: cTribNac in namespace http://www.sped.fazenda.gov.br/nfse.[#inv0328] - Mensagem retornada pela prefeitura: Codigo: E2404,",false,indefinido,0.5,0.4766,0.434
+"Retorno do Provedor da NFSe: Rejeitado - [#inv0328] - Mensagem retornada pela prefeitura: Codigo: E1235, Mensagem: Falha no esquema XML do DF-e. Correção: The element toma in namespace http://www.sped.fazenda.gov.br/nfse has invalid child element end in namespace http://www.sped.fazenda.gov.br/nfse. List of possible elements expected: CNPJ, CPF, NIF, cNaoNIF in namespace http://www.sped.fazenda.gov.br/nfse.[#inv0328] - Mensagem retornada pela prefeitura: Codigo: E2404,",false,indefinido,0.5,0.5156,0.6334
+"cleint",true,indefinido,0.752,0.1101,0.8459
+"como posso informar a forma de pagamento de uma parcela no caixa?",false,manual,0.8844,0.2072,0.4216
+"como faço para emitir uma nf-e para cobrir um cupom fiscal e sair com o cfop 5929?",false,manual,0.0876,0.0668,0.2484
+"Como ajustar a sequencia (numero) da nfse no sistema?",false,manual,0.2524,0.1929,0.3702
+"como excluir um item",false,manual,0.2705,0.2254,0.0964
+"como zera o estoque",false,manual,0.6151,0.0012,0.0675
+"gostaria de saber se é possível alterar o campo de outras/acessórias na nota fiscal de devolução",false,indefinido,0.8007,0.414,0.4248
+"NAO ESTOU CONSEGUINDO COLOCAR PREÇO DE VENDA",false,indefinido,0.7295,0.8702,0.8918
+"EMISSAO NF FALHA VALIDAÇÃO DADOS NA NF",false,indefinido,0.6893,0.22,0.8245
+"Modulo restaurante do sistema control pdv",false,indefinido,0.5889,0.5775,0.93
+"manual do modulo restaurante",false,indefinido,0.0316,0.0012,0.0167
+"fazer a nota de garantia",false,indefinido,0.2689,0.1345,0.1974
+"qual o kit de filtro mb608 referencia",true,indefinido,0.867,0.2783,0.7074
+"cOMO GERAR PLANILHA DE PRODUTOS COM DESRCIÇÃO, PREÇO DE CUSTO E PREÇO DE VENDA",false,manual,0.3174,0.0317,0.3189
+"como faz para aplicar aumentos em familia de produtos",false,manual,0.1824,0.0642,0.4263
+"O MESMO VALE PARA RETAGUARDA?",false,indefinido,0.2393,0.5862,0.9399
+"COMO INSTALAR O CONTROL EM REDE.. ? ESSA MÁQUINA É O SERVIDOR.. E TENHO MAIS 3 TERMINAIS ..",false,manual,0.1441,0.03,0.0311
+"Opa Charles, tudo bem?",true,indefinido,0.6188,0.0035,0.7417
+"Olá",true,direto,0.8032,0.3989,0.9582
+"Queria saber se atende petshop",false,indefinido,0.3739,0.1109,0.7138
+"O sistema arpa atende petshop?",false,indefinido,0.4149,0.0082,0.4737
+"como certifico o lançamento da venda foi quitado",false,manual,0.5545,0.0167,0.5879
+"como lancar recebimento de venda no cartao passo a passo",false,manual,0.3346,0.0708,0.502
+"quando vou abrir o sistema aparece um erro dizendo: erro ao consultar o banco de dados",false,indefinido,0.1268,0.0105,0.3225
+"ONDE FAÇO RELATRORIO DE PRODUTO QUE TENHA MARGEM E PREÇO",false,manual,0.4455,0.6514,0.9891
+"como eu fazer uma venda no pdv",false,manual,0.1385,0.0336,0.3251
+"Cadastrei um colaborador e não apareceu os menus de atalho no sistema como resolver",false,indefinido,0.3074,0.1312,0.1667
+"a sincronização do backup com google drive, acontece no mesmo momento do backup local?",false,indefinido,0.3208,0.0313,0.7976
+"COMO FAÇO O RELATORIO DE PERDA?",false,manual,0.1634,0.0044,0.0254
+"Manual de ativar mesa no pdv",false,indefinido,0.0158,0.0033,0.077
+"como fazer um venda ?",false,manual,0.3208,0.0883,0.656
+"--------------------------- Atenção --------------------------- SQL Error: Função verifica_cabecalho_venda Identificado divergência entre a espécie e portador da condição de pagamento 1 com a espécie e portador informados no faturamento. Verifique! --------------------------- OK --------------------------- Assistente, consegue me ajudar nesse erro?",false,indefinido,0.5622,0.4301,0.7994
+"Na hora de fazer uma devolução para o fornedor, não estou conseguindo usar o cfop 5949",false,indefinido,0.9274,0.3775,0.461
+"Tem alguma opção que permita escolher imprimir ou não  o cupom fiscal da NFCe no PDV",false,indefinido,0.7718,0.1541,0.3531
+"preciso por gentileza do manual de configuração da copia de segurança de uma segunda base instalada na máquina",false,manual,0.1251,0.008,0.0019
+"notas de entrada no dia 28-09-2026",false,indefinido,0.8903,0.0046,0.4494
+"Como acessar meu relatório de faturamento, que entra o que vendi mais o que recebi no mês",false,manual,0.5039,0.0845,0.6706
+"COMO TIRO UM RELATORIO DOS ITENS DO MERCADO PARA CONFERENCIA",false,manual,0.2282,0.5312,0.83
+"como importar o arquivo de exportação dos itens de balança para o mgv6 da toledo?",false,manual,0.539,0.257,0.8659
+"um cliente que e do simples nacional distribuidora de bebidas e o suporte configurou ele como industria. o que isso muda no sistema principalmente na parte de impostos",false,indefinido,0.5775,0.5988,0.955
+"Como faço devolução de venda ao consumidor final?",false,manual,0.4417,0.0679,0.1437
+"qual seria a configuração mímica de um smartphone para colocar o smart vendas?",false,indefinido,0.2393,0.0166,0.1312
+"como faço para emitir uma nota fiscal?",false,manual,0.6169,0.3208,0.2088
+"seguinte, estou com um gap no uso do pdv os produtos pesáveis só aceita o código de cadastro do banco e não o código de barra que foi definido para o produto.. como podemos resolver essa situação",false,indefinido,0.2018,0.1403,0.7356
+"Na consulta de documentos fiscais consigo puxar os documentos fiscais anteriores a ativação do sistema?",false,indefinido,0.3666,0.0199,0.7537
+"assistente, qual a melhor forma de bloquear um cliente, desativando ele? não gostaria de vender mais para o mesmo",false,indefinido,0.4417,0.5029,0.5865
+"onde encontrar as notas canceladas dentro do control?",false,manual,0.9647,0.9585,0.6067
+"como rodar o imendes",false,manual,0.2846,0.0025,0.4679
+"Não foi possível consultar o licenciamento. Verifique a sua conexão e tente novamente.",false,indefinido,0.5699,0.363,0.78
+"certo, resolvido",false,indefinido,0.6077,0.0064,0.8064
+"Grata!",false,indefinido,0.8245,0.1582,0.9212
+"posso fazer uma entrada manual e depois trocar o fornecedor, ou uma vez iniciada entrada ou até mesmo concluída, fica vinculada com o fornecedor inicial? e se não der, depois é possível acessar o cadastro do fornecedor e alterar o nome dele",false,indefinido,0.1059,0.0661,0.6781
+"como fazer uma nota de estorno ref nota de entrada, colocando o CFOP 5949, e na natureza de operação: 999- Estorno de nota fiscal não cancelada no prazo legal.",false,manual,0.3381,0.0888,0.1041
+"complemento icms para 1 produto da nota",false,indefinido,0.8652,0.3242,0.0455
+"Como fazer uma Nota de Perda no Control",false,manual,0.1907,0.0134,0.0794
+"Como funciona o PDV ofiline",false,manual,0.3868,0.0104,0.0121
+"onde ajustar o numero da remessa dos boletos ?",false,manual,0.8013,0.2295,0.8273
+"Movimentação de Estoque ou Baixa de Estoque.",false,indefinido,0.7402,0.5545,0.7773
+"nota fiscao de perda",false,indefinido,0.6893,0.1624,0.6406
+"CFOP 5102",false,indefinido,0.7578,0.4766,0.3775
+"nota fiscal de perca como fazer",false,indefinido,0.3346,0.1541,0.4785
+"cfop 5002",false,indefinido,0.6406,0.3923,0.4766
+"como eu tiro um relatorio onde eu vejo as nfs que foram emitidas?",false,manual,0.6442,0.0336,0.1541
+"tem algum relatorio que mostre o faturamento mes a mes?",false,indefinido,0.5467,0.034,0.779
+"vamos lá! como é que o meu cliente pode usar o pdv , caso o cliente pague em dinheiro exemplo: a compra deu 25,00 e ele deu uma nota de 50,00 o troco de volta tem que ser 25,00 correto?",false,indefinido,0.2783,0.0772,0.668
+"seguindo esta mesma linha de raciocínio, como funcionaria a devolução de compras?",false,indefinido,0.4688,0.1105,0.9744
+"me explique como deve funcionar o macro processo de compras e lançamento da nf, e quem deve ser os funcionários envolvidos. Desde o momento da compra.",false,indefinido,0.148,0.012,0.4417
+"Sim, mas aonde eu chego nessa parte "" Frete e pagamento '' ?",false,indefinido,0.6549,0.337,0.8554
+"como eu faço para habilitar algum lançamento rapido no PDV depois de fazer a leitura do codigo de barras da balança ?",false,manual,0.3311,0.0695,0.4571
+"Aonde que eu acho essa tabela Mdf-e",false,indefinido,0.6039,0.1312,0.6316
+"ta dando erro, dizendo que não exite nenhum código de pagamento na parte de componente",false,indefinido,0.5117,0.0379,0.7058
+"manifesto dando erro:  As informações de pagamento devem ser informadas para carga lotação",false,indefinido,0.4922,0.1242,0.7963
+"produtos pesados",false,indefinido,0.5195,0.2591,0.537
+"como solicitar abertura e fechamento de caixa automáticamente",false,manual,0.2309,0.1019,0.363
+"Lê codigo de barra da balança pelo PDV para verificar o peso e o valor total",false,indefinido,0.3107,0.0266,0.6549
+"Preciso fazer uma redução da base de dados, como faço?",false,manual,0.216,0.1418,0.8431
+"Os produtos não estão amostrando os valores na tablea, como resolver ?",false,indefinido,0.1357,0.1471,0.6132
+"esta dando erro ao lançar produto diz que o codigo já está associado a outro produto",false,indefinido,0.3849,0.4321,0.9342
+"como faço para criar um combo, com dois produtos diferentes, e quando vender baixe o estoque",false,manual,0.1895,0.0525,0.5137
+"Existe alguma configuração que impossibilite eu incluir o meu item sem estoque numa ordem de serviço?",false,indefinido,0.3191,0.5293,0.4121
+"Existe alguma configuração que impossibilite eu incluir o meu item sem estoque numa ordem de serviço?",false,indefinido,0.3191,0.5293,0.4121
+"Posso incluir um item sem estoque na ordem de serviço?",false,indefinido,0.6188,0.4036,0.5902
+"Como ocorre a movimentação de estoque da nova ordem de serviço?",false,manual,0.2056,0.0205,0.2393
+"Como emitir carta de correção?",false,manual,0.3208,0.055,0.095
+"dashboard",false,indefinido,0.3702,0.0863,0.9349
+"Sim, me explique como consultar o relatório de produtos com saldo pendente em pedidos de compras",false,indefinido,0.4455,0.0845,0.441
+"Me oriente",false,indefinido,0.7311,0.272,0.9444
+"O que acontece se um pedido de compra tem registrado a compra de 50 unidades do item 1. E na nota fiscal vem apenas, 20 unidades, oque acontecerá com as 30 restantes?",false,indefinido,0.4688,0.304,0.7074
+"preciso ajusta a resolução da letras",false,manual,0.7691,0.0099,0.1836
+"Qual o critério que o sistema usa para buscar os produtos vinculados e não vincualdos em uma nota de entrada?",false,indefinido,0.6826,0.6109,0.7292
+"como efetuar venda a prazo com 3 formas de pagamento",false,manual,0.4149,0.0247,0.119
+"tem como configurar a comissão por faixa de vendas, por exemplo de 0 à 100 5% de 101 à 200 10% ...",false,indefinido,0.5775,0.0485,0.216
+"cod componente do pagamento",false,indefinido,0.7217,0.1661,0.9057
+"Como funciona a comunicação entre o 'Pedido de compra' e 'compras'",false,manual,0.6325,0.0091,0.1298
+"Como registrar DLL",false,manual,0.2598,0.125,0.5897
+"ESTOU SEGUINDO ESSE PASSO A PASSO, MAS NÃO CONSIGO ALTERAR A DATA DE PAGAMENTO: Contas a Pagar (Pagamento a Fornecedor): Acesse o menu Manutenção > Contas a Pagar > Contas a Pagar (Quitar/Consultar) ou pressione a tecla F11. • Localize a conta: Filtre pelo cliente/fornecedor ou período e clique no botão Abrir. • Inicie a quitação: Selecione a parcela desejada e clique no botão Quitar. • Informe o valor pago no primeiro dia: * Ajuste a Data de Pagamento para a data em que o primeiro pagamento foi realizado. * No campo Valor Recebido (ou Valor Pago), informe apenas a quantia parcial que foi paga no primeiro dia.",false,indefinido,0.1312,0.0079,0.8026
+"comom configurar modelo, tamanho de etiqueta para impressão",false,indefinido,0.2365,0.0693,0.5105
+"onde eu posso consultar a informação de qual é a classe de um produto rapidamente?",false,manual,0.8088,0.9377,0.3549
+"como imprimir os preços para coocar na prateleira",false,manual,0.3416,0.1735,0.6845
+"Qual a diferença da opção uso e consumo e industrialização quando entra com uma nota de compra",false,indefinido,0.5351,0.0554,0.2911
+"PAGUEI UMA PARTE DE UMA CONTA EM UM DIA E OUTRA PARTE EM OUTRO DIA. COMO DAR BAIXA?",false,indefinido,0.3812,0.1294,0.8975
+"como ver minhas licensas",false,manual,0.8625,0.354,0.8026
+"como posso cadastrar clientes?",false,manual,0.4436,0.0407,0.8582
+"relatório ticket medio",false,indefinido,0.7931,0.1624,0.3346
+"e um relatorio do valor geral em mercadoria com base no preco de venda",false,indefinido,0.434,0.2798,0.809
+"Relatorio geral de preco de custo de todas as mercadorias da loja",false,indefinido,0.5737,0.0127,0.1005
+"Como inativar um vendendor?",false,manual,0.4282,0.0039,0.4349
+"voce possui api para chatgpt",false,indefinido,0.3558,0.3666,0.6723
+"uma contadora de um cliente que e do simples nacional esta questionando que o sintegra não esta somando os ipi das notas de compra. queria saber se realmente precisa somar os ipi das notas de compra no sintegra das empresas do simples",false,indefinido,0.461,0.2991,0.7976
+"como uma inteligencia artificial pode acessar o sistema e preencher ou ler dados?",false,manual,0.566,0.6209,0.2524
+"boa tarde , preciso ver como posso fazer boletos para um cliente , mais o cliente me deve mais so que ele quer que fazo 4 boletos so referente uma compra .como posso fazer o boleto so daquela compra e o resto que ele me deve nao pode sair boleto",false,indefinido,0.3174,0.0434,0.148
+"como adicionar produtos a uma regra específica de ibs e cbs",false,manual,0.2942,0.0741,0.98
+"relatorio de contas a pagar",false,indefinido,0.8914,0.1541,0.1544
+"fazer carta de correcao",false,indefinido,0.3558,0.6723,0.9071
+"como faturar uma ordem de serviço em varias modalidade de pagamento",false,manual,0.3612,0.0198,0.2337
+"Quero que o sistema envie automaticamente todo mês um lembrete para os clientes informando a parcela que esta proxima de vencer.Tem como fazer isso?",false,indefinido,0.2509,0.0382,0.6549
+"Esse envio precisa ser feito manual",false,indefinido,0.0781,0.0044,0.0554
+"Como deletar todo o cadastro de produtos?",false,manual,0.304,0.2061,0.7025
+"pgsql.9.6 p serviço não iniciar pq erro no logon",false,indefinido,0.3775,0.1645,0.3277
+"no modulo BI, do relatório que traz o valor de contas a pagar - vencidos, traz de onde esta informação?",false,indefinido,0.7154,0.7944,0.8202
+"Como emitir nota fiscal conjugada produtos e serviços juntos",false,manual,0.6151,0.1422,0.175
+"relatório de produtos com preço de venda, preço de custo e estoque",false,indefinido,0.6298,0.6077,0.8907
+"O sistema vai ter integração com o renave?",false,indefinido,0.1052,0.4111,0.5737
+"Como emitir um cumpom para o cliente ?",false,manual,0.1733,0.07,0.1941
+"como faturar um recebimento?",false,manual,0.7983,0.1268,0.5679
+"diz que nao posso colocar um valor menor",false,indefinido,0.6654,0.9476,0.9429
+"tenho um conta a receber, de 10 mil recebi 4 e quero colocar o restante em 3x de 2 mil como fazer isso",false,indefinido,0.6188,0.1919,0.7154
+"como criar composição de um item que tem varios itens nele",false,manual,0.3141,0.0145,0.223
+"RECIBO DE ENTREGA",false,indefinido,0.7372,0.4225,0.8075
+"COMO FAÇO LANÇAMENTO DE PERDA?",false,manual,0.2814,0.0569,0.3905
+"clico em inclur da erro",false,indefinido,0.9096,0.1059,0.8199
+"como faço devolução de itens de um pedido fechado",false,manual,0.3775,0.3775,0.5756
+"qual a diferença entre Ordem de serviço e ordem de serviçi desktop?",false,indefinido,0.6993,0.4073,0.278
+"como fazer devoluçao de uma nota",false,manual,0.1895,0.0974,0.5746
+"Como faço para importar uma NFe a partir da chave de acesso ?",false,manual,0.5506,0.9105,0.5693
+"Como acesso o DRE no sistema?",false,manual,0.4054,0.0121,0.257
+"qual relatorio para tirar de faturamento mes a mes de um ano todo?",false,indefinido,0.6114,0.0869,0.2144
+"chegou uma nota de frete separada da nota de compra, qual o procedimento correto para dar entrada?",false,indefinido,0.5583,0.094,0.0614
+"Olá. Gostaria de saber se tem alguma configuração para enviar um lembrete para os clientes todo mês quando a fatura estiver perto de vencer",false,indefinido,0.2309,0.3208,0.6549
+"como ativar um produto que está desativado?",false,manual,0.1112,0.1722,0.8452
+"onde marca para imprimir confissão de divida",false,manual,0.7635,0.1045,0.6976
+"Como gerencio os recebimentos no ARPAG?",false,manual,0.4727,0.059,0.2413
+"como resolver erro do programa ao abrir que não se comunica  127.0.0.1 porta 5432",false,manual,0.5039,0.0113,0.0626
+"como bloquear e desbloquear um cliente",false,manual,0.3558,0.0538,0.1165
+"OK muito obrigada consegui resolver era erro do imposto iss",false,indefinido,0.5078,0.0437,0.3381
+"diz Aliquota incorreta  onde vou para atualizar como vou fazer cod E00",false,indefinido,0.4844,0.1403,0.3416
+"se fosse uma ia feita no lovable não iria demorar tanto para responder",false,indefinido,0.3294,0.0542,0.7577
+"como eu faço uma venda dentro do sistema?",false,manual,0.2436,0.018,0.744
+"Olá. Gostaria de saber se no sistema tem alguma configuração para enviar um lembrete para os clientes todo mês quando a fatura dele estiver perto de vencer",false,indefinido,0.3381,0.2539,0.6496
+"OI SIM DIZ NOTA REJEITADO",false,indefinido,0.1801,0.0346,0.6758
+"ele e uma distribuidora de bebidas. para esse caso a regra e a mesma",false,indefinido,0.7372,0.3242,0.9649
+"não seria esse o motivo que a contadora fala que nao recebe o epi no sintegra",false,indefinido,0.6114,0.1603,0.8397
+"como cadastrar cliente para exterior",false,manual,0.1422,0.0419,0.4419
+"o que o bloco 51 do sintegra e responsavel",false,indefinido,0.637,0.0456,0.5038
+"a contadora de um cliente me enviou um audio falando que o sintegra que Jefin esta enviando para ela contadora nao esta indo com as informaçoes de ipi. como resolver essa questão",false,indefinido,0.4111,0.0706,0.7957
+"OI NAO CONSIGO FAZER AS NOTAS FISCAIS DE SERVIÇO  REF A EMPRESA HERMANN",false,indefinido,0.8856,0.5775,0.2227
+"quero acompanhar meu movimento de caixa",false,indefinido,0.4571,0.0224,0.2006
+"meu sistema temo módulo de integração fiscal do IMendes ?",false,indefinido,0.5117,0.0474,0.4204
+"qual o grupo correto para venda de lubrificantes?",false,indefinido,0.78,0.6522,0.7708
+"preciso ajustar os produtos do estoque os monofásicos para adequação da reforma tributária",false,manual,0.5195,0.0888,0.1624
+"Onde fica FORMAÇÃO DO PREÇO DE VENDA?",false,manual,0.4649,0.4573,0.9012
+"EU GOSTARIA DE SABER COMO FUNCIONAS AS TABELAS DE PREÇO",false,indefinido,0.461,0.0065,0.0077
+"OLA",true,direto,0.7217,0.4282,0.945
+"como pesquiso as pre vendas já faturadas",false,manual,0.4922,0.0158,0.6942
+"como fazer precificação coreta no sistema",false,manual,0.2309,0.304,0.6234
+"COMO INSIRIR UMA FOTO DO PRODUTO",false,manual,0.4301,0.0311,0.9202
+"atualizar servidor e terminais",false,indefinido,0.4417,0.0178,0.5787
+"como atualizar o sistema control",false,manual,0.153,0.0414,0.7066
+"Configuração",false,indefinido,0.0851,0.2193,0.9748
+"Quais relatórios de faturamento existem no sistema?",false,indefinido,0.5545,0.0053,0.1427
+"consigo instalar o sistema em um tablet da apple",false,indefinido,0.1091,0.0034,0.3217
+"preciso imprimir o valor do produto e o valor do desconto",false,manual,0.6114,0.1907,0.991
+"Sessão nfce sp p não encontrada no acbrnfeserviços",false,indefinido,0.5699,0.3558,0.6442
+"Não consegui resolver, preciso de ajuda de um técnico pelo acesso remoto.",false,indefinido,0.709,0.7424,0.9875
+"faturamento",false,indefinido,0.5195,0.0898,0.8939
+"quanto faturei esse mes?",false,direto,0.6549,0.0562,0.9384
+"nao cosido emitir nota de devolucao para fornecedor  esta dizendo que o produto nao foi comprado",false,indefinido,0.7491,0.7691,0.8695
+"some as notas do jhone",false,indefinido,0.9329,0.1403,0.7387
+"emita a ultima nota do sistema cadastra",false,indefinido,0.7417,0.4436,1
+"quantas torneira 1/4 de volta tem no estoque",false,indefinido,0.9329,0.3416,0.2742
+"225+98",false,indefinido,0.7827,0.3208,0.931
+"como consultar produtos comprados",false,manual,0.3311,0.0745,0.4922
+"assistente, precisava receber contas a receber com mais de uma forma de pagamento, como faço?",false,indefinido,0.6514,0.2436,0.7674
+"relatorio conferencia de estoque",false,indefinido,0.5078,0.0134,0.153
+"EMIÇÃO DE NF SERVIÇO",false,indefinido,0.5312,0.0415,0.7905
+"como emitir uma nota complementar de icms",false,manual,0.4571,0.0637,0.1665
+"quero tirar relatório de correias",false,indefinido,0.9519,0.0888,0.6993
+"gerar Boleto para arquivo? para que serve",false,indefinido,0.709,0.0454,0.2203
+"como fazer um relatorio de duplicatas emitidas por portador nos ultimos  meses",false,manual,0.5699,0.0323,0.8783
+"qual nome das tabelas do estoque",false,indefinido,0.8568,0.3208,0.2846
+"Não aparece a opção correspondente ao estoque zerado (igual a zero).",false,indefinido,0.9833,0.3486,0.7402
+"Como ajustar o preço apenas dos itens que estão com estoque zerado",false,manual,0.4301,0.1456,0.264
+"relatorio de venda por especie de pagamento",false,indefinido,0.6478,0.0098,0.1587
+"relatorio por especie de pagamento",false,indefinido,0.6654,0.0098,0.1259
+"cadastro",false,indefinido,0.5467,0.2455,0.9573
+"relatorio que mostre totais de venda por especie",false,indefinido,0.4883,0.1968,0.1974
+"quando cliquei em convenios e depois em incluir deu a mensagem de banco não implementado",false,indefinido,0.8652,0.6926,0.8715
+"manual de configurar boleto itau cnab 240 ou 400",false,indefinido,0.0181,0,0.0006
+"erro cfop 1656",false,indefinido,0.4805,0.2254,0.4225
+"como faço para vender o sistema?",false,manual,0.2705,0.3074,0.9236
+"onde informar a comissao para vendedor",false,manual,0.5312,0.0823,0.596
+"como agir com notas em contigencias",false,manual,0.3363,0.0953,0.1271
+"como fazer o lancamento de uma nota de servico de telefone prestado pra minha empresa",false,manual,0.4301,0.5993,0.6172
+"Tem alguma forma de vincular uma taxa percentual quando a especie for uma especifica?",false,indefinido,0.6206,0.0102,0.0362
+"como faço para consultar o total de faturamento de determinado cliente",false,manual,0.5234,0.0238,0.2154
+"como utilizar duas formas de pagamento no pedido? uma será credito do cliente e outra será a prazo",false,manual,0.5273,0.4282,0.5
+"PAGUEI A CONTA DE LUZ E QUERO LANÇAS NO SISTEMA ESSE PAGAMENTO. COMO FAÇO. QUERO PASSO A PASSO",false,indefinido,0.1848,0.2628,0.8721
+"tem como remover o valor de frete de um pedido de devolução de compras?",false,indefinido,0.5273,0.3803,0.8884
+"preciso alterar a data de um boleto ja emitido",false,manual,0.4961,0.1285,0.847
+"olá",true,direto,0.8459,0.7402,0.9226
+"entrada em documentos proprios",false,indefinido,0.7549,0.4778,0.9008
+"como olho relatorio de credito",false,manual,0.6002,0.0583,0.9311
+"como dividir o pagamento ix e cartao",false,manual,0.3961,0.0283,0.1036
+"Atualizar certificado digital",false,indefinido,0.5506,0.696,0.9641
+"Obrigado",true,direto,0.9431,0.1075,0.7249
+"como edito opções de usuários para consulta de produtos?",false,manual,0.283,0.4036,0.9164
+"como tirar um relatorio do valor total que tenho em estoque",false,manual,0.4844,0.1105,0.6433
+"como consultar o valor total do estoque",false,manual,0.3558,0.0863,0.283
+"como eu dou entrada numa nota fiscal de devolução",false,manual,0.5927,0.0242,0.291
+"ele vai atualizar as duas bases de uma unica vez",false,indefinido,0.272,0.0111,0.728
+"como atualizar um sistema de um cliente com duas bases",false,manual,0.1294,0.0336,0.7614
+"quero um relatórios dos produtos mais vendidos e o os menos vendidos",false,direto,0.4417,0.1292,0.8864
+"estava tentando instalar o programa mas não consegui",false,indefinido,0.2173,0.1859,0.8796
+"eu ja tenho o sistema Pratto instalado, ao executar o instalador  novamente ele não ira instalar o programa duas vezes",false,indefinido,0.4036,0.1667,0.8652
+"isso não fara uma instalação duplicada",false,indefinido,0.1016,0.0462,0.8366
+"Sera que não e um problema de servidor, quando instalei eu selecionei a opção de baixo maquina e não servidor, sera que e isso:",false,indefinido,0.2942,0.0066,0.2494
+"Assistente, boa tarde, tudo bem? gostaria de saber se é possivel pelo Vendas>Processar vendas em sequencia de lote a gente fechar varias vendas em simultaneo",false,indefinido,0.1733,0.1551,0.7356
+"Qual contato do suporte?",false,indefinido,0.6095,0.0216,0.7424
+"como alterar o vencimento do boleto",false,manual,0.3998,0.1603,0.4083
+"tenho a licença e o pratto instalado no minha maquina, mas ele informa, que não tem aplicação instalada, a licença já esta ativada.",false,indefinido,0.461,0.1285,0.9734
+"eu instalei o modulo adicional, porem em configurações do control, ele informa que não ha aplicação instalada.",false,indefinido,0.2814,0.0079,0.4301
+"em que voce pode me ajuda?",false,indefinido,0.6775,0.1168,0.9216
+"Qual contato do suporte?",false,indefinido,0.6095,0.0216,0.7424
+"Qual último cliente cadastrado?",false,indefinido,0.7773,0.3157,0.9339
+"estou lançando um produto na modulo de venda do control e está mudando a descrição e aparecendo um erro na parte da emissao do docuemnto fiscal PINO WC ICMS monofásico sobre combustíveis cobrado anteriormente conforme Convênio ICMS 199/2022; ""NFE NAO PODE TER PREENCHIMENTO DE GRUPO DE TRIBUTACAO DO ICMS MONOFASICA SOBRE COMBUSTIVEIS",false,indefinido,0.363,0.1603,0.3666
+"preciso instalar o sistema pratto desktop",false,manual,0.1242,0.2894,0.916
+"como fazer uma venda",false,manual,0.3311,0.0565,0.3116
+"onde lançar nota de credito ou debito",false,manual,0.8601,0.135,0.4378
+"onde vejo a imagem do produto",false,manual,0.3107,0.1541,0.927
+"commo vejo imagem salva do produto?",false,indefinido,0.4707,0.8955,0.9761
+"Preciso de manual de instalação do vimbo?",false,manual,0.0295,0.0072,0.3961
+"Preciso de manual de instalação do vimbo?",false,manual,0.0295,0.0072,0.3961
+"como colocar o fornecedor no item se mdar entrada de nota?",false,manual,0.1285,0.8505,0.9854
+"cancelar uma NF de devolução, qual o passo a passo?",false,indefinido,0.1603,0.0376,0.4926
+"como trocar senha usuario",false,manual,0.5545,0.0273,0.3007
+"COMO VEJO O HISTOTICO DE AJUSTE DE ESTOQUE ?",false,manual,0.6584,0.0891,0.409
+"CREDITO DE CLIENTE, COMO RETIRAR?",false,indefinido,0.5078,0.1956,0.5964
+"preciso de um relatório contendo compras por fornecedor, e qual é a finalidade de venda dos produtos desse fornecedor.",false,manual,0.6993,0.1312,0.1002
+"Qual a diferença da versão do PDV off-line 2 para a versão 1 ?",false,indefinido,0.5273,0.0057,0.2991
+"na planilha de importação contas a pagar .. a coluna: tipo_documento ele fica como código ou descrição",false,indefinido,0.3961,0.2365,0.9482
+"sped fiscal",false,indefinido,0.7827,0.4922,0.3998
+"relatorio de vendas por subgrupo e por data",false,indefinido,0.5813,0.1744,0.2651
+"monte um passo a passo de como utilizar ordem de produção",false,indefinido,0.2121,0.0002,0.2227
+"é cencelamento de uma devolução de compra",false,indefinido,0.5156,0.283,0.9427
+"fiz uma nota de devolução de venda e o cliente rejeitou, preciso agora fazer o cancelamento dessa nota de devolução",false,indefinido,0.5078,0.0405,0.5448
+"no retaguarda o ultimo caixa aberto e fechado dele foi do dia 12/09, e ate ontem o sincronismo estava ok, entao isso nao condiz com a realidade",false,indefinido,0.4378,0.4766,0.8007
+"pdv off-line com erro de sincronismo - Erro: funcao verifica_caixa. Erro: Caixa do usuario 32 ja esta aberto, favor fecha-lo para abrir novamente. Porem o caixa do usuario esta fechado no pdv",false,indefinido,0.15,0.0031,0.1981
+"como cadastrar um produto?",false,manual,0.1767,0.037,0.9854
+"em conta a receber, existe o sistema de cores para identificar parcelas vencidas, vencendo e a vencer, esse esquema de cores pode ser alterado ou desativado?",false,indefinido,0.4417,0.4417,0.9105
+"Como ajustar manualmente o estoque de um produto?",false,manual,0.1255,0.0211,0.1842
+"bom dia",true,direto,0.7311,0.2691,0.6637
+"Um cliente quer entrar com uma nota de serviço no sistema. como e feito isso",false,indefinido,0.4417,0.3137,0.9651
+"onde configurar para usar produto de balança",false,manual,0.2309,0.2659,0.1164
+"nao foi a nota fiscal , apenas o cupom",false,indefinido,0.9557,0.7217,0.9484
+"quero o passo a passo",false,indefinido,0.3381,0.0155,0.1719
+"quero vizualizar o cupom de uma venda realizada no dia 12/09/2026",false,indefinido,0.9118,0.7549,0.9976
+"como verificar quais os últimos fornecedores me venderam determinado produto",false,manual,0.7217,0.5312,0.1849
+"O que são estes campos no lançamento de entrada do sistema? Total de produtos Total de serviços Desconto Total Seguro Outras despesas acessórias Total IPI Total ICMS ST Total Imposto de Importação Total IPI Devolvido Total líquido Outros Ajustes de Custos",false,indefinido,0.3702,0.0522,0.5551
+"É uma nota de compra, e se precisar destacar os impostos, como faço?",false,indefinido,0.5622,0.2312,0.8535
+"preciso emitir uma nota de devolução",false,manual,0.4922,0.0601,0.3895
+"como fazer um simples lançamento",false,manual,0.1571,0.0027,0.8123
+"da pra destacar data  e hora na impressão da venda de simples lançamento do pdv",false,indefinido,0.5429,0.4805,0.9292
+"Boa tarde! Preciso do manual de instalação do VIMBO.",false,indefinido,0.0288,0.0002,0.0272
+"o que posso oferecer para um cliente que esta enquadrado no mei",false,indefinido,0.6077,0.7718,0.9576
+"pdv está travando, suspeito que o postgresql esteja criando locks e não as desbloqueando, tem alguma solução?",false,indefinido,0.2942,0.0511,0.6689
+"ao fazer a venda o produto da a mensagem de: nfe nao pode ter preenchimento de grupo de tributação do icms monofasico sobre combustivel",false,indefinido,0.4378,0.4378,0.4263
+"ordem de serviço",false,indefinido,0.7691,0.0285,0.0792
+"compramos um oculos com o fornecedor, e veio com defeito, precisamos tirar uma nf de devolução em que um dos produtos que compramos veio com defeito",false,indefinido,0.3702,0.7058,0.9835
+"COMO ENCONTRAR AS NOTAS FISCAIS EMITIDAS",false,manual,0.7341,0.5273,0.3442
+"onde encontrar  Ticket Médio",false,manual,0.9545,0.7703,0.3573
+"A respeito da inclusão da guia GNRE, tem os campos: Doc. Arrecadação: UF Destinatario: Documento: Cod. Autenticação: Valor Total da Guia: Vencimento: Pagamento: Inf. Complementares: E o checkbox Esta GNRE esta inclusa nos dados adicionais da nota fiscal? Gostaria que me explicasse cada um destes campos para que eu consiga entender o contexto, o que preencher e sua aplicabilidade no sistema?",false,indefinido,0.2539,0.0185,0.1722
+"NO CASO EU JA EMITIR A NOTA. TEREI QUE CANCELAR E INCLUIR O CHASSI. COMO FAZER TODO PROCEDIMENTO",false,indefinido,0.7635,0.0144,0.1778
+"ONDE COLOCA AS INFORMAÇÕES ADICIONAIS QUE DEVEM APARARER NO RODAPE DA NOTA",false,manual,0.3208,0.6058,0.8454
+"preciso instalar o certificado digital como faço?",false,manual,0.4649,0.1089,0.7614
+"como colocar um operador no sistema com acesso as o.s",false,manual,0.1744,0.0033,0.2071
+"um cliente fez uma venda no pdv ao consumidor e quer fazer a devolução de um item. como fazer",false,indefinido,0.3381,0.1097,0.5
+"mdf-e",false,indefinido,0.5851,0.0995,0.5078
+"Como alterar em massa o CST dos produtos?",false,manual,0.1613,0.0142,0.4097
+"VINCULO DE ESTOQUE",false,indefinido,0.5195,0.2494,0.6826
+"ONDE ESTA PARA  FAZER  VINCULO",false,manual,0.6654,0.6039,0.869
+"queria saber se tem como ve quem fez a quitação de um boleto",false,indefinido,0.7957,0.4007,0.8344
+"como desmarcar no cadastro de produtos que é código de barras para documentos fiscais",false,manual,0.4225,0.0914,0.5044
+"como faço para corrigir o campo EAN/GTIM",false,manual,0.2451,0.1968,0.4513
+"Ola. Qual é o caminho para os manuais de boleto por API ?",false,indefinido,0.7138,0.0003,0.0055
+"oque fazer quando da o erro histórico não cadastrado para suprimento",false,indefinido,0.7186,0.1009,0.4961
+"como fazer o pagamento no caixa",false,manual,0.5737,0.0387,0.1573
+"Bom dia! como faço para bloquear o estoque dos produtos com estoque zerado",false,indefinido,0.148,0.0995,0.3346
+"como eu altero a quantidade estatística de um produto",false,manual,0.4417,0.062,0.8926
+"como atualizar imendes",false,manual,0.2214,0.1801,0.7033
+"eu preciso ter o certificado digital instalado na minha máquina",false,indefinido,0.6225,0.0567,0.1367
+"como importar retorno do banco para quitação de boleto?",false,manual,0.5098,0.0614,0.6843
+"consigo emitir uma nota fiscal com um outro cnpj sem ser o da minha empresa",false,indefinido,0.9214,0.5,0.628
+"tem como eu copiar uma nota ja emitida",false,indefinido,0.7402,0.07,0.9441
+"Qual a diferença de uma nota de venda para uma nota avulsa",false,indefinido,0.7186,0.0065,0.3757
+"Preciso corrigir uma informação importante sobre nossa operação. Nós NÃO utilizamos emissão de NF-e de transferência no processo de movimentação interna. Temos uma empresa/estoque de distribuição chamada GD e outras unidades/lojas. Quando uma mercadoria sai da GD para uma loja, nosso processo atual é: 1. Dar baixa/saída da mercadoria no estoque da GD. 2. Gerar um relatório de saída de mercadoria. 3. Enviar a mercadoria para a loja. 4. Posteriormente registrar manualmente a entrada da mesma mercadoria no estoque da loja. 5. Gerar/guardar o relatório de entrada da unidade. Portanto, NÃO quero orientação sobre emissão de NF-e de transferência neste momento. Quero saber especificamente se o Sistema Control consegue automatizar ou simplificar esse fluxo de MOVIMENTAÇÃO DE ESTOQUE SEM EMISSÃO DE NF-e. Responda: 1. Existe uma função no Control em que eu faça a saída no estoque da GD uma única vez e o sistema gere automaticamente, ou deixe preparada, a entrada correspondente no estoque da loja destino, SEM emitir NF-e? 2. A função “Gerar compra na filial” pode ser utilizada sem emissão de NF-e? Se sim, explique exatamente como. 3. O módulo “Operações com Filiais / Transferência Interna” exige obrigatoriamente NF-e ou a emissão da nota é opcional? 4. Existe algum tipo de transferência interna, movimentação entre estoques, requisição, pedido ou integração entre filiais que não tenha natureza fiscal? 5. O relatório de saída gerado pela GD possui algum número/ID que possa posteriormente ser importado pela loja para gerar a entrada automaticamente, sem digitar novamente produto por produto? 6. É possível a loja importar diretamente o relatório/pedido de saída da GD e transformar os mesmos produtos e quantidades em entrada? 7. É possível realizar isso entre bases/empresas diferentes configuradas no Serviço de Integração Arpa? 8. Existe alguma importação por arquivo, pedido, código, XML não fiscal, Checkstock ou outro mecanismo oficial que permita criar a entrada a partir da saída? 9. Se a saída tiver 50 itens diferentes, existe alguma maneira oficial de evitar que o operador da loja tenha que cadastrar/digitar novamente os mesmos 50 itens? 10. Qual é o fluxo mais automatizado possível que o Control oferece para: GD dá saída → mercadoria é enviada → loja confere → Control dá entrada, SEM NF-e? Para cada possibilidade, informe o caminho exato no menu e os parâmetros necessários. Se determinada função depender de configuração feita pelo suporte da Arpa, informe isso. Se não souber com segurança, diga que precisa ser confirmado com o suporte, em vez de presumir.",false,manual,0.3277,0.5039,0.6584
+"Somos uma empresa com 1 Centro de Distribuição (CD) e 3 lojas. Hoje recebemos mercadorias no CD e depois distribuímos essas mercadorias entre as três unidades. Nosso administrativo perde muito tempo realizando manualmente no Sistema Control as entradas e saídas/transferências de mercadorias entre os estabelecimentos. Quero reduzir ao máximo esse trabalho manual utilizando recursos já existentes no Sistema Control e, se possível, este Assistente IA. Analise especificamente as funcionalidades disponíveis NESTA instalação e versão do Sistema Control e me informe: 1. Você consegue consultar diretamente os dados da nossa base do Control, como produtos, estoque, vendas, compras e movimentações? 2. Você consegue executar ações dentro do Control ou apenas responder perguntas? 3. Você consegue criar, preparar ou executar transferências de mercadorias entre estabelecimentos? 4. O Control possui alguma função nativa para automatizar transferência CD → lojas e loja → loja? 5. Existe integração matriz/filial para transferências de mercadorias? Explique exatamente como funciona. 6. É possível gerar automaticamente a saída no estabelecimento de origem e a entrada correspondente no estabelecimento de destino, evitando dupla digitação? 7. É possível importar uma lista de produtos e quantidades e gerar uma transferência em lote? 8. Existe API, integração, importação por arquivo, banco de dados ou outro recurso oficial que permita a um sistema externo criar essas movimentações automaticamente? 9. Este Assistente IA possui alguma ferramenta/função que permita executar essas operações diretamente? 10. Quais partes desse processo ainda obrigatoriamente precisam ser realizadas manualmente por um usuário? Não me dê apenas uma explicação genérica sobre controle de estoque. Quero que considere especificamente as funcionalidades existentes no Sistema Control instalado neste computador. Quando uma função não estiver disponível para você, diga claramente que não tem acesso ou que não consegue executá-la.",false,indefinido,0.2509,0.0794,0.5946
+"manual do crm",false,indefinido,0.0014,0.2701,0.0517
+"nao achou nada",false,indefinido,0.752,0.3739,0.5851
+"quero localizar no sistema por qual nota comprei a manteiga piracanjuba com esse código 7898215151302",false,indefinido,0.4922,0.3141,0.6077
+"quero que localize por qual nota entro esse produto código de barra 7898215151302",false,indefinido,0.6442,0.7827,0.986
+"o sistema agora está entendendo que o cadatro 679 é o ao consumidor e o cadastro do código 3 seria outro cliente... como arrumar isso?",false,indefinido,0.1993,0.0129,0.6188
+"erro para gravar cadastro de empresa com CNPJ e IE, dá mensagem de que cliente ao consumidor deve ser isento, como arrumar?",false,indefinido,0.7402,0.2121,0.4649
+"tenho uma cliente que era do mei e foi desenquadrada para o simples nacional. ela me disse que suas compras sao feitas em seu cpf. e nesse caso como fazer",false,indefinido,0.6893,0.4073,0.7592
+"buscar op 3740",false,indefinido,0.7058,0.3363,0.7628
+"um cliente tem uma loja de moveis na cidade de dom silverio e uma loja de moveis na cidade de rio doce. ela ja usa o nosso sistema na loja de dom silverio e agora precisou de colocar o sistema na loja de rio doce para emitir notas de venda tambem. so que a cliente nao realiza compras de mercadorias para a loja de rio doce. nesse caso como fazer",false,indefinido,0.3702,0.1962,0.8256
+"um cliente esta na versao 1.25.7.0 do sistema control. recebi a mensagem abaixo Um aviso importante sobre o servidor de licenças da ARPA. Em 2026 definimos um novo servidor de licenças, já em uso pelas versões deste ano em diante. Nos próximos meses, vamos desativar o servidor utilizado pelas versões anteriores a 2026. Por isso, pedimos que mantenham seus clientes atualizados com as versões de 2026 em diante, já preparadas para a Reforma Tributária. Com a versao do cliente vou conseguir atualizar o serial dele",false,indefinido,0.2942,0.3277,0.8099
+"Como obter o xml de um pedido de venda emitido",false,manual,0.3666,0.2116,0.8641
+"como verifcar ou atualizar os saldos das contas bancarias?",false,manual,0.5622,0.0485,0.1848
+"como faça para cadastrar um produto manualmente?",false,manual,0.0839,0.0008,0.9973
+"A venda foi feita no PDV. O cupom fiscal foi impresso. O PDV já foi resetado para a próxima venda. Preciso reimprimir a última venda (o cupom). Como faço?",false,indefinido,0.3107,0.1192,0.7326
+"permitir cadastrar cliente sem cpf ou cnpj",false,indefinido,0.4417,0.0437,0.8981
+"Preciso de ajuda para emitir um boleto",false,manual,0.6926,0.1097,0.3567
+"gostaria de saber onde consigo ver o CMV de um determinado periodo no sistema Arpr?",false,indefinido,0.8926,0.3045,0.3794
+"boa tarde!",false,direto,0.9349,0.7988,0.7432
+"como cadastrar um cliente?",false,manual,0.2494,0.0226,0.9801
+"Quero cadastrar um cliente, como faço ?",false,indefinido,0.1394,0.293,0.9921
+"COMO FAZER NOTA FISCAL",false,manual,0.2846,0.3923,0.0327
+"como cadastrar um cliente",false,manual,0.2241,0.0284,0.8606
+"Como cadastro um cliente?",false,manual,0.2736,0.019,0.5429
+"cmo cadastrar uma tabela de preços",false,indefinido,0.4533,0.1242,0.784
+"como fazer estorno de nota fora do periodo",false,manual,0.8715,0.9263,0.7931
+"itens por fixa de preços...",false,indefinido,0.7607,0.8408,0.9541
+"na tabela promocional de preços tem como colocar todos os produto do estoque em promoção?",false,indefinido,0.6261,0.5622,0.8233
+"cte",false,indefinido,0.6893,0.1667,0.4168
+"Como Configurar a Tabela de Preço por Faixa de Quantidade me pede a licença... é isso mesmo?",false,manual,0.2337,0.1931,0.0863
+"Como emitir um cte?",false,manual,0.4417,0.3558,0.1081
+"Sistema control tem conciliação bancária?",false,indefinido,0.498,0.0748,0.3706
+"estou com 4 nfc-e em contingencia desde o dia 01/09, posso autorizar?",false,indefinido,0.363,0.8026,0.2018
+"estou com 4 ncf em contingencia desde o dia 01/09, posso autorizar?",false,indefinido,0.4455,0.1176,0.2798
+"estou com 4 nfc-s em contingencia desde o dia 01/09, posso autorizar?",false,indefinido,0.3739,0.3923,0.1801
+"COMO CADASTRA CLIENTE",false,manual,0.3886,0.0068,0.2422
+"relatorio com produtos vendidos para cliente",false,indefinido,0.6334,0.0609,0.2866
+"preciso de um relatorio de todos os produtos que um cliente comprou dentro do mes",false,manual,0.4727,0.4575,0.9052
+"emissão de nota fiscal",false,indefinido,0.7607,0.248,0.6487
+"qual o caminho para emissão de nota fiscal avulsa?",false,manual,0.9648,0.2018,0.5322
+"tentando instalar o sistema deu erro : CreateProcess falhou; código 2. o sistema nao pode encontrar o arquivo especificado",false,indefinido,0.4922,0.2254,0.8176
+"é possivel mudar o valor da venda no pdv?",false,manual,0.3141,0.152,0.8038
+"mas eu busco o produto por codigo",false,indefinido,0.6723,0.9454,0.8684
+"mas em qual parte do processo eu clico no asterisco? ao adicionar o produto? ou depois do enter?",false,indefinido,0.4844,0.1849,0.9382
+"tenho preferencia pelo passo a passo escrito",false,indefinido,0.4649,0.0011,0.0319
+"eu to usando o pdv, eu insiro o produto mas nao aparece a opção de mudar quantidade, como faz?",false,indefinido,0.4263,0.1848,0.372
+"preciso colocar o valor de despesa de acessoria na nota avulsa para uma devolução",false,manual,0.7827,0.3942,0.8836
+"como emitir nota de devolução de venda",false,manual,0.3363,0.0346,0.1527
+"o processo vai ser no Compras, tem algum relatorio para saber o que tenho de produto consignado que deva devolver ainda?",false,indefinido,0.1968,0.0205,0.3648
+"como lançar nota de produto consignado?",false,manual,0.2069,0.0119,0.5361
+"Oi, preciso dos seguintes relatórios: Relatório de Compras; Relatório de Vendas por CFOP e Relatório de Sintegra, consegue me ajudar na emissão destes relatórios?",false,indefinido,0.4844,0.1217,0.6252
+"estou na situação onde compro unidades e preciso ter u m preço diferenciado para quem compra em quantidade do mesmo produto.",false,indefinido,0.5039,0.949,0.9893
+"vc me ajuda a entender o sistema Arpa?",false,indefinido,0.3381,0.0117,0.2846
+"computador foi formatado e preciso reinstalar o sistema e puxar a base antiga",false,indefinido,0.4805,0.0429,0.8355
+"o sistema tem homologado o banco c6?",false,indefinido,0.3684,0.0055,0.0424
+"preciso de um suporte",false,manual,0.6478,0.1522,0.7309
+"aind aparece... REJEIÇÃO... NF-e inexistente para a chave de aceso informada",false,indefinido,0.3174,0.3242,0.8081
+"op que é o portador financeiro?",false,indefinido,0.5467,0.0524,0.4569
+"sim",false,indefinido,0.7461,0.5056,0.978
+"Estou com im problema ao baixar a importação da nota direto da receita... mesmo com o certificado e nota existente ele me diz que nao existe chave no portal... ams a nota esta la..",false,indefinido,0.5813,0.0775,0.6792
+"cadastro de clientes",false,indefinido,0.6077,0.1645,0.8292
+"quero saber quais sao os itens mais vendidos",false,direto,0.8762,0.6215,0.9489
+"preciso da listagem de quanto eu vendi e lucrei no mes, quais os produtos que mais foram vendido",false,manual,0.4417,0.216,0.8164
+"quando posso usar metodo composicao de produtos?",false,indefinido,0.9005,0.3242,0.309
+"qual a funcionalidade do cadastro permitir colocar 2 ou ate mais codigo a um mesmo produto",false,indefinido,0.2689,0.4378,0.8449
+"como fracionar um produto pra vender fracionado",false,manual,0.1451,0.0254,0.0346
+"estou tentando duplicar um produto, mas não esta aparecendo nenhum cadastrado",false,indefinido,0.5775,0.5078,0.9558
+"Estou com um problema de uma venda de um produto que é uam composicao... somente pela quantidade. no caso... 1 pacote de fita contem 6 fitas... tenho dois produrtos a venda.... como ajusto isso no sistema?",false,indefinido,0.3775,0.4187,0.9065
+"como faço para fazer a compra de um produto na caixa e converter ele para unidade na importaçao",false,manual,0.2043,0.0295,0.6637
+"Não quer atualizar a scherms",false,indefinido,0.8105,0.7705,0.85
+"como saber qual foi meu ultimo cliente cadastrado?",false,manual,0.6334,0.2157,0.7813
+"como baixar no cliente o sistema arpa control",false,manual,0.2846,0.3416,0.877
+"fechei uma venda em dinheiro mas ele não caiu no meu caixa, o que pode ter acontecido?",false,indefinido,0.6893,0.0356,0.9809
+"cadastrar pelo corretor",false,indefinido,0.3998,0.0833,0.9966
+"e estando em orçamento como finalizo",false,indefinido,0.5156,0.0638,0.3296
+"como dar entrada de notas",false,manual,0.4036,0.0183,0.2227
+"Em uma venda de 700,00 o cliente tem credito loja de 300,00 como faço para usar o credito do cliente e o restnte colocar em outra forma pagamento",false,indefinido,0.3739,0.2127,0.8804
+"COMO EMITO PREÇO DE ITENS DE UMA NOTA",false,manual,0.539,0.8044,0.717
+"como emitir ota de devolucao para fornecedor",false,manual,0.1561,0.0839,0.3531
+"como associo uma produto und ao pacote no arpa?",false,manual,0.1234,0.8001,0.5679
+"EMITIR NFE",false,indefinido,0.3311,0.1334,0.9329
+"PASSO A PASSO PARA FAZER UMA VENDA",false,indefinido,0.1348,0.0038,0.6211
+"preencher contribuicao previdenciaria retida na nota fiscal de servico?",false,indefinido,0.7905,0.0614,0.5366
+"onde preencher a tag VRETCP da nfse ?",false,manual,0.3558,0.2337,0.283
+"como configurar as retencoes federais para emissao de NFSE? 3",false,manual,0.2975,0.0306,0.053
+"sim",false,indefinido,0.7461,0.5056,0.978
+"sim",false,indefinido,0.7461,0.5056,0.978
+"como gerar carnê",false,manual,0.2659,0.0633,0.4113
+"na nfse onde posso colocar a contribuicao previdenciaria retida?",false,indefinido,0.908,0.0054,0.1485
+"das venda fechadas sem documento fiscal",false,indefinido,0.7025,0.5699,0.6602
+"Como alterar estoque de um produto?",false,manual,0.2958,0.017,0.4805
+"não tem como ver so as vendas sem documento fiscal?",false,indefinido,0.5622,0.0637,0.6314
+"tem como emitir um relatorio das vendas sem nf?",false,indefinido,0.4922,0.3107,0.5088
+"OI",true,direto,0.6298,0.151,0.6775
+"tem video tutorial para contas a pagar",false,indefinido,0.413,0.0153,0.04
+"ssitema não está fazendo a baixa automatica dos boletos do siccob",false,indefinido,0.6514,0.3242,0.4149
+"como habilitar favoritos na agenda de cobrança",false,manual,0.4036,0.4766,0.6406
+"Gostaria de orientações sobre como emitir um CT-e de Substituição ou Complementar ou sobre como gerenciar e cancelar CT-es autorizados? 16/09/2026 08:58:32.859",false,indefinido,0.637,0.0496,0.2056
+"a ok, obrigado entao",false,indefinido,0.7122,0.1533,0.7892
+"Calculo de demanda",false,indefinido,0.8081,0.1217,0.6077
+"na tela de venda do pdv, quando digito 3 caracteres e ele exibe a lista de itens, tem como, essa lista que hoje é apresentada em ordem crescente pelo campo descricao, ser classificada pelo campo codigo?",false,indefinido,0.4149,0.028,0.17
+"Preciso de um relaório único que demonstre quantidades de compras/estoque atual e vendas no mesmo relatório",false,manual,0.6584,0.9361,0.9417
+"é para faze nota de devolução",false,indefinido,0.5699,0.1009,0.6388
+"QUE DIA VENCE O CERTIFICADO DIGITAL?",false,indefinido,0.7549,0.7314,0.7869
+"como consigo tira uma nota fiscal de remessa",false,manual,0.8816,0.0467,0.3513
+"como fazer um pedido para venda sem identificar o consumidor e emitir documento fiscal",false,manual,0.5039,0.1217,0.3007
+"CONSEGUE ME DIZER A DATA DE VECNIMENTO DO CERTIFICADO DIGITAL?",false,indefinido,0.8164,0.0508,0.6284
+"BOM DIA",true,direto,0.7249,0.2751,0.9365
+"SIM",false,indefinido,0.6926,0.2422,0.9313
+"Como apagar entrada de suprimento",false,manual,0.5506,0.1217,0.2173
+"Como para tirar relatório de caixa",false,manual,0.6039,0.1045,0.784
+"Como fazer sangria no caixa pvd ?",false,manual,0.2121,0.0851,0.3998
+"Como faço para olhar orelatorio de vendsa",false,manual,0.461,0.2606,0.8941
+"resolver rejeição não informado o grupo de ICMS PARA A uf DE DESTINO",false,indefinido,0.5889,0.1023,0.6775
+"voce pode fazer cobrança com clientes?",false,indefinido,0.5156,0.279,0.8231
+"olá o que vc pode fazer?",false,indefinido,0.5889,0.0761,0.7776
+"como configurar a conciliacao bancaria?",false,manual,0.3594,0.0412,0.2546
+"video sobre entrada de notas pelo xml",false,indefinido,0.7387,0.0012,0.0316
+"como usar os centros de custos na hora de importar o xml?",false,manual,0.2018,0.0991,0.1601
+"como cadastrar os centro de custos quando tiver dando entrada pelo xml?",false,manual,0.1136,0.1194,0.7524
+"como associar um produto ja cadastrado com produto que vem na nota?",false,manual,0.587,0.5429,0.7353
+"O caixa está abrindo mesmo selecionando não para impressão de comprovante de venda",false,indefinido,0.8222,0.7759,0.5263
+"como criar um historico pros xml?",false,manual,0.3057,0.0775,0.0331
+"sobre o campo de hitorico importacao NC, o que significa:",false,indefinido,0.3416,0.0049,0.2502
+"como criar um historico pras notas xml?",false,manual,0.216,0.0201,0.1314
+"aqui tem como imprimir etiquetas de preço?",false,indefinido,0.6741,0.5176,0.9585
+"qual a configuração ideia para instalar o servidor do control",false,indefinido,0.1152,0.1422,0.6298
+"aonde faço backape",false,indefinido,0.2628,0.0614,0.8948
+"como faz para aparecer o nome do cliente tambem",false,manual,0.2147,0.1316,0.9112
+"como gerar relatorio de antecipação de duplicatas",false,manual,0.3416,0.0096,0.1303
+"certo e processador qual o requisito minimo",false,indefinido,0.821,0.179,0.4268
+"quanto que eu já vendi no mês",false,indefinido,0.7607,0.153,0.9833
+"GOSTARIA DE DESCADASTRAR UM PRODUTO QUE ESTA COM O MESMO CODIGO DE BARRA DE OUTRO",false,indefinido,0.5851,0.9999,0.9608
+"COMO DESCADASTRAR",false,manual,0.3277,0.0642,0.3442
+"ok obrigado",false,direto,0.6002,0.4596,0.9438
+"não tem como incluir o nome de pai e mãe aqui no cadastro de cliente aqui pelo aplicativo",false,indefinido,0.6893,0.5545,0.9885
+"ao emitir a nota da o erro... tipo de emissao 3,6 ou 7 é valido nas contingencias",false,indefinido,0.8289,0.3558,0.7372
+"como excluir um lançamento a maior no caixa",false,manual,0.9984,0.5156,0.0599
+"como fazer uma nota de devolução",false,manual,0.3648,0.0976,0.5746
+"como desabilitar para que não emita nota em contigencia",false,manual,0.1251,0.004,0.1196
+"e sistema control emite nota de produtor rural?",false,indefinido,0.959,0.0614,0.4102
+"nota de devolução",false,indefinido,0.931,0.0778,0.7994
+"O sistema control emite contra nota de produtor rural?",false,indefinido,0.8289,0.0595,0.1229
+"Control estou com o seguinte cenário: Meu cliente precisou mudar o CNPJ e precisei fazer essa mudança no banco de dados (migrei os dados do banco antigo para o novo), e agora ele está precisando de um relatório vinculado ao antigo CNPJ",false,indefinido,0.5699,0.2846,0.8604
+"o control faz contra nota de produtor rural?",false,indefinido,0.7249,0.3766,0.728
+"Como funciona o backup em nuvem e o custo",false,manual,0.6893,0.0144,0.0118
+"Como funciona o backup em nuvem e o custo",false,manual,0.6893,0.0144,0.0118
+"PRECISO CANCELAR UM PRODUTO DE UMA VENDA E ADCIONAR OUTRO PRODUTO, COMO FAZER?",false,manual,0.0671,0.4649,0.9462
+"nos relatorios financeiros da empresa onde vai aparecer esse valor de 166,84 da devolucao ?",false,indefinido,0.6584,0.7249,0.7136
+"eu comprei uma peca e lancei nas compras no valor de 166,84. depois de pago o fornecedor me devolveu o dinheiro. fiz a devolucao pelo sistema e nao gerei o credito pra fornecedor. como posso gerar o credito dessa venda ?",false,indefinido,0.7341,0.3666,0.7311
+"onde adiciono etiqueta no sistema",false,manual,0.2576,0.164,0.9244
+"Cliente imprime todos os cupons. Mas está com novo terminal. Antes, terminava uma venda no PDV, já saia a impressão direto. Agora, no novo terminal, ele pede para salvar o cupom antes de imprimir. Onde configuro para tirar essa tela de salvar PDF e ir direto para a impressão?",false,indefinido,0.2628,0.0907,0.1461
+"ao emitir nota fiscal não foi autorizada pelo SEFAZ. Motivo: Rejeição: CSOSN incompatível na operação com não contribuinte",false,indefinido,0.6792,0.4766,0.4149
+"qdo faco uma devolucao, como fica no sistema a parte financeira?",false,indefinido,0.3259,0.4054,0.6935
+"qual a configuração ideia para instalar o servidor do control",false,indefinido,0.1152,0.1422,0.6298
+"BACKUP AUTOMÁTICO NÃO FUNCIONA QUAIS SERVIÇOS DEVO REVISAR ?",false,indefinido,0.4922,0.4225,0.7311
+"como funciona os historicos em contas a pagar?",false,manual,0.6021,0.0283,0.1124
+"sim",false,indefinido,0.7461,0.5056,0.978
+"como faco conciliacao bancaria no arpa?",false,manual,0.4225,0.0488,0.2127
+"como fazer conciliacao bancaria?",false,manual,0.4455,0.0711,0.1056
+"FAZER SINTEGRA",false,indefinido,0.0869,0.0354,0.463
+"COMO VISUALIZAR OS PRODUTOS CADASTRADOS",false,manual,0.3558,0.021,0.787
+"BUSCAR UM LANÇAMENTO NO CONTAS A PAGAR NO VALOR DE 458,15",false,indefinido,0.1112,0.3346,0.7907
+"configurar conta do gmail no smtp do control",false,indefinido,0.1944,0.5312,0.965
+"como cadastrar roupa em grade",false,manual,0.4378,0.0535,0.934
+"suporte tecnico",false,indefinido,0.7154,0.179,0.4092
+"como usar o aplicativo coletor de dados?",false,manual,0.4838,0.1938,0.9202
+"bom dia tem como personalizar o pdv para ser mais direto a finalização da venda",false,indefinido,0.2227,0.1755,0.291
+"Como funciona o uso de matriz e filial no sistema?",false,manual,0.4054,0.0702,0.0599
+"cupom fiscal emitida em contigencia",false,indefinido,0.5039,0.1895,0.4378
+"bom dia",true,direto,0.7311,0.2691,0.6637
+"onde cadastra o sistema de proteção spc",false,manual,0.9302,0.1744,0.78
+"Fazer uma nota fiscal de serviço",false,indefinido,0.2268,0.12,0.2977
+"Bom dia, tudo bem ?",false,direto,0.4844,0.0534,0.8773
+"Como emitir carta de correção? 16/09/2026 08:41:01.889",false,manual,0.3702,0.0168,0.0359
+"como emitir CT-e",false,manual,0.6584,0.0927,0.501
+"estou tentando finalizar uma venda mais todas as vendas informa que é impossivel vender vendas a prazo para consumidor, sendo que estou fazendo vendas em outras especies",false,indefinido,0.3007,0.1571,0.2571
+"o que pode fazer pra mim",false,indefinido,0.5813,0.0124,0.5429
+"Como emitir carta de correção?",false,manual,0.3208,0.055,0.095
+"Na nota de compra, para que serve o campo Adiciona na Base de ICMS ST? Ele já vem marcado com base no XML do CT-e vinculado? Ou é uma marcação que devo fazer de forma manual?",false,indefinido,0.3849,0.0775,0.4941
+"Para que serve o campo Adiciona na Base de ICMS ST? Ele já vem marcado com base no XML do CT-e vinculado? Ou é uma marcação que devo fazer de forma manual?",false,indefinido,0.4455,0.0869,0.6058
+"Preciso de um relatório de venda de produtos que mostre no período todos produtos específicos e suas vendas",false,manual,0.8611,0.4829,0.3277
+"Qual o valor maximo emissao de uma nfce?",false,indefinido,0.4378,0.6002,0.6322
+"como fazer uma venda de nfe",false,manual,0.3416,0.151,0.46
+"alterar vendedor na parcela",false,indefinido,0.5039,0.1719,0.932
+"oque faze quando a contirgencia de dia anterior",false,indefinido,0.0753,0.0012,0.3951
+"Descreva para mim o botão nota de compra 2-Itens >> Outros >>> 8 - Valor ICMS Antecipação... Quando usar esse campo ?",false,indefinido,0.1441,0.1672,0.7334
+"Ao atualizar o servidor, depois preciso atualizar cada terminal um por vez ou posso fazer ao mesmo tempo ?",false,indefinido,0.1105,0.031,0.1781
+"é possível lançar despesas extra notas sem alterar o valor total da nota de compra ? apenas alterar o valor do custo da mercadoria 5-fechamento ?",false,manual,0.6077,0.0524,0.2786
+"relatório de produtos com preço de custo e venda",false,indefinido,0.5117,0.78,0.8146
+"no PDV quando digito o codigo de um item de balança, nã faz a leitura do peso",false,indefinido,0.7341,0.7607,0.8141
+"como lançar saidas do sistema",false,manual,0.3107,0.0014,0.4031
+"onde tem a configuração de nao deixar duplicar cpf ou cnpj no cadastro do cliente",false,manual,0.2975,0.1689,0.6114
+"Quanto ao CT-e, vi que além do campo Data doc, também tem o campo Data saída, porém como o sistema preenche este campo? O campo Data doc. é com base na tag <dhEmi>, mas e quanto ao campo Data saída? Ele pega o mesmo valor do campo Data doc ou como é realizado o preenchimento desta informação?",false,indefinido,0.2173,0.179,0.5293
+"onde fica o relatorio para conferir produtos com dias medios sem movimentar",false,manual,0.5312,0.5195,0.7146
+"reimprimir uma carta de correção emitida",false,indefinido,0.5583,0.1128,0.897
+"como fazer um backup no sistema em nuvem",false,manual,0.2254,0.3329,0.3032
+"como fazer um backup no sistema que esta instalado no nuvem?",false,manual,0.4111,0.0396,0.0888
+"quero saber qual meu lucro liquido, quais relatorios posso usar",false,indefinido,0.9173,0.0503,0.5487
+"como achar os e produto pelo codigo dele",false,manual,0.5832,0.4366,0.8544
+"COMO CANCELAR OU QUITAR UM CREDITO DE CLIENTER SEM ELE ESTAR EM DEBITO ?",false,manual,0.4766,0.3416,0.4671
+"posso fazer sangria pelo retaguarda?",false,indefinido,0.7154,0.0839,0.6114
+"curva abc",false,indefinido,0.7853,0.0759,0.9215
+"sangria",false,indefinido,0.7311,0.2878,0.6406
+"boa  tarde",false,direto,0.7635,0.3979,0.6406
+"esta esta a configuração para acumular o caixa cofre nos fechamentos de caixa",false,indefinido,0.248,0.1312,0.3007
+"tem algum video tutorial de entrada de nota?",false,indefinido,0.5273,0.0012,0.0821
+"mas para produtos normais, sem redução de base ou qualquer outra tratativa especial, mesmo assim tenho que criar a tabela de icms?",false,indefinido,0.4961,0.0781,0.8413
+"como configuro um grupo de icms para uma UF de destino",false,manual,0.2069,0.049,0.1947
+"Como faço pra atualizar o certificado digital dentro do sistema. Passo a passo pra que qualquer pessoa consiga fazer o processo",false,manual,0.2878,0.0644,0.5737
+"ONDE FICA MDF-E?",false,manual,0.2365,0.1161,0.8222
+"Preciso atualizar os computadores já funcionando primeiro. Como pego o link de atualização e de instalação?",false,manual,0.1667,0.0069,0.1944
+"como inserir cbenef nos produtos?",false,manual,0.1357,0.1848,0.4017
+"Preciso instalar o programa em um novo terminal do cliente. Ele descartou um terminal antigo e comprou um novo computador. Como faço a instalação?",false,manual,0.2095,0.0287,0.739
+"como excluir uma nota de compra/xml",false,manual,0.1471,0.1919,0.1023
+"Bom dia, é possível trabalhar com metas por vendedor dentro do sistema control?",false,indefinido,0.3998,0.3217,0.1987
+"tem como fazer uma tabela de preços só pros meus clientes mecanicos e já deixar o desconto travado no sistema, para sempre que passar de 15% tenha que colocar a minha senha",false,indefinido,0.2751,0.0459,0.4053
+"estou com um cliente que precisa de mais um retaguarda. o módulo pro atenderia ele.. ele precisa de dois retaguarda e um pdv",false,indefinido,0.4378,0.1268,0.935
+"estou com um cliente que precisa de mais um retaguarda. o módulo pro atenderia ele.. ele precisa de dois retaguarda e um pdv",false,indefinido,0.4378,0.1268,0.935
+"onde consigo ver as nf-es emitidas para o meu cnpj",false,manual,0.5351,0.0854,0.4591
+"o vimbo é mutlifilial",false,indefinido,0.7311,0.0827,0.1441
+"como buscar relatorio de vendas a prazo do mes",false,manual,0.4941,0.149,0.0704
+"Como buscar relatorio de vendas feita com recebimento em boleto",false,manual,0.304,0.0277,0.0586
+"alterar ordem de pedido",false,indefinido,0.5506,0.9529,0.9854
+"OQUE COLOCAR MO NIVEL E DESCRICAO DO HISTORICO",false,indefinido,0.2598,0.1161,0.3762
+"como faturar um recebimento?",false,manual,0.7983,0.1268,0.5679
+"como faturar um recebimento?",false,manual,0.7983,0.1268,0.5679
+"Para que serve o pedido de compra?",false,indefinido,0.5506,0.7217,0.9935
+"que o hostorico de venda da fgp da silva",false,indefinido,0.7154,0.461,0.7025
+"como faço para ver quando um pedido de compra foi pago?",false,manual,0.6859,0.0396,0.4668
+"ONDE ENCONTRO A PALAVRA PASSE DESSE MES",false,direto,0.3666,0.152,0.4649
+"COMO LANÇAR A CONTA DA ENERGIA NO CONTA A PAGAR",false,manual,0.3831,0.0333,0.1034
+"Como cadastrar um cliente como fornecedor?",false,manual,0.2689,0.0623,0.9281
+"COMO ENCONTRA ATRAVES DO NUMERO DO OBJETO",false,manual,0.2689,0.007,0.5215
+"ola",true,direto,0.728,0.4484,0.9315
+"/history?email=maria@empresa.com",false,indefinido,0.6225,0.8625,0.8397
+"exite a opção de folha de pagamento",false,indefinido,0.3849,0.5273,0.9284
+"preciso de licença para usar ?",false,manual,0.967,0.0118,0.1439
+"link para baixar o adml",false,indefinido,0.5583,0.4649,0.9934
+"como cancelar uma nfc-e emitida em contingencia",false,manual,0.2108,0.3381,0.6424
+"teste ja",false,indefinido,0.3311,0.0064,0.7405
+"como cadastro um fornecedor ao produto?",false,manual,0.1189,0.1651,0.9363
+"estorno de venda fora do prazo com erro de disponibilidade de produto",false,indefinido,0.6584,0.3831,0.696
+"como cadastro um fornecedor ao produto?",false,manual,0.1189,0.1651,0.9363
+"Tem alguma forma de verificar detalhadamente para qual cliente foi dado desconto?",false,indefinido,0.8824,0.6506,0.7797
+"ola me diga oque vc é capaz de fazer",false,indefinido,0.3961,0.3086,0.9802
+"esta sem solução, preciso saber como associar terminais ao executar o pdv-off-line",false,indefinido,0.15,0.0378,0.1312
+"no pdv off-line estou em uma tela que pede para associar terminal",false,indefinido,0.539,0.2069,0.4922
+"lançar credito ao cliente",false,indefinido,0.4378,0.1394,0.7587
+"ATUALIZAR CERTIFICADO DIGITAL",false,indefinido,0.2018,0.4922,0.5176
+"como configurar o layout do orçamento? resultado desejado: criar um orçamento enxuto, sem informações de grupo, sem itens, sem muitos detalhes, somente nome da empresa, CNPJ, nome do cliente e produtos",false,manual,0.4036,0.0724,0.1566
+"qual o procedimento para instalação de um terminal pdv off-line",false,indefinido,0.094,0.0507,0.0943
+"como fazer o retorno de uma nota de remessa para conserto",false,manual,0.2365,0.0396,0.2628
+"No Sistema Control, ao importar uma nota de compra, definindo que o frete foi por conta da contratação do frete por conta do destinatário (FOB), há duas seções disponíveis para o usuário preencher, sendo Frete CIF e Frete FOB (Fora), ambas contém o campo ""Valor"", se diz respeito ao valor do frete? O valor do frete CIF e valor do FOB? O que acontece no sistema caso o usuário preencha ambos os campos e conclui o lançamento desta nota?",false,indefinido,0.4417,0.5156,0.8578
+"como anexar imagem à etiqueta",false,manual,0.2422,0.0809,0.6352
+"como fazer o lançamento de uma despesa no contas a pagar",false,manual,0.3416,0.0243,0.1124
+"noa existe",false,indefinido,0.9698,0.538,0.7873
+"como faço para ter um relatório de vendas somente o valor de vendas de cada mês",false,manual,0.1871,0.2878,0.9236
+"COMO RETIRAR O FRETE DA NOTA DE DEVOLUÇAO",false,manual,0.2227,0.0338,0.0767
+"COMO RETIRAR O FRETE DA NOTA DE DEVOLUÇAO",false,manual,0.2227,0.0338,0.0767
+"Fui fazer aqui é me solicitou a digitaçao do numero do pedido",false,indefinido,0.2975,0.8721,0.9879
+"COMO RETIRAR O FRETE DA NOTA DE DEVOLUÇAO",false,manual,0.2227,0.0338,0.0767
+"COMO RETIRAR O FRETE DA NOTA DE DEVOLUÇAO",false,manual,0.2227,0.0338,0.0767
+"esse passo a passo Passe pelos campos Pedido e Data com a tecla Enter. No campo Cliente, informe obrigatoriamente o código do cliente cadastrado na venda original e clique no botão Abrir., estou fazendo, quando clico em abrir aparece a mensagem: não é possivel devolver o pedido de venda. a quantidade de intens vendiddos diverge da quantidade de produtos possiveis para devolução",false,indefinido,0.3451,0.153,0.9036
+"existe uma forma de fechar uma venda sem ter quer colocar o numero do pedido em emitir nota simples? (de preferencia pular essa parte)",false,indefinido,0.4417,0.0529,0.2414
+"é uma devolução de estorno fora do prazo",false,indefinido,0.7311,0.1836,0.637
+"estou tentado fazer uma devolução: erro não é possivel devolver o pedido de venda. a quantidade de intens vendiddos diverge da quantidade de produtos possiveis para devolução",false,indefinido,0.6151,0.2524,0.8715
+"eu quero um relatorio que mostre os clientes que tem renda mensal, que recebem acima de 5 mil cadastrado nos dados financeiros na aba de clientes",false,indefinido,0.6792,0.2628,0.9444
+"Estou criando uma impressao personalizada de pedido e pensei em criar um lugar para colocar qr code pix, então gostaria de saber se o sistema arpa tem nativamente um ZQuery3.""pix_string"" (que gera o pix automaticamente)",false,indefinido,0.22,0.1413,0.5351
+"existe um relatorio de renda por cliente, para direcionar o produtos para o cliente que recebe acima de 5mil por exemplo",false,indefinido,0.5775,0.5156,0.7058
+"Quais os relatorios mais importantes existentes no sistema",false,indefinido,0.9586,0.1968,0.8559
+"relatório de vendas com CNPJ do cliente",false,indefinido,0.85,0.434,0.6443
+"Um cliente entrou em contato informando que, ao acessar o sistema no servidor, visualiza todos os cadastros de clientes normalmente. Porém, ao abrir o sistema em um dos terminais da empresa, percebe que os cadastros são diferentes e alguns clientes existentes no servidor não aparecem no terminal. Ele afirma que ambos deveriam acessar as mesmas informações. Como você conduziria esse atendimento? Quais verificações realizaria para identificar a causa da divergência e restabelecer o funcionamento correto?",false,indefinido,0.2846,0.1348,0.6859
+"Como emitir uma nota fiscal avulsa?",false,manual,0.6095,0.3074,0.0515
+"valor strtin invalido para TCS TPIS: 0  . COMO CORRIGIR?",false,indefinido,0.4922,0.4922,0.7621
+"puxar e comparar as vendas se agosto dos ultimos 3 anos",false,indefinido,0.6584,0.2337,0.9483
+"como resolver prazo de cancelamento superior ao previsto na legislação ?",false,manual,0.6206,0.0229,0.1151
+"Como resolver transição pendente a ser resolvida no PDV?",false,manual,0.304,0.0163,0.333
+"como incluir vendedor nas parcelas quando as parcelas forma migradas de outro sistema",false,manual,0.6893,0.3831,0.4521
+"como alterar o vendedor em contas a receber",false,manual,0.3277,0.1441,0.2754
+"onde consultar contas a receber por vendedor",false,manual,0.7009,0.4054,0.6993
+"como alterar o valor de uma conta a receber?",false,manual,0.244,0.2862,0.9519
+"aplicar desconto em percentual em vários produtos ao mesmo tempo",false,indefinido,0.2628,0.3594,0.7635
+"database:control. 1.26.4.0 - ajustando data/hora alteração das imagens. SQL ERROR: relation ""produtos_imagens"" does not exist.",false,indefinido,0.9604,0.3775,0.5775
+"RELATORIO DE BOLETOS EM ABERTO",false,indefinido,0.6188,0.1225,0.8936
+"nota de devolução/ estorno",false,indefinido,0.9442,0.0623,0.4263
+"quero cancelar a nf emitida dia 28/05 para sadi mocelin",false,indefinido,0.2942,0.5312,0.9529
+"ONDE FAÇO EXPORTAÇÃO PARA VER OS CST DOS PRODUTOS",false,manual,0.4766,0.1124,0.8878
+"como é tratado as metas por vendedor, no sistema",false,manual,0.4244,0.0792,0.648
+"como fazer nota de devolução?",false,manual,0.7985,0.1427,0.4688
+"no que vc é capaz de me ajudar ?",false,indefinido,0.7025,0.3951,0.9014
+"COMO FAZER A ENTRADA DE UMA NOTA DE COMPRA DE MERCADORIAS VINDA DE UM FORNECEDOR",false,manual,0.4688,0.4173,0.6159
+"COMO LANÇAR DESPESA DE LUZ NO CONTAS A PAGAR",false,manual,0.461,0.0111,0.074
+"qual a função dessa taxa financeira na inclusão de ondição de pagamento?",false,indefinido,0.7705,0.3886,0.2121
+"pdv",false,indefinido,0.3812,0.22,0.3522
+"imprimir cupom apenas quando permitir",false,indefinido,0.3666,0.0901,0.8828
+"quero cadastrar produto",false,indefinido,0.2539,0.4537,0.9988
+"Montar combo",false,indefinido,0.4417,0.7905,0.9826
+"Combo",false,indefinido,0.5039,0.5195,0.9801
+"como fraciono um produto de caixa para unidade",false,manual,0.283,0.015,0.1006
+"Nota de débito e crédito, como funciona?",false,indefinido,0.498,0.0074,0.1312
+"como funciona o kanban",false,manual,0.5699,0.0078,0.092
+"teste som",false,indefinido,0.5039,0.0338,0.9342
+"cadastrar taxaas de cartao",false,indefinido,0.3775,0.22,0.3923
+"lnaçar credito para cliente",false,indefinido,0.2689,0.1813,0.4321
+"Como faço a adição de crédito do cliente?",false,manual,0.2082,0.1161,0.8141
+"ao oimportar o xml de nota de compra como vincular o contas a pagar?",false,indefinido,0.1931,0.9388,0.9289
+"para que serve a tabela de preço proaa clientes",false,indefinido,0.4187,0.3416,0.8933
+"Cadastro de combo",false,indefinido,0.4766,0.0663,0.6972
+"usar qyal cfop para nota de devoluça~odentro do estado",false,indefinido,0.3074,0.3849,0.4036
+"cfop para nota de devolução",false,indefinido,0.8311,0.3074,0.7461
+"pra que serve o portador na hora de incluir uma conta a pagar",false,indefinido,0.6741,0.0373,0.6151
+"rejeição operação interestadual e uf destinatario igual origem",false,indefinido,0.4378,0.2173,0.8044
+"como tirar nota fiscal de venda já fechada",false,manual,0.6976,0.1645,0.103
+"Preciso que os usuários 2 e 3 tenham o mesmo nível de acesso do administrador (usuário 1) Como faço?",false,manual,0.1919,0.1931,0.4766
+"o arpag no pratto funciona fora do estabelecimento?",false,indefinido,0.4961,0.0188,0.5117
+"o arpag no pratto funciona fora do estabelecimento?",false,indefinido,0.4961,0.0188,0.5117
+"relatorio de faturamento dos últimos 12 meses",false,indefinido,0.6225,0.0032,0.3975
+"tutorial sobre catalogo online",false,indefinido,0.6843,0.2842,0.0058
+"Se uma nota que emiti passou do prazo de cancelamento, o que devo fazer?",false,indefinido,0.4922,0.1128,0.8151
+"Onde gero o arquivo do Sintegra?",false,manual,0.9854,0.8449,0.9615
+"Preciso retirar a obrigatoriedade de informar senha para desconto no pedido na hora de colocar o produto",false,manual,0.3812,0.0792,0.6357
+"como funciona os lancamento de banco no arpa?",false,manual,0.3469,0.0388,0.496
+"como usar caixa no arpa:",false,manual,0.1784,0.0229,0.3016
+"onde conferir e configurar grades?",false,manual,0.5699,0.1096,0.3817
+"Me explica melhor sobre o modulo de produção, do inicio ao fim do processo",false,indefinido,0.304,0.0042,0.1023

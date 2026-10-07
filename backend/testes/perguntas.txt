@@ -1,0 +1,1165 @@
+isso mesmo
+mas como entro no condicional que fiz
+tef
+posso te explicar como funciona o processo de acerto da condicional, seja para faturar os itens comprados ou registrar o retorno das peças ao estoque.
+como eu configuro o sistema para emitir nfs  pelo ambiente nacional?
+tem como eu colocar horarios para rotas ou dias?
+onde cadastro a rota de clientes
+"sistema quanto a cobrança contas a receber e negociações com cliente na forma extrajuducial. é possível
+Acrescentar lançamento de outras cobranças? pois o sistema preve juros e multas..  Entretanto temos custas como despesas cartorárias , taxas e correção monetária que são previstas em lei com títulos acima de ,30 dias .existe algum campo de acréscimo para lançamentos no sisema F6 contas a receber o registro para efeitos de documentos , sem termos que criar faturas extra?"
+como incluir o xml de uma nota ja lançada
+como da acrscimo
+fechar caixa
+devolucao de vendas
+devolucao de vcendas
+GOSTARIA  DE SABER SE NAO TEM UMA OBÇAO QUE APARECE O TOTAL  DA DIVIDA DE TODOS OS CLIENTE DO MES
+como cancelar nota fiscal emitida ha mais de 1 dia
+B OM DIA GOSTARFIA DE SABER QUAL A OBÇAO QUE EU VOU PARA VER O QUE EU VENDI DE FIADO PARA MEUS CLIENTES DURANTE O MES  01 ATE 30
+qual é o cfp que devo colocar nas configuraçõe do sistema para autorizar baixar o xml, já ccoloquei o cnpj da emprera eo meu cfp e fica com invalido, todo vem q vou encaminhar um nota
+preciso fazer uma nota fiscal eletrônica de remessa, então essa nota não é de venda não tem ligação com um pedido. Qual o menu que preciso acessar para emitir essa nota
+nota de complemento de tributo
+Como gerar os XMLs do mês?
+Importar nota de compra
+ALTERAR ALIQUOTA DE ICMS POR CFOP
+como lançar nota fiscal de serviço passo a passo
+ALIQUOTA ICMS
+Como emitir um MDF-e?
+Qual é o prazo legal para cancelar uma NFC-e?
+Ajuste de estoque
+Como emitir nota de complemento de ICMS?
+Devolução de venda, como realizar?
+Carta de correção
+como ohar o faturamrnto do mes
+Como cancelar uma venda no pdv e fazer ela outra vez
+como criar ou gerar etiquetas
+como importar xmls de entrada no sistema através de arquivos?
+Finalizei uma venda no pdv mais a forma de pagamento está errado como é altero essa forma de pagamento
+Como alterar forma de pagamento finalizar no PDV
+Como alterar forma de pagamento quitada
+Como faço um relatório de extrato das contas bancarias?
+como cadastrar as alíquotas na tabela de redução de ICMS
+o que significa CFOP não cadastrado
+quero explicação
+Como alterar a forma de pagamento já finalizado
+como lançar condicionais pelo sistema?
+porque esta bloqueado o campo Cliente no Pedido de Venda? ou seja, não consigo iniciar a venda, estou logado inclusive como administrador
+relatorio de ultima compra e data que foi comprado por cliente
+COMO DAR BAIXA EM CHEQUE
+Como utilizar o módulo de aniversariantes?
+qual link para baixar  instalador em 32bits
+Como gerar sped fiscal?
+"ATENCAO: NO PROCESSO DE EMISSAO DO DOCUMENTO FISCAL 2829 SERIA 1 LOTE 3 E PEIDDO 2, FORAM  ENCONTRADAS AS SEGUINTES INCONSISTENCIAS 
+
+REJEIICAO CPF AUTOTIZADO PARA DOWNLOAD INVALIDO"
+é possível atualizar diretamente pelo programa os códigos NCM?
+e como faço para o sistema converter isso de forma automatica
+preciso mudar todos produtos para o CFOP 5102 como fazer isso em lote
+Como funciona o pós-venda no sistema?
+o cliente e um bar e compra coxa e sobrecoxa congelada para vender no bar e esta registrando o cfop 1101. qual o cfop que seria o correto
+onde eu cadastro cfop
+vou emitir minha primeira nota no control, eu ja usava outro sistema. Como alterar a sequencia de numeração da nfe
+no cadastro de produto, quando vou finalizar aparece uma mensagem assim: TABELA DE SUBSTIIÇÃO TRIBUTARIA NÃO ENCONTRADA POR FAVOR VERIFICAR
+ogi9
+preciso caancelar duas nfs fora do periodo permitido
+pode fazer um cadastro de um brinco de R$10,99, ncm 71179000, são 12 unidades desse produto
+tem como eu fazer uma conciliação bancária?
+qual produto eu mais tenho girando no meu estoque?
+Para que serve o campo Dias para contato no cadastro do produto?
+como faz para criar uma ração no sistema, e ele mesmo dar baixa com as notas?
+Qual a palavra-passe do mês de outubro de 2026.
+quais os relatorios trazem o lucro vendido por exemplo no pedido 50 vendi 10 itesns cada item obtive um lucro de tantos
+imprimir carne com várias prestações na mesma folha
+GERAR RECIBO
+para que serve as figuras de cfop
+gostaria de mudar CFOP em lote, como faço isso?
+como funciona o parametro na guia impostos de enviar automaticamente os arquivos para o contador?
+onde eu configuro os relatorios que serão enviados junto aos arquivos?
+a data de envio automativo dos arquivos fiscais ao contador é enviado qual dia do mes?
+Qual a palavra-passe do mês 10/2026.
+abertura de caixa
+oi me explique sobre emissao da nota fiscal de serviço eletronica
+é possivel fazer importação de produtos com grade?
+como mandar os relatorios de speed para contabilidade
+estou fazendo uma nota de devolução de um fornecedor de são paulo, usei a cfop 6949, e está dando o erro:cfop inválido paar nfe com finalidade de devolução de mercadoria
+Como cadastrar um produto?
+ao pesquisar os produtos estao aparecendo em ordem do maior para o menor como posso ajusta isso
+Manuais sobre conversão de banco de dados
+quero apenas nome e telefone do cliente
+relatorio de clientes que foran atendidos em uma data especifica
+faca um breve resumo de tudo, como se fosse um indice de conteudo. Maximo 2000 palavras
+Instalação e configuração do Software denominado Sistema CONTROL com mais de uma base de dados
+como ajusto o meu estoque
+como visualizar o ICMS em uma venda?
+tem como eu alterar os dados do cabeçalho de uma os ja fechada?
+como ver o relatorio das notas fiscais separadas das de simples lançamento
+1. Cadastro de Clientes (F9) > Informações para SPC — Como funciona o controle de SPC, Serasa e negativação do cliente?
+2. Cadastro de Clientes (F9) > Informações para SPC — Como negativar, consultar e reabilitar um cliente?
+3. Cadastros > Outros > Sistema de Proteção ao Crédito — Como cadastrar o SPC ou Serasa para utilizar na negativação?
+4. Cadastro de Clientes (F9) > Informações para SPC — Por que um cliente negativado não consegue comprar a prazo e como liberar novamente?
+5. Relatórios > Contas a Receber > Analíticos > Com juros, multa e desconto — Como consultar a situação financeira e a negativação dos clientes no relatório?
+9. Cadastro de Clientes (F9) > Informações para SPC — Qual é a diferença entre cliente vermelho e cliente azul?
+8. Cadastro de Clientes (F9) — O que significa a cor cinza no cadastro do cliente?
+7. Cadastro de Clientes (F9) — O que significa a cor preta no cadastro do cliente?
+6. Cadastro de Clientes (F9) — O que significa a cor azul no cadastro do cliente?
+5. Cadastro de Clientes (F9) — O que significa a cor vermelha no cadastro do cliente?
+4. Cadastros > Outros > Sistema de Proteção ao Crédito — O SPC e a Serasa precisam estar cadastrados no sistema?
+3. Cadastros > Outros > Sistema de Proteção ao Crédito — Onde cadastro o SPC ou a Serasa no sistema?
+2. Sobre SPC, SERASA E CONTROLE DE NEGATIVAÇÃO — Qual é a relação entre SPC, Serasa e o Controle de Negativação?
+1. Sobre SPC, SERASA E CONTROLE DE NEGATIVAÇÃO — O que é o Controle de Negativação no sistema?
+COMO DAR BAIXA EM BOLETOS QUE FORAM PAGOS
+COMO LANÇAR NOTA DE PRODUTO
+COMO DAR BAIXA NA NOTA
+como sincronizar imagens
+COMO EMITIR NOTA FISCAL DE UM AGRUPAMENTO DE VENDAS DE UM UNICO CLIENTE DAS VENDAS  A PRAZO
+tem algo onde eu posso controlar futuras entregas de pedidos de clientes?
+como visualizar os impostos em uma venda?
+como visualizar o ICMS em uma venda?
+quero fazer o fechamento do caixa
+quando aparece no pdv em venda o que significa
+como visualizar o ICMS em uma venda?
+como visualizar os impostos em uma venda?
+como excluir um cliente?
+no sistema control, como calcular o IBS/CBS de um produto?
+como emitir nfce passo a passo
+..
+como fazer uma nota de venda ao consumidor final?
+configurei o usuario para comissão de parcelas a receber. fiz vendas, quitei parcelas e o relatorio de comissões, relatorio 5 e 6 não funcionam, simplismente nao gera. o que estou fazendo errado?
+Entrada de nota fiscal manualmente
+Como ver a hora de abertura e fechamento de uma determinado caixa?
+como fazer para colocar um manual em um determinado produto, para que quando for vendido na impressão seja emitido esse manual ou que o sistema avise
+porém quero sepadao por vendedor
+preciso de um relatorio que me mostre apenas os valores recebidos, e que não venha contas a prazo, somente vir prazo se foi quitado
+nao estou nconseguindo receber de duas forams de pagamentos
+como informar a data de nascimento no cadastro do cliente
+como fazer um pagamento com dois tipo de foram de pagamento um em dinheiro e outro em pix, outro cartao?
+COMO FATURAR E FECHAR O.S
+erro.nao.catalogado
+notas em contingencia, como excluir?
+Estava apenas testando aqui
+"2 caibros 15cmx15cmx3m eucalipto rosa
+7 caibros 5cmx10cmx3m eucalipto rosa.
+2 fusos (rosca sem fim de 1/2x 1m) 20 porcas e 20 arruelas para esse fuso.
+5 sarrafos 5cmx5cmx3m 
+4 sarrafos 2cmx10cm
+1 sarrafo 2cmx5cm
+1 Masso de prego 19x40
+3 folhas de Eternit 6mm X2,44m
+3 folhas de Eternit 6mmx1,53m
+12 parafusos para Eternit 6mm.
+
+1 Metro de britado.
+5 sacos de cimento 
+2 malhas de ferro 15cmx15cm 2mx3m:
+Uma treliça H10 
+Consegue fazer um orçamento destes materiais?"
+ao fechar uma venda fiscal ele pede INFOMRE O NUMERO DO DOCUMENTO FISCAL...
+cfop 5102
+notas em contigência
+notas em contigencia, como excluir.
+como fazer uma venda parcelada com carne sem emitir fiscalmente?
+como faturar com várias espécies no retaguarda?
+o que significa quando aparece na frente de caixa AO CONSUMIDOR em verde
+para criar um icone no sistema para os eletrecista
+bom dia
+qual é a permissão exata para habilitar ou não um operador de caixa a cancelar ultimo documento no PDV?
+como emito uma nfe derivada de uma nfce
+não consigo acessar notas eletronicas aparece que n~so exite erro 137
+como criar um formulario para ordem de serviço
+onde habilito nas configurações para que na venda, no F12, puxe o número da remessa para fazer a nota de retorno
+ola, o sistema control permite mudar o preço na hora da venda no PDV?
+QUERO SABER ONDE IR PARA VER A VENDA DE CADA CLIENTE DURANTE O ANO TODO
+venda a prazo no pdv
+erro falha na validacao dos dados da nota
+como fazer etiqueta de produtos
+me explique como gerar etiqueta
+baixa xml
+onde localizo relatorio de impostos a pagar?
+onde localizo a geração de arquivo sped
+como tirar a curva abc
+como tirar impressão automatica
+e de forma automatica?
+rejeição: gtin (cean) com prefixo ivalido
+como lançar nota no sitema?
+com o funciona gerador de codigo de barras?
+como cancelar cupom no pdv?
+preciso excluir uma nota de devolução mas o control não me dar opção de excluir
+como alterar a forma de pagamento no pdv?
+como fazer em manutenção de codigos tributarios para todos os produtos ficar com preço minimo igual ao preço de venda
+tem como destacar a cor do nome de um produto quando ele estiver com preço promocional na hora da venda
+"Em uma venda com vários itens, preciso que determinados produtos não recebam o desconto aplicado no fechamento da venda.
+
+Exemplo:
+
+Produto A – R$ 100,00 – pode receber desconto
+Produto B – R$ 50,00 – está em promoção e NÃO pode receber outro desconto
+Produto C – R$ 100,00 – pode receber desconto
+
+Ao finalizar a venda, se o vendedor conceder 10% de desconto no pedido inteiro, quero que o desconto seja aplicado somente nos produtos A e C. O produto B deve continuar com R$ 50,00, pois já está com preço promocional.
+
+No Sistema Control da Arpa, existe alguma configuração no cadastro do produto, promoção ou árvore de configurações para marcar um produto como “não permite desconto adicional” ou para impedir que produtos em promoção participem do desconto geral da venda?"
+em uma venda com varios itens preciso que um ou mais item nao receba desconto, pois ele ja esta precificado como promoção como fazer para na hora de fechar a venda o vendedor dar um desocnto em todo pedido, porem aques determinados produtos nao entrar este desconto
+a partir de que prazo as contas a receber ainda podem ser cobradas? pode me informar??
+preciso que vc tire um relatório de contas a receber mais recentes e que por lei ainda possam ser cobradas
+onde marcar para o vendedor visualizar o preço de venda do produto quando esta consultando o produto
+como instalar terminal Pdv
+Ajuda para cadastrar um produto.
+como trocar o valor de venda na nota
+como faco para gerar um inventario
+Relatorio por espécie de pagamento
+como parametrizar um produto para cfop 5102
+como faço para emitir ums nfe de beneficiamento
+como faço pra ver a nota que cadastrei
+como faço para ter acesso aos tutoriais da vimbo
+o codigo E0314
+erro ao emitir NFSe, codigo 100
+tem algum video deste processo?
+Como eu faço uma NFe referenciar outra?
+como funciona o sistema financeiro de recebimentos?
+tenho como usar um codigo de barras para dois produtos no sistema?
+no pvd
+como faço para excluir apenas um item na compra
+VISUALIZAR XML
+Configuração para NF-e
+como emitir mdfe sem cpf do proprietario
+No histórico fincanceiro, onde exatamente está  o limite que podemos vizualizar/
+como vejo o limite do cliente?
+COMO TIRAR RELATOTIODE NOTAS FISCAIS CANCELADAS?
+Consigo desabilitar o caixa?
+Consigo reabrir um caixa já fechado?
+Certo, quando eu recebo um dinheiro e ele vai pro caixa e ao fechar o caixa, fechei zerado, consigo reabrir aquele caixa e fechá-lo novamente?
+Me explica como funciona a lógica do "caixa" no sistema Arpa
+emitir nfce?
+Ao realizar uma operação utilizando um CEP cadastrado no sistema, a cidade vinculada a esse CEP está errada. O que pode ter ocorrido?
+como colocar limite no crediário do cliente? Qual o caminho?
+quais relatorios posso usar para mostrar os rendimentos
+como emitir nfce
+como dar entrada em mercadoria pelo xml
+como dar entrada em mercadoria pelo xml
+como acesso o xml do mes
+a consulta de caixa está com a data e valores errados
+o sistema está com erro de valores e data
+como fazer todos os controles de caixa no sistema
+Corcampos: " is not a valid Delphi color value
+como consultar a data da última compra de um produto em estoque?
+como confiro meu cartão ponto?
+o que é uma bomba periférica de 1 cv
+tem como mudar a cor do sitema de branco pra preto
+Qual relatóro o sistema tem para conferir todos os recebimento do dia incluindo as vendas para conferir caixa do dia?
+meu caixa estar solicitando que faca sangria e eu nao sei fazer, pode mim ensinar?
+como alterar quantidade de estoque de um produto?
+gostaria de alterar o estoque da ( BATERIA ESTACIONARIA 12MN700 )
+para emitir uma nota fiscal dentro do estado o codigo e 5405 ou 6405?
+ola, queria um relatorio de todas as vendas do ultimo mes
+Relatório de do estoque com quantidade valor e valor total
+QUAIS SÃO OS CAMPOS OBRIGATÓRIOS PARA PREENCHER NO CADASTRO DE SERVIÇOS NO SISTEMA CONTROL?
+O assunto que necessito de informações é Sobre cadastro de produtos de serviços. Cadastrando serviços no sistema control para emitir NFS-e
+como fazer sangria?
+qual o link para baixar a ferramenta que ajusta o horario do banco de dados?
+Como usar a composição ?
+coo tirar uma nota
+como eu cadastro um produto no sistema
+como eu altero o nivel de permissão do PDV para limitar os usuarios ?
+preciso fazer uma devolução de uma nota de copmpra
+Onde cadastro uma transportadora?
+pode me explicar como funciona a formação do preço de venda ? essa opção fica no cadastro de produtos tenho como definir preço de venda por ela ?
+mudar senha do usuario
+como desbloquear para solicitar usu´´ario e senha no fechamento da venda
+como tirar um relatório dos produtos que destaque as quantidades de cada produto e no final a soma total dessa coluna de quantidade?
+limite financeiro do cadastro do cliente da a mensagem mas deixa vender mesmo assim
+Devolução de venda
+Carta de correção
+Como que faz nota de doação?
+E como vejo um relatório de tudo que recebi no mês, com suas formas de pagamento?
+como reeniciar o sistema para validar alogo que eu alterei
+EU POSSO TER UM SISTEMA DE FILTRO MAIS ROBUSTO NO SISTEMA CONTROL?
+como reiciciar o sistema
+O que são estes campos no lançamento de entrada do sistema?
+como realizar uma venda no sistema vimbo ?
+como mudar a foto da minha logo que aparece nas notas fiscais, e qual o tamanho da imagem que tenho que colocar ?
+como corrigir a seguinte mensagem na hora de trocar de produto para composição: impossível alterar o tipo de produto, encontrada movimentação para o item 12313. consulte o relatório razão.
+como transformar um produto em uma composição
+preciso ver onde cadastro comissao de vendedores
+atualiza sistema
+como cadastrar uma composição
+olá
+Como faço um relatório de vendas?
+consultar aliquota icms de um produto?
+FILTRO HIDRAULICO MB 1113
+Como zerar o estoque
+baixar varios contas a receber do cliente
+Como zerar estoque
+como ver uma nota fiscal da universal
+estou com problema de fechar venda devido as especies
+onde devo clicar para editar as configurações da natureza da operação?
+onde ficam as configurações do sistema onde possui o regime tributário da empresa?
+como cancelar uma transferencia
+abrir caixa onde fica?
+Olá bom dia tudo certo? preciso ajustar a aliquota para uma venda em outro estado, onde posso fazer esse ajuste?
+nao consegui ainda configurar a baixa de contas por parcelamento... pagamento com duas especie
+mensagem de valor do limite do caixa atingido
+cancelar uma venda
+relatorio por forma de pagamento
+me fale das configuraçoes do caixa
+como configura a consulta de caixa para não mostrar o valor
+como configura a consulta de caixa para não mostrar o valor
+como configurar o fechamento de caixa para não mostrar o saldo de caixa
+Como Realizar a Emissão NFE de Perda ,Roubo ou Deterioração
+Manual de como importar notas de compra por XML
+mesmo apertando ctrl+L ele não limpou a tela.. e venda não estava totalizada
+estou com outro problema ao realizar um teste no caixa para cancelar toda a venda apertando f2 , ele não apresentou a janela para poder remover .. porém quando acessei o anydesk da máquina para fazer um teste e ver se era a resolução.. funcionou .. mas no caixa não... no caso na máquina em que está instalado o pdv
+como alterar o atalho das espécie de pagamentos?
+Na hora que estava instalando o sistema control em uma máquina abriu um um aviso: Não foi possivel executar o arquivo: C:\WINDOWS\system32\wbem\wmic.exe    CreateProcess falhou: código 2.  O sistema não pode encontrar o arquivo especifico
+estou no sistema control e gostaria de saber se tenhos mais de uma licença por favor
+como fazer o bakap no sistema control?
+quantas liçencas eu tenho ?
+estou querendo enviar um email através do sistema porémm, esta tornando a informação de invalid key
+COMO FAZER BACKUP DE SEGURANÇA
+Quando o cadastro do fornecedor (CNPJ) do pedido de compras for um e o da NF for outro, como faz?
+como fechar o caixa
+Como faço o lançamento de um pedido de compra quando for  uma bonificação?]
+Quais são os KPIS de controle que envolvem o Pedido de Compra e entrada de NF?
+video explicativo do arpag
+video explicativo do arpag
+Quando eu faço a operação de "incluir" ou novo cadastro, na aba de Produtos. Quais são as informações minimas?
+video explicativo do arpag
+Quais são as informações minimas para a formação de um novo cadastro
+como excluir um item do sistema
+lentes ar
+é possivel importar um plano de contas?
+como tirar a ordem de entrega sem os valores
+Tem como fazer no sistema a seguinte promoção: Nas compras acima de R$ 500,00 cliente ganha um brinde
+tem como imprimir pedido em lote?
+alterar logo de eitqueta
+como configurar a contigencia da nfc
+como fazer nota de devolução
+montar um passo a passo para lançar nota de compra com video
+não apareceu na cielo o app ARPAG!
+cadastrar plano de contas?
+como fazer um pedido de venda
+como cadastrar plano de contas?
+qual app devo pesquisar na loja de app?
+quais a teclas de atalho rápido de vendas no caixa? exemplo: dinheiro, cartão de crédito, cartão de débito, pix
+Onde encontro o relatorio do speed fiscal?
+como tirar um relatorio speed?
+COMO MUDAR PARA EXTERNO PARA INTERNO
+enquadramento ipi
+COMO MUDA DE ATENDIMENTO EXTERNO PARA INTERNO DPS DE O.S FEITA
+cadastrar enquadramento de IPI
+coo permitir ao usuario dar desconto além di limite definido
+quando clico em cartão, aparece as bandeiras, mas não quero isso, quero quer vá direto para o meu tef
+não estou conseguindo lançar uma nota de compra, aparece uma mensagem SQL impossivel devido reforma tributária
+seria possivel deixra fixado um cfop padrao para cadastro manual dos produtos?
+como configurar a confissao de divida
+como gerar uma tabela de preço e associar ela a um cliente
+manual de configuração de pin pad de terceiros
+preciso liberar permissao para o usuario lançar nota de compra, inclusive o conta a pagar referente a essa nota, porem ele nao pode ter acesso para visualizar o contas a pagar da empresa
+seria de varios pedidos. como faço
+PRECISO EMITIR UM RELATORIO DE UM CLIENTE ONDE CONTAM AS PEÇAS QUE COMPROU COM VALORES E NCM
+como reimprimir um comprovante de uma conta que recebi no pdv
+OI
+estou anexando contrato de alguns clientes no cadastro deles. podemos colocar um aviso pra data limite de vencimento do contrato de serviço?
+OI
+quais os dados que preciso para comoeçar a emitir nfc
+COMO VER AS VENDAS DE CADA PROCEDIMENTO
+3. Como corrigir o problema de matriz e filial errada?
+2. O Cenário: O que acontece quando a importação de matriz e filial dá errado?
+1. O Conceito: Como funciona a estrutura de Matriz e Filial?
+produtos ja existentes
+obrigado
+Quando fornecedor emite nota fiscal remessa em garantia pra meu cnpj, como cadastro no sistema?
+Da entrada de nota de compra nova, produtos
+da entrada de nota de produto nova
+minha ultima duvida
+eu tenho um produto ja cadastrado, e eu comprei mais dele, eu posso so ir no produto e aumentar a quantidade ou preciso da entrada na nota
+como colocar cst 102 nos produtos?
+Tem como alterar a quantidade do produto no pdv
+Como emitir uma nota de devolução de compra?
+como funciona a opção para quitar uma parcela da agenda de cobrança
+e as vendas realizadas no pdv offline standalone são registradas no servidor como
+erro CFOP de operação interestadual e idDest <> 2
+quero saber o operacional do pdv offline em dois aspectos. O primeiro e se a rede do cliente cair ou o servidor desligar ele continua funcionando e segundo como os preços alterados no servidor e atualizado no pdv offline
+quero fazer a devoluçao de um produto de um fornecedor, cmo faço?
+erro CFOP de operação interestadual e idDest <> 2
+me fale do pdv offline
+CFOP de operação interestadual e idDest <> 2
+caminho do busca preço
+quando e entro no sistema exibe a mensagem de erro: "Erro ao conectar o banco de dados"
+cancelar nota fora do prazo
+fornecedor emitiu uma nota fiscal de entrada pra ele mesmo como devolução de venda, como eu cadastro essa devolução de venda no sistema para o estoque sair do meu sistema?
+manual do caixa
+quando vou abrir o sistema, exibe uma mensagem de erro: "Erro ao conectar o banco de dados"
+nota de devolucao
+como fazer nota de devolucao
+relatorio prazo médio de recebimento de parcelas
+no sistema arpa onde faco a folha de pagamento dos colcaboradores?
+"Retorno do Provedor da NFSe: Rejeitado - [#inv0328] - Mensagem retornada pela prefeitura: Codigo: E1235, Mensagem: Falha no esquema XML do DF-e. Correçao:
+The http://www.sped.fazenda.gov.br/tribSSQN element is invalid - The value 47 is invalid according to its datatype http://www.sped.fazenda.gov.br/TSTribISSQN - The
+Enumeration constraint failed. [#inv0328] - Mensagem retornada pela prefeitura: Codigo: E2404, Mensagem: Nao foi gerada uma NFS-e com o identificador de DPS"
+Retorno do Provedor da NFSe: Rejeitado - [#inv0328] - Mensagem retornada pela prefeitura: Codigo: E1235, Mensagem: Falha no esquema XML do DF-e. Correção: The element cServ in namespace http://www.sped.fazenda.gov.br/nfse has invalid child element xDescServ in namespace http://www.sped.fazenda.gov.br/nfse. List of possible elements expected: cTribNac in namespace http://www.sped.fazenda.gov.br/nfse.[#inv0328] - Mensagem retornada pela prefeitura: Codigo: E2404,
+Retorno do Provedor da NFSe: Rejeitado - [#inv0328] - Mensagem retornada pela prefeitura: Codigo: E1235, Mensagem: Falha no esquema XML do DF-e. Correção: The element toma in namespace http://www.sped.fazenda.gov.br/nfse has invalid child element end in namespace http://www.sped.fazenda.gov.br/nfse. List of possible elements expected: CNPJ, CPF, NIF, cNaoNIF in namespace http://www.sped.fazenda.gov.br/nfse.[#inv0328] - Mensagem retornada pela prefeitura: Codigo: E2404,
+cleint
+como posso informar a forma de pagamento de uma parcela no caixa?
+como faço para emitir uma nf-e para cobrir um cupom fiscal e sair com o cfop 5929?
+Como ajustar a sequencia (numero) da nfse no sistema?
+como excluir um item
+como zera o estoque
+gostaria de saber se é possível alterar o campo de outras/acessórias na nota fiscal de devolução
+NAO ESTOU CONSEGUINDO COLOCAR PREÇO DE VENDA
+EMISSAO NF FALHA VALIDAÇÃO DADOS NA NF
+Modulo restaurante do sistema control pdv
+manual do modulo restaurante
+fazer a nota de garantia
+qual o kit de filtro mb608 referencia
+cOMO GERAR PLANILHA DE PRODUTOS COM DESRCIÇÃO, PREÇO DE CUSTO E PREÇO DE VENDA
+como faz para aplicar aumentos em familia de produtos
+O MESMO VALE PARA RETAGUARDA?
+COMO INSTALAR O CONTROL EM REDE.. ? ESSA MÁQUINA É O SERVIDOR.. E TENHO MAIS 3 TERMINAIS ..
+Opa Charles, tudo bem?
+Olá
+Queria saber se atende petshop
+O sistema arpa atende petshop?
+como certifico o lançamento da venda foi quitado
+como lancar recebimento de venda no cartao passo a passo
+quando vou abrir o sistema aparece um erro dizendo: erro ao consultar o banco de dados
+ONDE FAÇO RELATRORIO DE PRODUTO QUE TENHA MARGEM E PREÇO
+como eu fazer uma venda no pdv
+Cadastrei um colaborador e não apareceu os menus de atalho no sistema como resolver
+a sincronização do backup com google drive, acontece no mesmo momento do backup local?
+COMO FAÇO O RELATORIO DE PERDA?
+Manual de ativar mesa no pdv
+como fazer um venda ?
+"---------------------------
+Atenção
+---------------------------
+SQL Error: Função verifica_cabecalho_venda Identificado divergência entre a espécie e portador da condição de pagamento 1 com a espécie e portador informados no faturamento. Verifique!
+---------------------------
+OK   
+---------------------------
+
+Assistente, consegue me ajudar nesse erro?"
+Na hora de fazer uma devolução para o fornedor, não estou conseguindo usar o cfop 5949
+Tem alguma opção que permita escolher imprimir ou não  o cupom fiscal da NFCe no PDV
+preciso por gentileza do manual de configuração da copia de segurança de uma segunda base instalada na máquina
+notas de entrada no dia 28-09-2026
+Como acessar meu relatório de faturamento, que entra o que vendi mais o que recebi no mês
+COMO TIRO UM RELATORIO DOS ITENS DO MERCADO PARA CONFERENCIA
+como importar o arquivo de exportação dos itens de balança para o mgv6 da toledo?
+um cliente que e do simples nacional distribuidora de bebidas e o suporte configurou ele como industria. o que isso muda no sistema principalmente na parte de impostos
+Como faço devolução de venda ao consumidor final?
+qual seria a configuração mímica de um smartphone para colocar o smart vendas?
+como faço para emitir uma nota fiscal?
+seguinte, estou com um gap no uso do pdv os produtos pesáveis só aceita o código de cadastro do banco e não o código de barra que foi definido para o produto.. como podemos resolver essa situação
+Na consulta de documentos fiscais consigo puxar os documentos fiscais anteriores a ativação do sistema?
+assistente, qual a melhor forma de bloquear um cliente, desativando ele? não gostaria de vender mais para o mesmo
+onde encontrar as notas canceladas dentro do control?
+como rodar o imendes
+Não foi possível consultar o licenciamento. Verifique a sua conexão e tente novamente.
+certo, resolvido
+Grata!
+posso fazer uma entrada manual e depois trocar o fornecedor, ou uma vez iniciada entrada ou até mesmo concluída, fica vinculada com o fornecedor inicial? e se não der, depois é possível acessar o cadastro do fornecedor e alterar o nome dele
+"como fazer uma nota de estorno ref nota de entrada, colocando o CFOP 5949, e na natureza de operação:
+999- Estorno de nota fiscal não cancelada no prazo legal."
+complemento icms para 1 produto da nota
+Como fazer uma Nota de Perda no Control
+Como funciona o PDV ofiline
+onde ajustar o numero da remessa dos boletos ?
+Movimentação de Estoque ou Baixa de Estoque.
+nota fiscao de perda
+CFOP 5102
+nota fiscal de perca como fazer
+cfop 5002
+como eu tiro um relatorio onde eu vejo as nfs que foram emitidas?
+tem algum relatorio que mostre o faturamento mes a mes?
+vamos lá! como é que o meu cliente pode usar o pdv , caso o cliente pague em dinheiro exemplo: a compra deu 25,00 e ele deu uma nota de 50,00 o troco de volta tem que ser 25,00 correto?
+seguindo esta mesma linha de raciocínio, como funcionaria a devolução de compras?
+me explique como deve funcionar o macro processo de compras e lançamento da nf, e quem deve ser os funcionários envolvidos. Desde o momento da compra.
+Sim, mas aonde eu chego nessa parte " Frete e pagamento '' ?
+como eu faço para habilitar algum lançamento rapido no PDV depois de fazer a leitura do codigo de barras da balança ?
+Aonde que eu acho essa tabela Mdf-e
+ta dando erro, dizendo que não exite nenhum código de pagamento na parte de componente
+manifesto dando erro:  As informações de pagamento devem ser informadas para carga lotação
+produtos pesados
+como solicitar abertura e fechamento de caixa automáticamente
+Lê codigo de barra da balança pelo PDV para verificar o peso e o valor total
+Preciso fazer uma redução da base de dados, como faço?
+Os produtos não estão amostrando os valores na tablea, como resolver ?
+esta dando erro ao lançar produto diz que o codigo já está associado a outro produto
+como faço para criar um combo, com dois produtos diferentes, e quando vender baixe o estoque
+Existe alguma configuração que impossibilite eu incluir o meu item sem estoque numa ordem de serviço?
+Existe alguma configuração que impossibilite eu incluir o meu item sem estoque numa ordem de serviço?
+Posso incluir um item sem estoque na ordem de serviço?
+Como ocorre a movimentação de estoque da nova ordem de serviço?
+Como emitir carta de correção?
+dashboard
+Sim, me explique como consultar o relatório de produtos com saldo pendente em pedidos de compras
+Me oriente
+O que acontece se um pedido de compra tem registrado a compra de 50 unidades do item 1. E na nota fiscal vem apenas, 20 unidades, oque acontecerá com as 30 restantes?
+preciso ajusta a resolução da letras
+Qual o critério que o sistema usa para buscar os produtos vinculados e não vincualdos em uma nota de entrada?
+como efetuar venda a prazo com 3 formas de pagamento
+tem como configurar a comissão por faixa de vendas, por exemplo de 0 à 100 5% de 101 à 200 10% ...
+cod componente do pagamento
+Como funciona a comunicação entre o 'Pedido de compra' e 'compras'
+Como registrar DLL
+"ESTOU SEGUINDO ESSE PASSO A PASSO, MAS NÃO CONSIGO ALTERAR A DATA DE PAGAMENTO: Contas a Pagar (Pagamento a Fornecedor): Acesse o menu Manutenção > Contas a Pagar > Contas a Pagar (Quitar/Consultar) ou pressione a tecla F11.
+
+•	Localize a conta: Filtre pelo cliente/fornecedor ou período e clique no botão Abrir.
+
+
+•	Inicie a quitação: Selecione a parcela desejada e clique no botão Quitar.
+
+
+•	Informe o valor pago no primeiro dia:
+
+* Ajuste a Data de Pagamento para a data em que o primeiro pagamento foi realizado.
+* No campo Valor Recebido (ou Valor Pago), informe apenas a quantia parcial que foi paga no primeiro dia."
+comom configurar modelo, tamanho de etiqueta para impressão
+onde eu posso consultar a informação de qual é a classe de um produto rapidamente?
+como imprimir os preços para coocar na prateleira
+Qual a diferença da opção uso e consumo e industrialização quando entra com uma nota de compra
+PAGUEI UMA PARTE DE UMA CONTA EM UM DIA E OUTRA PARTE EM OUTRO DIA. COMO DAR BAIXA?
+como ver minhas licensas
+como posso cadastrar clientes?
+relatório ticket medio
+e um relatorio do valor geral em mercadoria com base no preco de venda
+Relatorio geral de preco de custo de todas as mercadorias da loja
+Como inativar um vendendor?
+voce possui api para chatgpt
+uma contadora de um cliente que e do simples nacional esta questionando que o sintegra não esta somando os ipi das notas de compra. queria saber se realmente precisa somar os ipi das notas de compra no sintegra das empresas do simples
+como uma inteligencia artificial pode acessar o sistema e preencher ou ler dados?
+boa tarde , preciso ver como posso fazer boletos para um cliente , mais o cliente me deve mais so que ele quer que fazo 4 boletos so referente uma compra .como posso fazer o boleto so daquela compra e o resto que ele me deve nao pode sair boleto
+como adicionar produtos a uma regra específica de ibs e cbs
+relatorio de contas a pagar
+fazer carta de correcao
+como faturar uma ordem de serviço em varias modalidade de pagamento
+Quero que o sistema envie automaticamente todo mês um lembrete para os clientes informando a parcela que esta proxima de vencer.Tem como fazer isso?
+Esse envio precisa ser feito manual
+Como deletar todo o cadastro de produtos?
+pgsql.9.6 p serviço não iniciar pq erro no logon
+no modulo BI, do relatório que traz o valor de contas a pagar - vencidos, traz de onde esta informação?
+Como emitir nota fiscal conjugada produtos e serviços juntos
+relatório de produtos com preço de venda, preço de custo e estoque
+O sistema vai ter integração com o renave?
+Como emitir um cumpom para o cliente ?
+como faturar um recebimento?
+diz que nao posso colocar um valor menor
+tenho um conta a receber, de 10 mil recebi 4 e quero colocar o restante em 3x de 2 mil como fazer isso
+como criar composição de um item que tem varios itens nele
+RECIBO DE ENTREGA
+COMO FAÇO LANÇAMENTO DE PERDA?
+clico em inclur da erro
+como faço devolução de itens de um pedido fechado
+qual a diferença entre Ordem de serviço e ordem de serviçi desktop?
+como fazer devoluçao de uma nota
+Como faço para importar uma NFe a partir da chave de acesso ?
+Como acesso o DRE no sistema?
+qual relatorio para tirar de faturamento mes a mes de um ano todo?
+chegou uma nota de frete separada da nota de compra, qual o procedimento correto para dar entrada?
+Olá. Gostaria de saber se tem alguma configuração para enviar um lembrete para os clientes todo mês quando a fatura estiver perto de vencer
+como ativar um produto que está desativado?
+onde marca para imprimir confissão de divida
+Como gerencio os recebimentos no ARPAG?
+como resolver erro do programa ao abrir que não se comunica  127.0.0.1 porta 5432
+como bloquear e desbloquear um cliente
+OK muito obrigada consegui resolver era erro do imposto iss
+diz Aliquota incorreta  onde vou para atualizar como vou fazer cod E00
+se fosse uma ia feita no lovable não iria demorar tanto para responder
+como eu faço uma venda dentro do sistema?
+Olá. Gostaria de saber se no sistema tem alguma configuração para enviar um lembrete para os clientes todo mês quando a fatura dele estiver perto de vencer
+OI SIM DIZ NOTA REJEITADO
+ele e uma distribuidora de bebidas. para esse caso a regra e a mesma
+não seria esse o motivo que a contadora fala que nao recebe o epi no sintegra
+como cadastrar cliente para exterior
+o que o bloco 51 do sintegra e responsavel
+a contadora de um cliente me enviou um audio falando que o sintegra que Jefin esta enviando para ela contadora nao esta indo com as informaçoes de ipi. como resolver essa questão
+OI NAO CONSIGO FAZER AS NOTAS FISCAIS DE SERVIÇO  REF A EMPRESA HERMANN
+quero acompanhar meu movimento de caixa
+meu sistema temo módulo de integração fiscal do IMendes ?
+qual o grupo correto para venda de lubrificantes?
+preciso ajustar os produtos do estoque os monofásicos para adequação da reforma tributária
+Onde fica FORMAÇÃO DO PREÇO DE VENDA?
+EU GOSTARIA DE SABER COMO FUNCIONAS AS TABELAS DE PREÇO
+OLA
+como pesquiso as pre vendas já faturadas
+como fazer precificação coreta no sistema
+COMO INSIRIR UMA FOTO DO PRODUTO
+atualizar servidor e terminais
+como atualizar o sistema control
+Configuração
+Quais relatórios de faturamento existem no sistema?
+consigo instalar o sistema em um tablet da apple
+preciso imprimir o valor do produto e o valor do desconto
+Sessão nfce sp p não encontrada no acbrnfeserviços
+Não consegui resolver, preciso de ajuda de um técnico pelo acesso remoto.
+faturamento
+quanto faturei esse mes?
+nao cosido emitir nota de devolucao para fornecedor  esta dizendo que o produto nao foi comprado
+some as notas do jhone
+emita a ultima nota do sistema cadastra
+quantas torneira 1/4 de volta tem no estoque
+225+98
+como consultar produtos comprados
+assistente, precisava receber contas a receber com mais de uma forma de pagamento, como faço?
+relatorio conferencia de estoque
+EMIÇÃO DE NF SERVIÇO
+como emitir uma nota complementar de icms
+quero tirar relatório de correias
+gerar Boleto para arquivo? para que serve
+como fazer um relatorio de duplicatas emitidas por portador nos ultimos  meses
+qual nome das tabelas do estoque
+Não aparece a opção correspondente ao estoque zerado (igual a zero).
+Como ajustar o preço apenas dos itens que estão com estoque zerado
+relatorio de venda por especie de pagamento
+relatorio por especie de pagamento
+cadastro
+relatorio que mostre totais de venda por especie
+quando cliquei em convenios e depois em incluir deu a mensagem de banco não implementado
+manual de configurar boleto itau cnab 240 ou 400
+erro cfop 1656
+como faço para vender o sistema?
+onde informar a comissao para vendedor
+como agir com notas em contigencias
+como fazer o lancamento de uma nota de servico de telefone prestado pra minha empresa
+Tem alguma forma de vincular uma taxa percentual quando a especie for uma especifica?
+como faço para consultar o total de faturamento de determinado cliente
+como utilizar duas formas de pagamento no pedido? uma será credito do cliente e outra será a prazo
+PAGUEI A CONTA DE LUZ E QUERO LANÇAS NO SISTEMA ESSE PAGAMENTO. COMO FAÇO. QUERO PASSO A PASSO
+tem como remover o valor de frete de um pedido de devolução de compras?
+preciso alterar a data de um boleto ja emitido
+olá
+entrada em documentos proprios
+como olho relatorio de credito
+como dividir o pagamento ix e cartao
+Atualizar certificado digital
+Obrigado
+como edito opções de usuários para consulta de produtos?
+como tirar um relatorio do valor total que tenho em estoque
+como consultar o valor total do estoque
+como eu dou entrada numa nota fiscal de devolução
+ele vai atualizar as duas bases de uma unica vez
+como atualizar um sistema de um cliente com duas bases
+quero um relatórios dos produtos mais vendidos e o os menos vendidos
+estava tentando instalar o programa mas não consegui
+eu ja tenho o sistema Pratto instalado, ao executar o instalador  novamente ele não ira instalar o programa duas vezes
+isso não fara uma instalação duplicada
+Sera que não e um problema de servidor, quando instalei eu selecionei a opção de baixo maquina e não servidor, sera que e isso:
+Assistente, boa tarde, tudo bem? gostaria de saber se é possivel pelo Vendas>Processar vendas em sequencia de lote a gente fechar varias vendas em simultaneo
+Qual contato do suporte?
+como alterar o vencimento do boleto
+tenho a licença e o pratto instalado no minha maquina, mas ele informa, que não tem aplicação instalada, a licença já esta ativada.
+eu instalei o modulo adicional, porem em configurações do control, ele informa que não ha aplicação instalada.
+em que voce pode me ajuda?
+Qual contato do suporte?
+Qual último cliente cadastrado?
+"estou lançando um produto na modulo de venda do control e está mudando a descrição e aparecendo um erro na parte da emissao do docuemnto fiscal
+
+PINO WC ICMS monofásico sobre combustíveis cobrado anteriormente conforme Convênio ICMS 199/2022;
+
+"NFE NAO PODE TER PREENCHIMENTO DE GRUPO DE TRIBUTACAO DO ICMS MONOFASICA SOBRE COMBUSTIVEIS"
+preciso instalar o sistema pratto desktop
+como fazer uma venda
+onde lançar nota de credito ou debito
+onde vejo a imagem do produto
+commo vejo imagem salva do produto?
+Preciso de manual de instalação do vimbo?
+Preciso de manual de instalação do vimbo?
+como colocar o fornecedor no item se mdar entrada de nota?
+cancelar uma NF de devolução, qual o passo a passo?
+como trocar senha usuario
+COMO VEJO O HISTOTICO DE AJUSTE DE ESTOQUE ?
+CREDITO DE CLIENTE, COMO RETIRAR?
+preciso de um relatório contendo compras por fornecedor, e qual é a finalidade de venda dos produtos desse fornecedor.
+Qual a diferença da versão do PDV off-line 2 para a versão 1 ?
+na planilha de importação contas a pagar .. a coluna: tipo_documento ele fica como código ou descrição
+sped fiscal
+relatorio de vendas por subgrupo e por data
+monte um passo a passo de como utilizar ordem de produção
+é cencelamento de uma devolução de compra
+fiz uma nota de devolução de venda e o cliente rejeitou, preciso agora fazer o cancelamento dessa nota de devolução
+no retaguarda o ultimo caixa aberto e fechado dele foi do dia 12/09, e ate ontem o sincronismo estava ok, entao isso nao condiz com a realidade
+"pdv off-line com erro de sincronismo - Erro: funcao verifica_caixa. Erro: Caixa do usuario 32 ja esta aberto, favor fecha-lo para abrir novamente.
+Porem o caixa do usuario esta fechado no pdv"
+como cadastrar um produto?
+em conta a receber, existe o sistema de cores para identificar parcelas vencidas, vencendo e a vencer, esse esquema de cores pode ser alterado ou desativado?
+Como ajustar manualmente o estoque de um produto?
+bom dia
+Um cliente quer entrar com uma nota de serviço no sistema. como e feito isso
+onde configurar para usar produto de balança
+nao foi a nota fiscal , apenas o cupom
+quero o passo a passo
+quero vizualizar o cupom de uma venda realizada no dia 12/09/2026
+como verificar quais os últimos fornecedores me venderam determinado produto
+"O que são estes campos no lançamento de entrada do sistema?
+
+Total de produtos
+
+Total de serviços
+
+Desconto
+
+Total
+
+Seguro
+
+Outras despesas acessórias
+
+Total IPI
+
+Total ICMS ST
+
+Total Imposto de Importação
+
+Total IPI Devolvido
+
+Total líquido
+
+Outros Ajustes de Custos"
+É uma nota de compra, e se precisar destacar os impostos, como faço?
+preciso emitir uma nota de devolução
+como fazer um simples lançamento
+da pra destacar data  e hora na impressão da venda de simples lançamento do pdv
+Boa tarde! Preciso do manual de instalação do VIMBO.
+o que posso oferecer para um cliente que esta enquadrado no mei
+pdv está travando, suspeito que o postgresql esteja criando locks e não as desbloqueando, tem alguma solução?
+ao fazer a venda o produto da a mensagem de: nfe nao pode ter preenchimento de grupo de tributação do icms monofasico sobre combustivel
+ordem de serviço
+compramos um oculos com o fornecedor, e veio com defeito, precisamos tirar uma nf de devolução em que um dos produtos que compramos veio com defeito
+COMO ENCONTRAR AS NOTAS FISCAIS EMITIDAS
+onde encontrar  Ticket Médio
+"A respeito da inclusão da guia GNRE, tem os campos:
+
+Doc. Arrecadação:
+
+UF Destinatario:
+
+Documento:
+
+Cod. Autenticação:
+
+Valor Total da Guia:
+
+Vencimento:
+
+Pagamento:
+
+Inf. Complementares:
+
+E o checkbox Esta GNRE esta inclusa nos dados adicionais da nota fiscal?
+
+Gostaria que me explicasse cada um destes campos para que eu consiga entender o contexto, o que preencher e sua aplicabilidade no sistema?"
+NO CASO EU JA EMITIR A NOTA. TEREI QUE CANCELAR E INCLUIR O CHASSI. COMO FAZER TODO PROCEDIMENTO
+ONDE COLOCA AS INFORMAÇÕES ADICIONAIS QUE DEVEM APARARER NO RODAPE DA NOTA
+preciso instalar o certificado digital como faço?
+como colocar um operador no sistema com acesso as o.s
+um cliente fez uma venda no pdv ao consumidor e quer fazer a devolução de um item. como fazer
+mdf-e
+Como alterar em massa o CST dos produtos?
+VINCULO DE ESTOQUE
+ONDE ESTA PARA  FAZER  VINCULO
+queria saber se tem como ve quem fez a quitação de um boleto
+como desmarcar no cadastro de produtos que é código de barras para documentos fiscais
+como faço para corrigir o campo EAN/GTIM
+Ola. Qual é o caminho para os manuais de boleto por API ?
+oque fazer quando da o erro histórico não cadastrado para suprimento
+como fazer o pagamento no caixa
+Bom dia! como faço para bloquear o estoque dos produtos com estoque zerado
+como eu altero a quantidade estatística de um produto
+como atualizar imendes
+eu preciso ter o certificado digital instalado na minha máquina
+como importar retorno do banco para quitação de boleto?
+consigo emitir uma nota fiscal com um outro cnpj sem ser o da minha empresa
+tem como eu copiar uma nota ja emitida
+Qual a diferença de uma nota de venda para uma nota avulsa
+"Preciso corrigir uma informação importante sobre nossa operação.
+
+Nós NÃO utilizamos emissão de NF-e de transferência no processo de movimentação interna.
+
+Temos uma empresa/estoque de distribuição chamada GD e outras unidades/lojas. Quando uma mercadoria sai da GD para uma loja, nosso processo atual é:
+
+1. Dar baixa/saída da mercadoria no estoque da GD.
+2. Gerar um relatório de saída de mercadoria.
+3. Enviar a mercadoria para a loja.
+4. Posteriormente registrar manualmente a entrada da mesma mercadoria no estoque da loja.
+5. Gerar/guardar o relatório de entrada da unidade.
+
+Portanto, NÃO quero orientação sobre emissão de NF-e de transferência neste momento.
+
+Quero saber especificamente se o Sistema Control consegue automatizar ou simplificar esse fluxo de MOVIMENTAÇÃO DE ESTOQUE SEM EMISSÃO DE NF-e.
+
+Responda:
+
+1. Existe uma função no Control em que eu faça a saída no estoque da GD uma única vez e o sistema gere automaticamente, ou deixe preparada, a entrada correspondente no estoque da loja destino, SEM emitir NF-e?
+2. A função “Gerar compra na filial” pode ser utilizada sem emissão de NF-e? Se sim, explique exatamente como.
+3. O módulo “Operações com Filiais / Transferência Interna” exige obrigatoriamente NF-e ou a emissão da nota é opcional?
+4. Existe algum tipo de transferência interna, movimentação entre estoques, requisição, pedido ou integração entre filiais que não tenha natureza fiscal?
+5. O relatório de saída gerado pela GD possui algum número/ID que possa posteriormente ser importado pela loja para gerar a entrada automaticamente, sem digitar novamente produto por produto?
+6. É possível a loja importar diretamente o relatório/pedido de saída da GD e transformar os mesmos produtos e quantidades em entrada?
+7. É possível realizar isso entre bases/empresas diferentes configuradas no Serviço de Integração Arpa?
+8. Existe alguma importação por arquivo, pedido, código, XML não fiscal, Checkstock ou outro mecanismo oficial que permita criar a entrada a partir da saída?
+9. Se a saída tiver 50 itens diferentes, existe alguma maneira oficial de evitar que o operador da loja tenha que cadastrar/digitar novamente os mesmos 50 itens?
+10. Qual é o fluxo mais automatizado possível que o Control oferece para: GD dá saída → mercadoria é enviada → loja confere → Control dá entrada, SEM NF-e?
+
+Para cada possibilidade, informe o caminho exato no menu e os parâmetros necessários. Se determinada função depender de configuração feita pelo suporte da Arpa, informe isso. Se não souber com segurança, diga que precisa ser confirmado com o suporte, em vez de presumir."
+"Somos uma empresa com 1 Centro de Distribuição (CD) e 3 lojas.
+
+Hoje recebemos mercadorias no CD e depois distribuímos essas mercadorias entre as três unidades. Nosso administrativo perde muito tempo realizando manualmente no Sistema Control as entradas e saídas/transferências de mercadorias entre os estabelecimentos.
+
+Quero reduzir ao máximo esse trabalho manual utilizando recursos já existentes no Sistema Control e, se possível, este Assistente IA.
+
+Analise especificamente as funcionalidades disponíveis NESTA instalação e versão do Sistema Control e me informe:
+
+1. Você consegue consultar diretamente os dados da nossa base do Control, como produtos, estoque, vendas, compras e movimentações?
+2. Você consegue executar ações dentro do Control ou apenas responder perguntas?
+3. Você consegue criar, preparar ou executar transferências de mercadorias entre estabelecimentos?
+4. O Control possui alguma função nativa para automatizar transferência CD → lojas e loja → loja?
+5. Existe integração matriz/filial para transferências de mercadorias? Explique exatamente como funciona.
+6. É possível gerar automaticamente a saída no estabelecimento de origem e a entrada correspondente no estabelecimento de destino, evitando dupla digitação?
+7. É possível importar uma lista de produtos e quantidades e gerar uma transferência em lote?
+8. Existe API, integração, importação por arquivo, banco de dados ou outro recurso oficial que permita a um sistema externo criar essas movimentações automaticamente?
+9. Este Assistente IA possui alguma ferramenta/função que permita executar essas operações diretamente?
+10. Quais partes desse processo ainda obrigatoriamente precisam ser realizadas manualmente por um usuário?
+
+Não me dê apenas uma explicação genérica sobre controle de estoque. Quero que considere especificamente as funcionalidades existentes no Sistema Control instalado neste computador. Quando uma função não estiver disponível para você, diga claramente que não tem acesso ou que não consegue executá-la."
+manual do crm
+nao achou nada
+quero localizar no sistema por qual nota comprei a manteiga piracanjuba com esse código 7898215151302
+quero que localize por qual nota entro esse produto código de barra 7898215151302
+o sistema agora está entendendo que o cadatro 679 é o ao consumidor e o cadastro do código 3 seria outro cliente... como arrumar isso?
+erro para gravar cadastro de empresa com CNPJ e IE, dá mensagem de que cliente ao consumidor deve ser isento, como arrumar?
+tenho uma cliente que era do mei e foi desenquadrada para o simples nacional. ela me disse que suas compras sao feitas em seu cpf. e nesse caso como fazer
+buscar op 3740
+um cliente tem uma loja de moveis na cidade de dom silverio e uma loja de moveis na cidade de rio doce. ela ja usa o nosso sistema na loja de dom silverio e agora precisou de colocar o sistema na loja de rio doce para emitir notas de venda tambem. so que a cliente nao realiza compras de mercadorias para a loja de rio doce. nesse caso como fazer
+"um cliente esta na versao 1.25.7.0 do sistema control. recebi a mensagem abaixo
+
+Um aviso importante sobre o servidor de licenças da ARPA.
+
+Em 2026 definimos um novo servidor de licenças, já em uso pelas versões deste ano em diante. Nos próximos meses, vamos desativar o servidor utilizado pelas versões anteriores a 2026.
+
+Por isso, pedimos que mantenham seus clientes atualizados com as versões de 2026 em diante, já preparadas para a Reforma Tributária.
+
+Com a versao do cliente vou conseguir atualizar o serial dele"
+Como obter o xml de um pedido de venda emitido
+como verifcar ou atualizar os saldos das contas bancarias?
+como faça para cadastrar um produto manualmente?
+A venda foi feita no PDV. O cupom fiscal foi impresso. O PDV já foi resetado para a próxima venda. Preciso reimprimir a última venda (o cupom). Como faço?
+permitir cadastrar cliente sem cpf ou cnpj
+Preciso de ajuda para emitir um boleto
+gostaria de saber onde consigo ver o CMV de um determinado periodo no sistema Arpr?
+boa tarde!
+como cadastrar um cliente?
+Quero cadastrar um cliente, como faço ?
+COMO FAZER NOTA FISCAL
+como cadastrar um cliente
+Como cadastro um cliente?
+cmo cadastrar uma tabela de preços
+como fazer estorno de nota fora do periodo
+itens por fixa de preços...
+na tabela promocional de preços tem como colocar todos os produto do estoque em promoção?
+cte
+Como Configurar a Tabela de Preço por Faixa de Quantidade me pede a licença... é isso mesmo?
+Como emitir um cte?
+Sistema control tem conciliação bancária?
+estou com 4 nfc-e em contingencia desde o dia 01/09, posso autorizar?
+estou com 4 ncf em contingencia desde o dia 01/09, posso autorizar?
+estou com 4 nfc-s em contingencia desde o dia 01/09, posso autorizar?
+COMO CADASTRA CLIENTE
+relatorio com produtos vendidos para cliente
+preciso de um relatorio de todos os produtos que um cliente comprou dentro do mes
+emissão de nota fiscal
+qual o caminho para emissão de nota fiscal avulsa?
+"tentando instalar o sistema deu erro :
+CreateProcess falhou; código 2. o sistema nao  pode encontrar o arquivo especificado"
+é possivel mudar o valor da venda no pdv?
+mas eu busco o produto por codigo
+mas em qual parte do processo eu clico no asterisco? ao adicionar o produto? ou depois do enter?
+tenho preferencia pelo passo a passo escrito
+eu to usando o pdv, eu insiro o produto mas nao aparece a opção de mudar quantidade, como faz?
+preciso colocar o valor de despesa de acessoria na nota avulsa para uma devolução
+como emitir nota de devolução de venda
+o processo vai ser no Compras, tem algum relatorio para saber o que tenho de produto consignado que deva devolver ainda?
+como lançar nota de produto consignado?
+Oi, preciso dos seguintes relatórios: Relatório de Compras; Relatório de Vendas por CFOP e Relatório de Sintegra, consegue me ajudar na emissão destes relatórios?
+estou na situação onde compro unidades e preciso ter u m preço diferenciado para quem compra em quantidade do mesmo produto.
+vc me ajuda a entender o sistema Arpa?
+computador foi formatado e preciso reinstalar o sistema e puxar a base antiga
+o sistema tem homologado o banco c6?
+preciso de um suporte
+aind aparece... REJEIÇÃO... NF-e inexistente para a chave de aceso informada
+op que é o portador financeiro?
+sim
+Estou com im problema ao baixar a importação da nota direto da receita... mesmo com o certificado e nota existente ele me diz que nao existe chave no portal... ams a nota esta la..
+cadastro de clientes
+quero saber quais sao os itens mais vendidos
+preciso da listagem de quanto eu vendi e lucrei no mes, quais os produtos que mais foram vendido
+quando posso usar metodo composicao de produtos?
+qual a funcionalidade do cadastro permitir colocar 2 ou ate mais codigo a um mesmo produto
+como fracionar um produto pra vender fracionado
+estou tentando duplicar um produto, mas não esta aparecendo nenhum cadastrado
+Estou com um problema de uma venda de um produto que é uam composicao... somente pela quantidade. no caso... 1 pacote de fita contem 6 fitas... tenho dois produrtos a venda.... como ajusto isso no sistema?
+como faço para fazer a compra de um produto na caixa e converter ele para unidade na importaçao
+Não quer atualizar a scherms
+como saber qual foi meu ultimo cliente cadastrado?
+como baixar no cliente o sistema arpa control
+fechei uma venda em dinheiro mas ele não caiu no meu caixa, o que pode ter acontecido?
+cadastrar pelo corretor
+e estando em orçamento como finalizo
+como dar entrada de notas
+Em uma venda de 700,00 o cliente tem credito loja de 300,00 como faço para usar o credito do cliente e o restnte colocar em outra forma pagamento
+COMO EMITO PREÇO DE ITENS DE UMA NOTA
+como emitir ota de devolucao para fornecedor
+como associo uma produto und ao pacote no arpa?
+EMITIR NFE
+PASSO A PASSO PARA FAZER UMA VENDA
+preencher contribuicao previdenciaria retida na nota fiscal de servico?
+onde preencher a tag VRETCP da nfse ?
+como configurar as retencoes federais para emissao de NFSE? 3
+sim
+sim
+como gerar carnê
+na nfse onde posso colocar a contribuicao previdenciaria retida?
+das venda fechadas sem documento fiscal
+Como alterar estoque de um produto?
+não tem como ver so as vendas sem documento fiscal?
+tem como emitir um relatorio das vendas sem nf?
+OI
+tem video tutorial para contas a pagar
+ssitema não está fazendo a baixa automatica dos boletos do siccob
+como habilitar favoritos na agenda de cobrança
+"Gostaria de orientações sobre como emitir um CT-e de Substituição ou Complementar ou sobre como gerenciar e cancelar CT-es autorizados?
+
+16/09/2026 08:58:32.859"
+a ok, obrigado entao
+Calculo de demanda
+na tela de venda do pdv, quando digito 3 caracteres e ele exibe a lista de itens, tem como, essa lista que hoje é apresentada em ordem crescente pelo campo descricao, ser classificada pelo campo codigo?
+Preciso de um relaório único que demonstre quantidades de compras/estoque atual e vendas no mesmo relatório
+é para faze nota de devolução
+QUE DIA VENCE O CERTIFICADO DIGITAL?
+como consigo tira uma nota fiscal de remessa
+como fazer um pedido para venda sem identificar o consumidor e emitir documento fiscal
+CONSEGUE ME DIZER A DATA DE VECNIMENTO DO CERTIFICADO DIGITAL?
+BOM DIA
+SIM
+Como apagar entrada de suprimento
+Como para tirar relatório de caixa
+Como fazer sangria no caixa pvd ?
+Como faço para olhar orelatorio de vendsa
+resolver rejeição não informado o grupo de ICMS PARA A uf DE DESTINO
+voce pode fazer cobrança com clientes?
+olá o que vc pode fazer?
+como configurar a conciliacao bancaria?
+video sobre entrada de notas pelo xml
+como usar os centros de custos na hora de importar o xml?
+como cadastrar os centro de custos quando tiver dando entrada pelo xml?
+como associar um produto ja cadastrado com produto que vem na nota?
+O caixa está abrindo mesmo selecionando não para impressão de comprovante de venda
+como criar um historico pros xml?
+sobre o campo de hitorico importacao NC, o que significa:
+como criar um historico pras notas xml?
+aqui tem como imprimir etiquetas de preço?
+qual a configuração ideia para instalar o servidor do control
+aonde faço backape
+como faz para aparecer o nome do cliente tambem
+como gerar relatorio de antecipação de duplicatas
+certo e processador qual o requisito minimo
+quanto que eu já vendi no mês
+GOSTARIA DE DESCADASTRAR UM PRODUTO QUE ESTA COM O MESMO CODIGO DE BARRA DE OUTRO
+COMO DESCADASTRAR
+ok obrigado
+não tem como incluir o nome de pai e mãe aqui no cadastro de cliente aqui pelo aplicativo
+ao emitir a nota da o erro... tipo de emissao 3,6 ou 7 é valido nas contingencias
+como excluir um lançamento a maior no caixa
+como fazer uma nota de devolução
+como desabilitar para que não emita nota em contigencia
+e sistema control emite nota de produtor rural?
+nota de devolução
+O sistema control emite contra nota de produtor rural?
+"Control estou com o seguinte cenário:
+
+Meu cliente precisou mudar o CNPJ e precisei fazer essa mudança no banco de dados (migrei os dados do banco antigo para o novo), e agora ele está precisando de um relatório vinculado ao antigo CNPJ"
+o control faz contra nota de produtor rural?
+Como funciona o backup em nuvem e o custo
+Como funciona o backup em nuvem e o custo
+PRECISO CANCELAR UM PRODUTO DE UMA VENDA E ADCIONAR OUTRO PRODUTO, COMO FAZER?
+nos relatorios financeiros da empresa onde vai aparecer esse valor de 166,84 da devolucao ?
+eu comprei uma peca e lancei nas compras no valor de 166,84. depois de pago o fornecedor me devolveu o dinheiro. fiz a devolucao pelo sistema e nao gerei o credito pra fornecedor. como posso gerar o credito dessa venda ?
+onde adiciono etiqueta no sistema
+Cliente imprime todos os cupons. Mas está com novo terminal. Antes, terminava uma venda no PDV, já saia a impressão direto. Agora, no novo terminal, ele pede para salvar o cupom antes de imprimir. Onde configuro para tirar essa tela de salvar PDF e ir direto para a impressão?
+ao emitir nota fiscal não foi autorizada pelo SEFAZ. Motivo: Rejeição: CSOSN incompatível na operação com não contribuinte
+qdo faco uma devolucao, como fica no sistema a parte financeira?
+qual a configuração ideia para instalar o servidor do control
+BACKUP AUTOMÁTICO NÃO FUNCIONA QUAIS SERVIÇOS DEVO REVISAR ?
+como funciona os historicos em contas a pagar?
+sim
+como faco conciliacao bancaria no arpa?
+como fazer conciliacao bancaria?
+FAZER SINTEGRA
+COMO VISUALIZAR OS PRODUTOS CADASTRADOS
+BUSCAR UM LANÇAMENTO NO CONTAS A PAGAR NO VALOR DE 458,15
+configurar conta do gmail no smtp do control
+como cadastrar roupa em grade
+suporte tecnico
+como usar o aplicativo coletor de dados?
+bom dia tem como personalizar o pdv para ser mais direto a finalização da venda
+Como funciona o uso de matriz e filial no sistema?
+cupom fiscal emitida em contigencia
+bom dia
+onde cadastra o sistema de proteção spc
+Fazer uma nota fiscal de serviço
+Bom dia, tudo bem ?
+"Como emitir carta de correção?
+16/09/2026 08:41:01.889"
+como emitir CT-e
+estou tentando finalizar uma venda mais todas as vendas informa que é impossivel vender vendas a prazo para consumidor, sendo que estou fazendo vendas em outras especies
+o que pode fazer pra mim
+Como emitir carta de correção?
+Na nota de compra, para que serve o campo Adiciona na Base de ICMS ST? Ele já vem marcado com base no XML do CT-e vinculado? Ou é uma marcação que devo fazer de forma manual?
+Para que serve o campo Adiciona na Base de ICMS ST? Ele já vem marcado com base no XML do CT-e vinculado? Ou é uma marcação que devo fazer de forma manual?
+Preciso de um relatório de venda de produtos que mostre no período todos produtos específicos e suas vendas
+Qual o valor maximo emissao de uma nfce?
+como fazer uma venda de nfe
+alterar vendedor na parcela
+oque faze quando a contirgencia de dia anterior
+Descreva para mim o botão nota de compra 2-Itens >> Outros >>> 8 - Valor ICMS Antecipação... Quando usar esse campo ?
+Ao atualizar o servidor, depois preciso atualizar cada terminal um por vez ou posso fazer ao mesmo tempo ?
+é possível lançar despesas extra notas sem alterar o valor total da nota de compra ? apenas alterar o valor do custo da mercadoria 5-fechamento ?
+relatório de produtos com preço de custo e venda
+no PDV quando digito o codigo de um item de balança, nã faz a leitura do peso
+como lançar saidas do sistema
+onde tem a configuração de nao deixar duplicar cpf ou cnpj no cadastro do cliente
+Quanto ao CT-e, vi que além do campo Data doc, também tem o campo Data saída, porém como o sistema preenche este campo? O campo Data doc. é com base na tag <dhEmi>, mas e quanto ao campo Data saída? Ele pega o mesmo valor do campo Data doc ou como é realizado o preenchimento desta informação?
+onde fica o relatorio para conferir produtos com dias medios sem movimentar
+reimprimir uma carta de correção emitida
+como fazer um backup no sistema em nuvem
+como fazer um backup no sistema que esta instalado no nuvem?
+quero saber qual meu lucro liquido, quais relatorios posso usar
+como achar os e produto pelo codigo dele
+COMO CANCELAR OU QUITAR UM CREDITO DE CLIENTER SEM ELE ESTAR EM DEBITO ?
+posso fazer sangria pelo retaguarda?
+curva abc
+sangria
+boa  tarde
+esta esta a configuração para acumular o caixa cofre nos fechamentos de caixa
+tem algum video tutorial de entrada de nota?
+mas para produtos normais, sem redução de base ou qualquer outra tratativa especial, mesmo assim tenho que criar a tabela de icms?
+como configuro um grupo de icms para uma UF de destino
+Como faço pra atualizar o certificado digital dentro do sistema. Passo a passo pra que qualquer pessoa consiga fazer o processo
+ONDE FICA MDF-E?
+Preciso atualizar os computadores já funcionando primeiro. Como pego o link de atualização e de instalação?
+como inserir cbenef nos produtos?
+Preciso instalar o programa em um novo terminal do cliente. Ele descartou um terminal antigo e comprou um novo computador. Como faço a instalação?
+como excluir uma nota de compra/xml
+Bom dia, é possível trabalhar com metas por vendedor dentro do sistema control?
+tem como fazer uma tabela de preços só pros meus clientes mecanicos e já deixar o desconto travado no sistema, para sempre que passar de 15% tenha que colocar a minha senha
+estou com um cliente que precisa de mais um retaguarda. o módulo pro atenderia ele.. ele precisa de dois retaguarda e um pdv
+estou com um cliente que precisa de mais um retaguarda. o módulo pro atenderia ele.. ele precisa de dois retaguarda e um pdv
+onde consigo ver as nf-es emitidas para o meu cnpj
+o vimbo é mutlifilial
+como buscar relatorio de vendas a prazo do mes
+Como buscar relatorio de vendas feita com recebimento em boleto
+alterar ordem de pedido
+OQUE COLOCAR MO NIVEL E DESCRICAO DO HISTORICO
+como faturar um recebimento?
+como faturar um recebimento?
+Para que serve o pedido de compra?
+que o hostorico de venda da fgp da silva
+como faço para ver quando um pedido de compra foi pago?
+ONDE ENCONTRO A PALAVRA PASSE DESSE MES
+COMO LANÇAR A CONTA DA ENERGIA NO CONTA A PAGAR
+Como cadastrar um cliente como fornecedor?
+COMO ENCONTRA ATRAVES DO NUMERO DO OBJETO
+ola
+/history?email=maria@empresa.com
+exite a opção de folha de pagamento
+preciso de licença para usar ?
+link para baixar o adml
+como cancelar uma nfc-e emitida em contingencia
+teste ja
+como cadastro um fornecedor ao produto?
+estorno de venda fora do prazo com erro de disponibilidade de produto
+como cadastro um fornecedor ao produto?
+Tem alguma forma de verificar detalhadamente para qual cliente foi dado desconto?
+ola me diga oque vc é capaz de fazer
+esta sem solução, preciso saber como associar terminais ao executar o pdv-off-line
+no pdv off-line estou em uma tela que pede para associar terminal
+lançar credito ao cliente
+ATUALIZAR CERTIFICADO DIGITAL
+"como configurar o layout do orçamento?
+
+resultado desejado: criar um orçamento enxuto, sem informações de grupo, sem itens, sem muitos detalhes, somente nome da empresa, CNPJ, nome do cliente e produtos"
+qual o procedimento para instalação de um terminal pdv off-line
+como fazer o retorno de uma nota de remessa para conserto
+No Sistema Control, ao importar uma nota de compra, definindo que o frete foi por conta da contratação do frete por conta do destinatário (FOB), há duas seções disponíveis para o usuário preencher, sendo Frete CIF e Frete FOB (Fora), ambas contém o campo "Valor", se diz respeito ao valor do frete? O valor do frete CIF e valor do FOB? O que acontece no sistema caso o usuário preencha ambos os campos e conclui o lançamento desta nota?
+como anexar imagem à etiqueta
+como fazer o lançamento de uma despesa no contas a pagar
+noa existe
+como faço para ter um relatório de vendas somente o valor de vendas de cada mês
+COMO RETIRAR O FRETE DA NOTA DE DEVOLUÇAO
+COMO RETIRAR O FRETE DA NOTA DE DEVOLUÇAO
+Fui fazer aqui é me solicitou a digitaçao do numero do pedido
+COMO RETIRAR O FRETE DA NOTA DE DEVOLUÇAO
+COMO RETIRAR O FRETE DA NOTA DE DEVOLUÇAO
+"esse passo a passo Passe pelos campos Pedido e Data com a tecla Enter.
+
+No campo Cliente, informe obrigatoriamente o código do cliente cadastrado na venda original e clique no botão Abrir., estou fazendo, quando clico em abrir aparece a mensagem: não é possivel devolver o pedido de venda. a quantidade de intens vendiddos diverge da quantidade de produtos possiveis para devolução"
+existe uma forma de fechar uma venda sem ter quer colocar o numero do pedido em emitir nota simples? (de preferencia pular essa parte)
+é uma devolução de estorno fora do prazo
+estou tentado fazer uma devolução: erro não é possivel devolver o pedido de venda. a quantidade de intens vendiddos diverge da quantidade de produtos possiveis para devolução
+eu quero um relatorio que mostre os clientes que tem renda mensal, que recebem acima de 5 mil cadastrado nos dados financeiros na aba de clientes
+Estou criando uma impressao personalizada de pedido e pensei em criar um lugar para colocar qr code pix, então gostaria de saber se o sistema arpa tem nativamente um ZQuery3."pix_string" (que gera o pix automaticamente)
+existe um relatorio de renda por cliente, para direcionar o produtos para o cliente que recebe acima de 5mil por exemplo
+Quais os relatorios mais importantes existentes no sistema
+relatório de vendas com CNPJ do cliente
+Um cliente entrou em contato informando que, ao acessar o sistema no servidor, visualiza todos os cadastros de clientes normalmente. Porém, ao abrir o sistema em um dos terminais da empresa, percebe que os cadastros são diferentes e alguns clientes existentes no servidor não aparecem no terminal. Ele afirma que ambos deveriam acessar as mesmas informações. Como você conduziria esse atendimento? Quais verificações realizaria para identificar a causa da divergência e restabelecer o funcionamento correto?
+Como emitir uma nota fiscal avulsa?
+valor strtin invalido para TCS TPIS: 0  . COMO CORRIGIR?
+puxar e comparar as vendas se agosto dos ultimos 3 anos
+como resolver prazo de cancelamento superior ao previsto na legislação ?
+Como resolver transição pendente a ser resolvida no PDV?
+como incluir vendedor nas parcelas quando as parcelas forma migradas de outro sistema
+como alterar o vendedor em contas a receber
+onde consultar contas a receber por vendedor
+como alterar o valor de uma conta a receber?
+aplicar desconto em percentual em vários produtos ao mesmo tempo
+database:control. 1.26.4.0 - ajustando data/hora alteração das imagens. SQL ERROR: relation "produtos_imagens" does not exist.
+RELATORIO DE BOLETOS EM ABERTO
+nota de devolução/ estorno
+quero cancelar a nf emitida dia 28/05 para sadi mocelin
+ONDE FAÇO EXPORTAÇÃO PARA VER OS CST DOS PRODUTOS
+como é tratado as metas por vendedor, no sistema
+como fazer nota de devolução?
+no que vc é capaz de me ajudar ?
+COMO FAZER A ENTRADA DE UMA NOTA DE COMPRA DE MERCADORIAS VINDA DE UM FORNECEDOR
+COMO LANÇAR DESPESA DE LUZ NO CONTAS A PAGAR
+qual a função dessa taxa financeira na inclusão de ondição de pagamento?
+pdv
+imprimir cupom apenas quando permitir
+quero cadastrar produto
+Montar combo
+Combo
+como fraciono um produto de caixa para unidade
+Nota de débito e crédito, como funciona?
+como funciona o kanban
+teste som
+cadastrar taxaas de cartao
+lnaçar credito para cliente
+Como faço a adição de crédito do cliente?
+ao oimportar o xml de nota de compra como vincular o contas a pagar?
+para que serve a tabela de preço proaa clientes
+Cadastro de combo
+usar qyal cfop para nota de devoluça~odentro do estado
+cfop para nota de devolução
+pra que serve o portador na hora de incluir uma conta a pagar
+rejeição operação interestadual e uf destinatario igual origem
+como tirar nota fiscal de venda já fechada
+Preciso que os usuários 2 e 3 tenham o mesmo nível de acesso do administrador (usuário 1) Como faço?
+o arpag no pratto funciona fora do estabelecimento?
+o arpag no pratto funciona fora do estabelecimento?
+relatorio de faturamento dos últimos 12 meses
+tutorial sobre catalogo online
+Se uma nota que emiti passou do prazo de cancelamento, o que devo fazer?
+Onde gero o arquivo do Sintegra?
+Preciso retirar a obrigatoriedade de informar senha para desconto no pedido na hora de colocar o produto
+como funciona os lancamento de banco no arpa?
+como usar caixa no arpa:
+onde conferir e configurar grades?
+Me explica melhor sobre o modulo de produção, do inicio ao fim do processo

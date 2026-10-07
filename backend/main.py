@@ -32,6 +32,8 @@ import httpx
 from dotenv import load_dotenv  # Carregar variáveis do .env
 load_dotenv()
 
+from roteador import rotear
+
 from openai import AsyncOpenAI
 from fastapi import FastAPI, HTTPException, Header, UploadFile, File, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -1401,6 +1403,30 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
                     "chat_id": assistant_chat_id
                 }
 
+    # --- Pré-roteador por regras: desvia saudações, dados de negócio e perguntas vagas sem RAG ---
+    decisao_rota = rotear(user_message, assistant_name=assistant_name)
+    if decisao_rota["destino"] == "direto":
+        resposta_direta = decisao_rota.get("resposta_direta") or NOTEBOOKLM_EMPTY_RESPONSE
+        motivo = decisao_rota.get("motivo", "direto")
+        print(f"[ROTEADOR-DIRETO] Thread {thread_id} classificada como '{motivo}'. Respondendo direto sem RAG: {user_message!r}")
+
+        sessions[thread_id].append({"role": "user",      "content": user_message})
+        sessions[thread_id].append({"role": "assistant", "content": resposta_direta})
+
+        assistant_chat_id = await run_in_thread(save_agent_message_sync, thread_id, resposta_direta)
+        if assistant_chat_id:
+            _notify_auditor_new_message(thread_id, assistant_chat_id, resposta_direta, 'agente')
+            _notify_user_new_message(thread_id, assistant_chat_id, resposta_direta, 'agente')
+
+        if is_first_message:
+            asyncio.create_task(generate_and_update_subject(thread_id, user_message, resposta_direta))
+
+        return {
+            "content": [resposta_direta],
+            "images": [],
+            "chat_id": assistant_chat_id
+        }
+
     # 1. Query Rewriting - expande perguntas vagas usando histórico da thread
     try:
         active_generations.add(thread_id)
@@ -1478,6 +1504,36 @@ async def _run_stream_processing(
     try:
         # active_generations.add() é feito no handler do /chat/stream ANTES de criar esta task,
         # para evitar race condition com requests duplicados.
+        # --- Pré-roteador por regras: desvia saudações, dados de negócio e perguntas vagas sem RAG ---
+        decisao_rota = rotear(user_message, assistant_name=assistant_name)
+        if decisao_rota["destino"] == "direto":
+            assistant_text = decisao_rota.get("resposta_direta") or NOTEBOOKLM_EMPTY_RESPONSE
+            motivo = decisao_rota.get("motivo", "direto")
+            print(f"[STREAM-ROTEADOR-DIRETO] Thread {thread_id} classificada como '{motivo}'. Respondendo direto: {user_message!r}")
+
+            # Envia a resposta diretamente como token SSE
+            _push("token", {"text": assistant_text})
+
+            # Pula para persistência diretamente
+            _push("status", {"stage": "saving", "detail": "Salvando..."})
+            sessions[thread_id].append({"role": "user",      "content": user_message})
+            sessions[thread_id].append({"role": "assistant", "content": assistant_text})
+
+            assistant_chat_id = await run_in_thread(save_agent_message_sync, thread_id, assistant_text)
+            if assistant_chat_id:
+                _notify_auditor_new_message(thread_id, assistant_chat_id, assistant_text, 'agente')
+                _notify_user_new_message(thread_id, assistant_chat_id, assistant_text, 'agente')
+
+            if is_first_message:
+                asyncio.create_task(generate_and_update_subject(thread_id, user_message, assistant_text))
+
+            _push("done", {
+                "chat_id": assistant_chat_id,
+                "content": assistant_text,
+                "was_fallback": False,
+            })
+            return
+
         # --- Etapa 1: Query Rewriting (OpenAI reescreve apenas a PERGUNTA) ---
         _push("status", {"stage": "rewriting", "detail": "Preparando sua consulta..."})
         search_query = await rewrite_query_with_context(thread_id, user_message)
