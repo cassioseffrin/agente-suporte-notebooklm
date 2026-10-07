@@ -32,7 +32,10 @@ import httpx
 from dotenv import load_dotenv  # Carregar variáveis do .env
 load_dotenv()
 
-from roteador import rotear
+try:
+    from backend.roteador import rotear
+except ImportError:
+    from roteador import rotear
 
 from openai import AsyncOpenAI
 from fastapi import FastAPI, HTTPException, Header, UploadFile, File, Request, Query
