@@ -27,7 +27,14 @@
   ],
   "social_palavras": [
     "oi", "ola", "opa", "ai", "e", "bom", "boa", "dia", "tarde", "noite",
-    "tudo", "bem", "certo", "obrigado", "obrigada", "valeu", "ok", "blz"
+    "tudo", "bem", "certo", "obrigado", "obrigada", "valeu", "ok", "blz",
+    "como", "vai", "esta", "voce", "vc"
+  ],
+  "saudacao_padroes": [
+    "^como (vai|esta|estao)( voce| vc)?$",
+    "^(oi|ola|opa|e ai|bom dia|boa tarde|boa noite)(,?[ ]+)?(como (vai|esta)|tudo bem)?$",
+    "^tudo (bem|bom|certo|tranquilo|joia|beleza)(\\?)?$",
+    "^(oi|ola|opa|e ai|bom dia|boa tarde|boa noite)( [a-z]+)? tudo bem$"
   ],
   "vago_padroes": [
     "^quero explicacao$",

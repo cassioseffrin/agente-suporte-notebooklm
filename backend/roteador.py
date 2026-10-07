@@ -87,8 +87,17 @@ class Roteador:
         # Social / Saudações
         self.social_palavras = set(data.get("social_palavras", [
             "oi", "ola", "opa", "ai", "e", "bom", "boa", "dia", "tarde", "noite",
-            "tudo", "bem", "certo", "obrigado", "obrigada", "valeu", "ok", "blz"
+            "tudo", "bem", "certo", "obrigado", "obrigada", "valeu", "ok", "blz",
+            "como", "vai", "esta", "voce", "vc"
         ]))
+
+        saudacao_padroes = data.get("saudacao_padroes", [
+            r"^como (vai|esta|estao)( voce| vc)?$",
+            r"^(oi|ola|opa|e ai|bom dia|boa tarde|boa noite)(,?[ ]+)?(como (vai|esta)|tudo bem)?$",
+            r"^tudo (bem|bom|certo|tranquilo|joia|beleza)(\?)?$",
+            r"^(oi|ola|opa|e ai|bom dia|boa tarde|boa noite)( [a-z]+)? tudo bem$"
+        ])
+        self.re_saudacao = [re.compile(p, re.IGNORECASE) for p in saudacao_padroes]
 
         # Perguntas vagas
         vago_padroes = data.get("vago_padroes", [
@@ -165,21 +174,13 @@ class Roteador:
                 "resposta_direta": self.respostas_padrao.get("fora_do_escopo")
             }
 
-        # Pergunta clara de procedimento -> SEMPRE RAG
-        if self.re_procedimento.search(t):
-            return {
-                "destino": "manual",
-                "motivo": "procedimento",
-                "resposta_direta": None
-            }
-
-        # Pedido de dados do negócio (ex: "mais vendidos", "quanto faturei")
-        # Se contiver a palavra "relatorio", usuário provavelmente quer saber onde emitir no sistema -> vai pro RAG!
-        if not re.search(r"\brelatorios?\b", t) and any(r.search(t) for r in self.re_dados):
+        # 1. Saudações sociais explícitas (ex.: "como vai?", "como está?", "bom dia", "tudo bem?")
+        # Avaliadas antes de procedimento para evitar que "como vai" caia no regex genérico de "como"
+        if any(r.match(t) for r in self.re_saudacao):
             return {
                 "destino": "direto",
-                "motivo": "dado do negocio",
-                "resposta_direta": self.respostas_padrao.get("dado_do_negocio")
+                "motivo": "saudacao",
+                "resposta_direta": self.respostas_padrao.get("saudacao")
             }
 
         tokens = t.split(" ")
@@ -192,12 +193,21 @@ class Roteador:
                 "resposta_direta": self.respostas_padrao.get("saudacao")
             }
 
-        # Saudação com nome ("Opa Charles, tudo bem?")
-        if re.match(r"^(oi|ola|opa|e ai|bom dia|boa tarde|boa noite)( [a-z]+)? tudo bem$", t):
+        # 2. Pergunta clara de procedimento -> SEMPRE RAG
+        if self.re_procedimento.search(t):
+            return {
+                "destino": "manual",
+                "motivo": "procedimento",
+                "resposta_direta": None
+            }
+
+        # 3. Pedido de dados do negócio (ex: "mais vendidos", "quanto faturei")
+        # Se contiver a palavra "relatorio", usuário provavelmente quer saber onde emitir no sistema -> vai pro RAG!
+        if not re.search(r"\brelatorios?\b", t) and any(r.search(t) for r in self.re_dados):
             return {
                 "destino": "direto",
-                "motivo": "saudacao",
-                "resposta_direta": self.respostas_padrao.get("saudacao")
+                "motivo": "dado do negocio",
+                "resposta_direta": self.respostas_padrao.get("dado_do_negocio")
             }
 
         # Pergunta vaga sem assunto
