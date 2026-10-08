@@ -34,8 +34,10 @@ load_dotenv()
 
 try:
     from backend.roteador import rotear
+    from backend.api_docs import setup_docs
 except ImportError:
     from roteador import rotear
+    from api_docs import setup_docs
 
 from openai import AsyncOpenAI
 from fastapi import FastAPI, HTTPException, Header, UploadFile, File, Request, Query
@@ -318,7 +320,8 @@ def _get_user_name_for_thread(thread_id: str) -> str:
 # App
 # ---------------------------------------------------------------------------
 
-app = FastAPI(title="ERP Assistant Backend")
+app = FastAPI(title="ERP Assistant Backend", docs_url=None, redoc_url=None, openapi_url=None)
+setup_docs(app)  # /docs, /redoc e /openapi.json protegidos por Basic Auth (DOCS_USER / DOCS_PASSWORD)
 
 app.add_middleware(
     CORSMiddleware,
