@@ -194,6 +194,22 @@ def ensure_tables():
                 );
                 """)
 
+                # Migration: recibos de entrega/leitura (estilo WhatsApp) nas mensagens enviadas ao usuário
+                cur.execute("""
+                DO $$ BEGIN
+                    ALTER TABLE chat ADD COLUMN delivered_at TIMESTAMP;
+                EXCEPTION
+                    WHEN duplicate_column THEN NULL;
+                END $$;
+                """)
+                cur.execute("""
+                DO $$ BEGIN
+                    ALTER TABLE chat ADD COLUMN read_at TIMESTAMP;
+                EXCEPTION
+                    WHEN duplicate_column THEN NULL;
+                END $$;
+                """)
+
                 # 6. Tabela chat_thread
                 cur.execute("""
                 CREATE TABLE IF NOT EXISTS chat_thread (
@@ -3091,7 +3107,7 @@ async def get_thread_messages(
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
                     SELECT c.id, c.message, c.origem, c.created_at, c.feedback_thumb, c.feedback_text,
-                           ct.feedback_rating, c.auditor_id,
+                           ct.feedback_rating, c.auditor_id, c.delivered_at, c.read_at,
                            aud.name AS auditor_name, aud.nickname AS auditor_nickname,
                            aud.icon_svg AS auditor_icon_svg
                     FROM chat c
@@ -3122,6 +3138,8 @@ async def get_thread_messages(
                 "feedback_text": m["feedback_text"],
                 "feedback_rating": m["feedback_rating"],
                 "created_at": m["created_at"].isoformat() if m.get("created_at") else None,
+                "delivered_at": m["delivered_at"].isoformat() if m.get("delivered_at") else None,
+                "read_at": m["read_at"].isoformat() if m.get("read_at") else None,
             }
             if role == "auditor":
                 msg_data["auditor_id"] = m.get("auditor_id")
@@ -3929,6 +3947,84 @@ async def send_auditor_message(
         "delivered_to_user": sent_count > 0,
         "user_online": _is_user_online(thread_id),
     }
+
+
+class ReceiptsRequest(BaseModel):
+    delivered: list[int] = []
+    read: list[int] = []
+
+
+@app.post("/thread/{thread_id}/receipts")
+async def mark_receipts(
+    thread_id: str,
+    request: ReceiptsRequest,
+    authorization: str = Header(None),
+):
+    """
+    Recibos de entrega/leitura (estilo WhatsApp) enviados pelo chat do usuário.
+    - delivered: mensagens que chegaram/foram renderizadas no chat do usuário (✓✓ cinza)
+    - read: mensagens cujo balão o usuário rolou até ver (✓✓ azul)
+    Só afeta mensagens de agente/auditor desta thread e nunca sobrescreve um recibo já gravado.
+    Notifica auditores conectados com o evento SSE 'receipts'.
+    """
+    verify_api_key(authorization)
+
+    read_ids = list({i for i in request.read if isinstance(i, int)})
+    delivered_ids = list({i for i in request.delivered if isinstance(i, int)} - set(read_ids))
+    if not read_ids and not delivered_ids:
+        return {"status": "ok", "updated": []}
+
+    updated = []
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                if read_ids:
+                    cur.execute("""
+                        UPDATE chat c
+                        SET read_at = NOW(), delivered_at = COALESCE(c.delivered_at, NOW())
+                        FROM chat_thread ct
+                        WHERE ct.chat_id = c.id AND ct.thread_id = %s
+                          AND c.id = ANY(%s) AND c.origem IN ('agente', 'auditor')
+                          AND c.read_at IS NULL
+                        RETURNING c.id, c.delivered_at, c.read_at;
+                    """, (thread_id, read_ids))
+                    updated.extend(cur.fetchall())
+                if delivered_ids:
+                    cur.execute("""
+                        UPDATE chat c
+                        SET delivered_at = NOW()
+                        FROM chat_thread ct
+                        WHERE ct.chat_id = c.id AND ct.thread_id = %s
+                          AND c.id = ANY(%s) AND c.origem IN ('agente', 'auditor')
+                          AND c.delivered_at IS NULL
+                        RETURNING c.id, c.delivered_at, c.read_at;
+                    """, (thread_id, delivered_ids))
+                    updated.extend(cur.fetchall())
+    except Exception as e:
+        print(f"[receipts] Erro: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao gravar recibos")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+    receipts = [
+        {
+            "chat_id": r["id"],
+            "delivered_at": r["delivered_at"].isoformat() if r["delivered_at"] else None,
+            "read_at": r["read_at"].isoformat() if r["read_at"] else None,
+        }
+        for r in updated
+    ]
+    if receipts:
+        event = {"type": "receipts", "thread_id": thread_id, "receipts": receipts}
+        for q in auditor_queues.get(thread_id, []):
+            try:
+                q.put_nowait(event)
+            except asyncio.QueueFull:
+                pass
+
+    return {"status": "ok", "updated": receipts}
 
 
 @app.get("/thread/{thread_id}/status")
