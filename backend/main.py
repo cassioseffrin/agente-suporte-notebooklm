@@ -253,7 +253,24 @@ REGRAS OBRIGATÓRIAS:
 3. A pergunta reescrita deve ser em português do Brasil.
 4. Jamais invente informações - use somente o que está no histórico fornecido.
 5. A pergunta deve ser objetiva e adequada para busca em manuais técnicos.
-6. Se houver uma [CORREÇÃO DO SUPORTE HUMANO] no histórico, incorpore essa correção como fato verdadeiro na reescrita da consulta."""
+6. Se houver uma [CORREÇÃO DO SUPORTE HUMANO] no histórico, incorpore essa correção como fato verdadeiro na reescrita da consulta.
+7. A saída deve SEMPRE ser uma PERGUNTA pedindo informação/orientação (ex: "Como...?", "Qual o passo a passo para...?",
+   "O que é...?"). NUNCA escreva uma ordem ou instrução no imperativo (ex: "Realize...", "Faça...", "Cadastre..."),
+   pois o sistema de busca apenas consulta manuais e não executa ações no sistema do usuário.
+8. Se a mensagem do usuário for uma confirmação curta ("sim", "quero", "pode ser", "ok", "por favor", "manda") em resposta
+   a uma oferta ou pergunta do ASSISTANT (ex: "gostaria de ver o passo a passo de X?"), reescreva como a pergunta
+   sobre o assunto oferecido, pedindo a explicação/passo a passo de X.
+
+EXEMPLOS:
+- Histórico: ASSISTANT: "...Gostaria de ver o passo a passo da rotina de Conferência e Ajuste de Estoque?"
+  Pergunta: "Sim"
+  Saída: Qual o passo a passo da rotina de Conferência e Ajuste de Estoque para realizar a contagem física e o lançamento de acertos de saldo?
+- Histórico: ASSISTANT: "...Deseja saber como configurar a impressora fiscal?"
+  Pergunta: "quero"
+  Saída: Como configurar a impressora fiscal no sistema?
+- Histórico: ASSISTANT: explicou a emissão de nota fiscal em 5 passos.
+  Pergunta: "pode detalhar o passo 3?"
+  Saída: Como funciona em detalhes o passo 3 da emissão de nota fiscal (<descrição do passo 3 conforme o histórico>)?"""
 
 # ---------------------------------------------------------------------------
 # Estado em memória
