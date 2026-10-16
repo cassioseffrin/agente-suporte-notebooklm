@@ -2432,6 +2432,11 @@ async def rename_profile(request: RenameProfileRequest):
     }
 
 
+# Resposta padrão dos agentes quando o NotebookLM não acha o assunto nos manuais
+# (definida no system_prompt de cada agente).
+UNANSWERED_PATTERN = "%não encontrei informações%"
+
+
 @app.get("/dashboard/totals")
 async def dashboard_totals(days: int = 30):
     """
@@ -2444,18 +2449,26 @@ async def dashboard_totals(days: int = 30):
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
                     SELECT 
-                        COUNT(c.id) as total_chats,
-                        COUNT(DISTINCT c.user_id) as total_users
+                        COUNT(c.id) FILTER (WHERE c.origem = 'usuario') as total_chats,
+                        COUNT(DISTINCT c.user_id) FILTER (WHERE c.origem = 'usuario') as total_users,
+                        COUNT(c.id) FILTER (WHERE c.origem = 'agente') as total_responses,
+                        COUNT(c.id) FILTER (
+                            WHERE c.origem = 'agente' AND c.message ILIKE %s
+                        ) as total_unanswered,
+                        COUNT(DISTINCT ct.thread_id) FILTER (WHERE c.origem = 'usuario') as total_conversations
                     FROM chat c
                     JOIN "user" u ON u.id = c.user_id
-                    WHERE c.origem = 'usuario'
-                      AND c.created_at >= NOW() - INTERVAL '%s days'
+                    LEFT JOIN chat_thread ct ON ct.chat_id = c.id
+                    WHERE c.created_at >= NOW() - INTERVAL '%s days'
                       AND u.email NOT IN ('admin@test.com');
-                """, (days,))
+                """, (UNANSWERED_PATTERN, days))
                 row = cur.fetchone()
                 return {
                     "total_chats": row["total_chats"] or 0,
-                    "total_users": row["total_users"] or 0
+                    "total_users": row["total_users"] or 0,
+                    "total_responses": row["total_responses"] or 0,
+                    "total_unanswered": row["total_unanswered"] or 0,
+                    "total_conversations": row["total_conversations"] or 0,
                 }
     except Exception as e:
         print(f"[dashboard-totals] Erro: {e}")
@@ -2648,74 +2661,108 @@ async def dashboard_chats_per_user(days: int = 30, limit: int = 10):
         if 'conn' in locals() and conn:
             conn.close()
 
+def _daily_per_agent(days: int, count_expr: str, origem: str) -> dict:
+    """
+    Série diária por agente para o dashboard.
+    count_expr: expressão SQL de contagem (ex: COUNT(*) ou COUNT(DISTINCT ct.thread_id)).
+    origem: origem das mensagens consideradas ('usuario' ou 'agente').
+    """
+    conn = get_db_connection()
+    try:
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                base = f"""
+                    FROM chat c
+                    JOIN chat_thread ct ON ct.chat_id = c.id
+                    JOIN agent a ON a.id = c.agent_id
+                    JOIN "user" u ON u.id = c.user_id
+                    WHERE c.origem = %s
+                      AND c.created_at >= NOW() - INTERVAL '%s days'
+                      AND u.email NOT IN ('admin@test.com')
+                """
+                cur.execute(f"""
+                    SELECT a.title as name, DATE(c.created_at) as day, {count_expr} as total
+                    {base}
+                    GROUP BY a.title, DATE(c.created_at)
+                    ORDER BY day ASC;
+                """, (origem, days))
+                rows = cur.fetchall()
+
+                cur.execute(f"""
+                    SELECT a.title as name, {count_expr} as total
+                    {base}
+                    GROUP BY a.title
+                    ORDER BY total DESC;
+                """, (origem, days))
+                agents = [{"name": r["name"], "total": r["total"]} for r in cur.fetchall()]
+    finally:
+        conn.close()
+
+    from collections import defaultdict as _dd
+    agent_daily: dict = _dd(lambda: _dd(int))
+    for row in rows:
+        label = row["name"]
+        day_str = row["day"].isoformat() if hasattr(row["day"], "isoformat") else str(row["day"])
+        agent_daily[label][day_str] += row["total"]
+
+    all_labels = [a["name"] for a in agents]
+
+    all_days = sorted({
+        (row["day"].isoformat() if hasattr(row["day"], "isoformat") else str(row["day"]))
+        for row in rows
+    })
+
+    series = []
+    for label in all_labels:
+        series.append({
+            "name": label,
+            "data": [agent_daily[label].get(d, 0) for d in all_days]
+        })
+
+    return {
+        "categories": all_days,
+        "series": series,
+        "agents": agents,
+    }
+
+
 @app.get("/dashboard/chats-per-agent")
 async def dashboard_chats_per_agent(days: int = 30):
     """
-    Retorna o número de atendimentos por agente nos últimos N dias.
+    Retorna o número de perguntas dos usuários por agente nos últimos N dias.
     Agrupa por agente e por dia.
     """
     try:
-        conn = get_db_connection()
-        with conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
-                    SELECT a.title as name, DATE(c.created_at) as day, COUNT(*) as total
-                    FROM chat c
-                    JOIN agent a ON a.id = c.agent_id
-                    JOIN "user" u ON u.id = c.user_id
-                    WHERE c.origem = 'usuario'
-                      AND c.created_at >= NOW() - INTERVAL '%s days'
-                      AND u.email NOT IN ('admin@test.com')
-                    GROUP BY a.title, DATE(c.created_at)
-                    ORDER BY day ASC;
-                """, (days,))
-                rows = cur.fetchall()
-
-                cur.execute("""
-                    SELECT a.title as name, COUNT(*) as total
-                    FROM chat c
-                    JOIN agent a ON a.id = c.agent_id
-                    JOIN "user" u ON u.id = c.user_id
-                    WHERE c.origem = 'usuario'
-                      AND c.created_at >= NOW() - INTERVAL '%s days'
-                      AND u.email NOT IN ('admin@test.com')
-                    GROUP BY a.title
-                    ORDER BY total DESC;
-                """, (days,))
-                agents = [{"name": r["name"], "total": r["total"]} for r in cur.fetchall()]
-
-        from collections import defaultdict as _dd
-        agent_daily: dict = _dd(lambda: _dd(int))
-        for row in rows:
-            label = row["name"]
-            day_str = row["day"].isoformat() if hasattr(row["day"], "isoformat") else str(row["day"])
-            agent_daily[label][day_str] += row["total"]
-
-        all_labels = [a["name"] for a in agents]
-
-        all_days = sorted({
-            (row["day"].isoformat() if hasattr(row["day"], "isoformat") else str(row["day"]))
-            for row in rows
-        })
-
-        series = []
-        for label in all_labels:
-            series.append({
-                "name": label,
-                "data": [agent_daily[label].get(d, 0) for d in all_days]
-            })
-
-        return {
-            "categories": all_days,
-            "series": series,
-            "agents": agents,
-        }
+        return _daily_per_agent(days, "COUNT(*)", "usuario")
     except Exception as e:
         print(f"[dashboard] Erro: {e}")
         raise HTTPException(status_code=500, detail="Erro ao buscar dados do dashboard por agente.")
-    finally:
-        if 'conn' in locals() and conn:
-            conn.close()
+
+
+@app.get("/dashboard/responses-per-agent")
+async def dashboard_responses_per_agent(days: int = 30):
+    """
+    Retorna o número de respostas da IA por agente nos últimos N dias.
+    Cada mensagem do agente conta, mesmo que na mesma conversa.
+    """
+    try:
+        return _daily_per_agent(days, "COUNT(*)", "agente")
+    except Exception as e:
+        print(f"[dashboard-responses] Erro: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao buscar respostas por agente.")
+
+
+@app.get("/dashboard/conversations-per-agent")
+async def dashboard_conversations_per_agent(days: int = 30):
+    """
+    Retorna o número de conversas (threads) por agente nos últimos N dias.
+    No diário, uma conversa conta em cada dia em que o usuário enviou mensagem nela.
+    """
+    try:
+        return _daily_per_agent(days, "COUNT(DISTINCT ct.thread_id)", "usuario")
+    except Exception as e:
+        print(f"[dashboard-conversations] Erro: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao buscar conversas por agente.")
 
 @app.get("/dashboard/feedback-per-agent")
 async def dashboard_feedback_per_agent(days: int = 30):
