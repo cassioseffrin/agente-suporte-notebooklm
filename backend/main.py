@@ -226,13 +226,19 @@ def ensure_tables():
         conn.close()
 
 
-def get_agent_info_by_name(name: str):
-    """Busca id (notebook_id), system_prompt e notebooklm_profile pelo nome do agente."""
+def get_agent_info_by_name(name_or_id: str):
+    """Busca id (notebook_id), system_prompt e notebooklm_profile por id (UUID) ou por nome do agente."""
     conn = get_db_connection()
     try:
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT id, title, system_prompt, COALESCE(notebooklm_profile, 'default') as notebooklm_profile FROM agent WHERE name = %s LIMIT 1", (name,))
+                # 1. Tenta buscar por ID direto (UUID)
+                cur.execute("SELECT id, title, system_prompt, COALESCE(notebooklm_profile, 'default') as notebooklm_profile FROM agent WHERE id = %s LIMIT 1", (name_or_id,))
+                row = cur.fetchone()
+                if row:
+                    return row
+                # 2. Busca por name priorizando registros ativos
+                cur.execute("SELECT id, title, system_prompt, COALESCE(notebooklm_profile, 'default') as notebooklm_profile FROM agent WHERE name = %s ORDER BY active DESC, modification DESC NULLS LAST LIMIT 1", (name_or_id,))
                 return cur.fetchone()
     finally:
         conn.close()
@@ -380,6 +386,7 @@ class ChatRequest(BaseModel):
     threadId: str
     message: str
     assistantName: Optional[str] = "SMART"
+    agentId: Optional[str] = None
 
 class AuditorMessageRequest(BaseModel):
     message: str
@@ -799,7 +806,8 @@ async def create_new_thread(
     email: str | None = None,
     name: str | None = None,
     cnpj: str | None = None,
-    agentName: str | None = None
+    agentName: str | None = None,
+    agentId: str | None = None
 ):
     thread_id = str(uuid.uuid4())
     sessions[thread_id] = []
@@ -815,7 +823,8 @@ async def create_new_thread(
         "email": email,
         "name": name,
         "cnpj": cnpj,
-        "agentName": agentName
+        "agentName": agentName,
+        "agentId": agentId
     }
 
     return {"threadId": thread_id, "userId": None}
@@ -1269,6 +1278,7 @@ def _ensure_thread_in_db_and_get_ids(cur, thread_id: str) -> tuple[int | None, i
     name = meta.get("name") or "Usuario Generico"
     cnpj = meta.get("cnpj") or "03.600.477/0001-04"
     agentName = meta.get("agentName") or "SMART"
+    agentId = meta.get("agentId")
 
     # Upsert do usuário
     cur.execute("""
@@ -1282,9 +1292,16 @@ def _ensure_thread_in_db_and_get_ids(cur, thread_id: str) -> tuple[int | None, i
     user_id = row[0]
     needs_enrichment = row[1]  # True se company_data é NULL
 
-    # Localiza o agente pelo agentName
-    cur.execute("SELECT id, title FROM agent WHERE name = %s;", (agentName,))
-    agent_row = cur.fetchone()
+    # Localiza o agente pelo agentId ou pelo agentName
+    agent_row = None
+    if agentId:
+        cur.execute("SELECT id, title FROM agent WHERE id = %s LIMIT 1;", (agentId,))
+        agent_row = cur.fetchone()
+
+    if not agent_row:
+        cur.execute("SELECT id, title FROM agent WHERE name = %s ORDER BY active DESC, modification DESC NULLS LAST LIMIT 1;", (agentName,))
+        agent_row = cur.fetchone()
+
     agent_id = None
     subject_title = "indefinido"
     if agent_row:
@@ -1373,6 +1390,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     thread_id    = request.threadId
     user_message = request.message.strip()
     assistant_name = request.assistantName or "SMART"
+    agent_target = request.agentId or assistant_name
 
     if not user_message:
         raise HTTPException(status_code=400, detail="Mensagem vazia")
@@ -1387,9 +1405,9 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         }
 
     # Busca o agente no banco de dados para pegar notebook ID, system prompt e profile.
-    agent_info = get_agent_info_by_name(assistant_name)
+    agent_info = get_agent_info_by_name(agent_target)
     if not agent_info:
-        raise HTTPException(status_code=404, detail=f"Agent '{assistant_name}' não encontrado.")
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_target}' não encontrado.")
     
     agent_notebook_id = agent_info["id"]
     agent_profile = agent_info.get("notebooklm_profile", "default")
@@ -1652,6 +1670,7 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
     thread_id      = request.threadId
     user_message   = request.message.strip()
     assistant_name = request.assistantName or "SMART"
+    agent_target = request.agentId or assistant_name
 
     if not user_message:
         raise HTTPException(status_code=400, detail="Mensagem vazia")
@@ -1681,9 +1700,9 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
             },
         )
 
-    agent_info = get_agent_info_by_name(assistant_name)
+    agent_info = get_agent_info_by_name(agent_target)
     if not agent_info:
-        raise HTTPException(status_code=404, detail=f"Agent '{assistant_name}' não encontrado.")
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_target}' não encontrado.")
 
     agent_notebook_id    = agent_info["id"]
     agent_profile        = agent_info.get("notebooklm_profile", "default")
@@ -3085,10 +3104,12 @@ async def get_history(
     email: str,
     page: int = 1,
     limit: int = 30,
+    agentName: Optional[str] = None,
+    agentId: Optional[str] = None,
     authorization: str = Header(None)
 ):
     """
-    Retorna histórico de threads de um usuário específico via email, com paginação.
+    Retorna histórico de threads de um usuário específico via email, com paginação e filtro opcional por agente.
     """
     verify_api_key(authorization)
     offset = (page - 1) * limit
@@ -3104,8 +3125,22 @@ async def get_history(
                     return {"threads": [], "total": 0, "page": page, "limit": limit}
                 user_id = user_row["id"]
 
+                agent_filter = ""
+                params = [user_id]
+                count_params = [user_id]
+                if agentId:
+                    agent_filter = " AND (a.id = %s) "
+                    params.append(agentId)
+                    count_params.append(agentId)
+                elif agentName:
+                    agent_filter = " AND (a.name = %s) "
+                    params.append(agentName)
+                    count_params.append(agentName)
+
+                params.extend([limit, offset])
+
                 # Retorna dados das threads, incluindo a data da primeira mensagem e feedback_rating...
-                cur.execute("""
+                cur.execute(f"""
                     SELECT t.id as thread_id, t.subject, a.name as agent_name, a.title as agent_title,
                            MIN(c.created_at) as created_at,
                            MAX(ct.feedback_rating) as feedback_rating,
@@ -3121,21 +3156,22 @@ async def get_history(
                     JOIN chat_thread ct ON ct.thread_id = t.id
                     JOIN chat c ON ct.chat_id = c.id
                     JOIN agent a ON c.agent_id = a.id
-                    WHERE c.user_id = %s
+                    WHERE c.user_id = %s {agent_filter}
                     GROUP BY t.id, t.subject, a.name, a.title
                     ORDER BY created_at DESC
                     LIMIT %s OFFSET %s;
-                """, (user_id, limit, offset))
+                """, tuple(params))
                 threads = cur.fetchall()
                 
                 # Conta total para ajudar na paginação
-                cur.execute("""
+                cur.execute(f"""
                     SELECT COUNT(DISTINCT t.id) as total
                     FROM thread t
                     JOIN chat_thread ct ON ct.thread_id = t.id
                     JOIN chat c ON ct.chat_id = c.id
-                    WHERE c.user_id = %s;
-                """, (user_id,))
+                    JOIN agent a ON c.agent_id = a.id
+                    WHERE c.user_id = %s {agent_filter};
+                """, tuple(count_params))
                 total = cur.fetchone()["total"]
 
         for t in threads:
