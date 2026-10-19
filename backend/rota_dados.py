@@ -82,7 +82,10 @@ RE_CONFIRMACAO = re.compile(
 MSG_SESSAO_EXPIRADA = "Sua sessão no Vimbo expirou. Atualize a página e tente novamente."
 MSG_ERRO_DADOS = "Não consegui consultar os dados da sua empresa agora. Tente novamente em instantes."
 
-roteador_client = AsyncOpenAI(api_key=ROTEADOR_LLM_API_KEY, base_url=ROTEADOR_LLM_API_BASE)
+# Sem chave configurada o roteador fica desligado (tudo segue para o RAG) em vez de derrubar a API no import.
+roteador_client = AsyncOpenAI(api_key=ROTEADOR_LLM_API_KEY, base_url=ROTEADOR_LLM_API_BASE) if ROTEADOR_LLM_API_KEY else None
+if not roteador_client:
+    print("[ROTA-LLM] ROTEADOR_LLM_API_KEY não configurada: roteamento para dados desativado")
 
 dados_conversas: Dict[str, str] = {}  # thread_id -> conversa_id da API de dados
 ultima_rota: Dict[str, str] = {}      # thread_id -> 'rag' | 'dados'
@@ -107,6 +110,9 @@ def _parse_argumentos(message) -> Optional[Dict[str, Any]]:
 
 async def decidir_rota(thread_id: str, mensagem: str, historico: List[Dict[str, str]]) -> Dict[str, Any]:
     """Decide a rota da mensagem. Em caso de falha do LLM, segue para o RAG (fail-safe)."""
+    if not roteador_client:
+        return {"rota": "rag", "pergunta_reescrita": mensagem, "motivo": "roteador desativado", "confirmado": False}
+
     # Confirmação curta logo após uma resposta da API de dados (ex.: "sim" para gravar uma venda)
     if ultima_rota.get(thread_id) == "dados" and RE_CONFIRMACAO.match(mensagem.strip()):
         print(f"[ROTA-LLM] Thread {thread_id} confirmação detectada -> dados (confirmado=true)")

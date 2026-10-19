@@ -399,6 +399,9 @@ class ChatRequest(BaseModel):
     threadId: str
     message: str
     assistantName: Optional[str] = "SMART"
+    # JWT do usuário logado no Vimbo (widget com dados). Vai no corpo porque passa de 8 KB,
+    # acima do limite de header do nginx.
+    userToken: Optional[str] = None
 
 class AuditorMessageRequest(BaseModel):
     message: str
@@ -1431,9 +1434,10 @@ async def _persistir_resposta(thread_id: str, user_message: str, assistant_text:
 
 
 @app.post("/chat")
-async def chat(request: ChatRequest, authorization: str = Header(None), x_user_token: Optional[str] = Header(None)):
+async def chat(request: ChatRequest, authorization: str = Header(None)):
     verify_api_key(authorization)
 
+    user_token   = request.userToken
     thread_id    = request.threadId
     user_message = request.message.strip()
     assistant_name = request.assistantName or "SMART"
@@ -1487,7 +1491,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None), x_user_t
     # --- Cache de Sessão: Se a pergunta for idêntica à última feita nesta thread, reutiliza a resposta sem reprocessar no NotebookLM ---
     # Desligado no widget com dados: os valores mudam e um "sim" repetido precisa chegar à API de dados.
     history = sessions.get(thread_id, [])
-    if history and len(history) >= 2 and not x_user_token:
+    if history and len(history) >= 2 and not user_token:
         last_user_msg = history[-2]
         last_assistant_msg = history[-1]
         if (
@@ -1508,10 +1512,10 @@ async def chat(request: ChatRequest, authorization: str = Header(None), x_user_t
                 }
 
     # --- Roteador LLM (só com token do usuário): pedidos de dados da empresa vão para a API de dados ---
-    if x_user_token:
+    if user_token:
         active_generations.add(thread_id)
         try:
-            resposta_dados = await _tentar_rota_dados(thread_id, user_message, x_user_token)
+            resposta_dados = await _tentar_rota_dados(thread_id, user_message, user_token)
             if resposta_dados is not None:
                 assistant_chat_id = await _persistir_resposta(thread_id, user_message, resposta_dados, is_first_message)
                 return {
@@ -1525,7 +1529,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None), x_user_t
     # --- Pré-roteador por regras: desvia saudações, dados de negócio e perguntas vagas sem RAG ---
     # Com token do usuário o roteador LLM já tratou os dados de negócio, então não responde "sem acesso".
     decisao_rota = rotear(user_message, assistant_name=assistant_name)
-    if decisao_rota["destino"] == "direto" and not (x_user_token and decisao_rota.get("motivo") == "dado do negocio"):
+    if decisao_rota["destino"] == "direto" and not (user_token and decisao_rota.get("motivo") == "dado do negocio"):
         resposta_direta = decisao_rota.get("resposta_direta") or NOTEBOOKLM_EMPTY_RESPONSE
         motivo = decisao_rota.get("motivo", "direto")
         print(f"[ROTEADOR-DIRETO] Thread {thread_id} classificada como '{motivo}'. Respondendo direto sem RAG: {user_message!r}")
@@ -1737,7 +1741,7 @@ async def _run_stream_processing(
 # ---------------------------------------------------------------------------
 
 @app.post("/chat/stream")
-async def chat_stream(request: ChatRequest, authorization: str = Header(None), x_user_token: Optional[str] = Header(None)):
+async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
     """
     SSE streaming version of /chat.
     Emits events: status, token, done, fallback, error.
@@ -1745,6 +1749,7 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None), x
     """
     verify_api_key(authorization)
 
+    user_token     = request.userToken
     thread_id      = request.threadId
     user_message   = request.message.strip()
     assistant_name = request.assistantName or "SMART"
@@ -1816,7 +1821,7 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None), x
     # --- Cache de Sessão: Se a pergunta for idêntica à última feita nesta thread, reutiliza a resposta sem reprocessar no NotebookLM ---
     # Desligado no widget com dados: os valores mudam e um "sim" repetido precisa chegar à API de dados.
     history = sessions.get(thread_id, [])
-    if history and len(history) >= 2 and not x_user_token:
+    if history and len(history) >= 2 and not user_token:
         last_user_msg = history[-2]
         last_assistant_msg = history[-1]
         if (
@@ -1877,7 +1882,7 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None), x
             agent_notebook_id=agent_notebook_id,
             agent_profile=agent_profile,
             is_first_message=is_first_message,
-            user_token=x_user_token,
+            user_token=user_token,
         )
     )
 
