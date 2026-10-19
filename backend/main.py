@@ -35,9 +35,11 @@ load_dotenv()
 
 try:
     from backend.roteador import rotear
+    from backend.rota_dados import decidir_rota, responder_dados
     from backend.api_docs import setup_docs
 except ImportError:
     from roteador import rotear
+    from rota_dados import decidir_rota, responder_dados
     from api_docs import setup_docs
 
 from openai import AsyncOpenAI
@@ -1395,8 +1397,41 @@ def save_agent_message_sync(thread_id: str, assistant_text: str) -> int | None:
             conn.close()
     return None
 
+async def _tentar_rota_dados(thread_id: str, user_message: str, user_token: Optional[str], push_fn=None) -> Optional[str]:
+    """
+    Quando o widget envia o token do usuário logado, decide via LLM (tool calling) se a
+    pergunta vai para a API de dados do Vimbo. Retorna o texto da resposta quando a rota
+    é 'dados', ou None para seguir o fluxo normal do RAG.
+    """
+    if not user_token:
+        return None
+    if push_fn:
+        push_fn("status", {"stage": "routing", "detail": "Analisando sua pergunta..."})
+    rota = await decidir_rota(thread_id, user_message, sessions.get(thread_id, []))
+    if rota["rota"] != "dados":
+        return None
+    if push_fn:
+        push_fn("status", {"stage": "data", "detail": "Consultando os dados da sua empresa..."})
+    return await responder_dados(thread_id, rota["pergunta_reescrita"], user_token, rota.get("confirmado", False))
+
+
+async def _persistir_resposta(thread_id: str, user_message: str, assistant_text: str, is_first_message: bool):
+    """Salva a troca na sessão e no banco, notifica auditor/usuário e gera o assunto na primeira mensagem."""
+    sessions[thread_id].append({"role": "user",      "content": user_message})
+    sessions[thread_id].append({"role": "assistant", "content": assistant_text})
+
+    assistant_chat_id = await run_in_thread(save_agent_message_sync, thread_id, assistant_text)
+    if assistant_chat_id:
+        _notify_auditor_new_message(thread_id, assistant_chat_id, assistant_text, 'agente')
+        _notify_user_new_message(thread_id, assistant_chat_id, assistant_text, 'agente')
+
+    if is_first_message:
+        asyncio.create_task(generate_and_update_subject(thread_id, user_message, assistant_text))
+    return assistant_chat_id
+
+
 @app.post("/chat")
-async def chat(request: ChatRequest, authorization: str = Header(None)):
+async def chat(request: ChatRequest, authorization: str = Header(None), x_user_token: Optional[str] = Header(None)):
     verify_api_key(authorization)
 
     thread_id    = request.threadId
@@ -1450,8 +1485,9 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         })
 
     # --- Cache de Sessão: Se a pergunta for idêntica à última feita nesta thread, reutiliza a resposta sem reprocessar no NotebookLM ---
+    # Desligado no widget com dados: os valores mudam e um "sim" repetido precisa chegar à API de dados.
     history = sessions.get(thread_id, [])
-    if history and len(history) >= 2:
+    if history and len(history) >= 2 and not x_user_token:
         last_user_msg = history[-2]
         last_assistant_msg = history[-1]
         if (
@@ -1471,9 +1507,25 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
                     "chat_id": assistant_chat_id
                 }
 
+    # --- Roteador LLM (só com token do usuário): pedidos de dados da empresa vão para a API de dados ---
+    if x_user_token:
+        active_generations.add(thread_id)
+        try:
+            resposta_dados = await _tentar_rota_dados(thread_id, user_message, x_user_token)
+            if resposta_dados is not None:
+                assistant_chat_id = await _persistir_resposta(thread_id, user_message, resposta_dados, is_first_message)
+                return {
+                    "content": [resposta_dados],
+                    "images": [],
+                    "chat_id": assistant_chat_id
+                }
+        finally:
+            active_generations.discard(thread_id)
+
     # --- Pré-roteador por regras: desvia saudações, dados de negócio e perguntas vagas sem RAG ---
+    # Com token do usuário o roteador LLM já tratou os dados de negócio, então não responde "sem acesso".
     decisao_rota = rotear(user_message, assistant_name=assistant_name)
-    if decisao_rota["destino"] == "direto":
+    if decisao_rota["destino"] == "direto" and not (x_user_token and decisao_rota.get("motivo") == "dado do negocio"):
         resposta_direta = decisao_rota.get("resposta_direta") or NOTEBOOKLM_EMPTY_RESPONSE
         motivo = decisao_rota.get("motivo", "direto")
         print(f"[ROTEADOR-DIRETO] Thread {thread_id} classificada como '{motivo}'. Respondendo direto sem RAG: {user_message!r}")
@@ -1550,6 +1602,7 @@ async def _run_stream_processing(
     agent_notebook_id: str,
     agent_profile: str,
     is_first_message: bool,
+    user_token: Optional[str] = None,
 ):
     """
     Runs the full chat processing pipeline: query rewrite → NotebookLM streaming direto.
@@ -1572,9 +1625,23 @@ async def _run_stream_processing(
     try:
         # active_generations.add() é feito no handler do /chat/stream ANTES de criar esta task,
         # para evitar race condition com requests duplicados.
+        # --- Roteador LLM (só com token do usuário): pedidos de dados da empresa vão para a API de dados ---
+        resposta_dados = await _tentar_rota_dados(thread_id, user_message, user_token, push_fn=_push)
+        if resposta_dados is not None:
+            _push("token", {"text": resposta_dados})
+            _push("status", {"stage": "saving", "detail": "Salvando..."})
+            assistant_chat_id = await _persistir_resposta(thread_id, user_message, resposta_dados, is_first_message)
+            _push("done", {
+                "chat_id": assistant_chat_id,
+                "content": resposta_dados,
+                "was_fallback": False,
+            })
+            return
+
         # --- Pré-roteador por regras: desvia saudações, dados de negócio e perguntas vagas sem RAG ---
+        # Com token do usuário o roteador LLM já tratou os dados de negócio, então não responde "sem acesso".
         decisao_rota = rotear(user_message, assistant_name=assistant_name)
-        if decisao_rota["destino"] == "direto":
+        if decisao_rota["destino"] == "direto" and not (user_token and decisao_rota.get("motivo") == "dado do negocio"):
             assistant_text = decisao_rota.get("resposta_direta") or NOTEBOOKLM_EMPTY_RESPONSE
             motivo = decisao_rota.get("motivo", "direto")
             print(f"[STREAM-ROTEADOR-DIRETO] Thread {thread_id} classificada como '{motivo}'. Respondendo direto: {user_message!r}")
@@ -1670,7 +1737,7 @@ async def _run_stream_processing(
 # ---------------------------------------------------------------------------
 
 @app.post("/chat/stream")
-async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
+async def chat_stream(request: ChatRequest, authorization: str = Header(None), x_user_token: Optional[str] = Header(None)):
     """
     SSE streaming version of /chat.
     Emits events: status, token, done, fallback, error.
@@ -1747,8 +1814,9 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
         })
 
     # --- Cache de Sessão: Se a pergunta for idêntica à última feita nesta thread, reutiliza a resposta sem reprocessar no NotebookLM ---
+    # Desligado no widget com dados: os valores mudam e um "sim" repetido precisa chegar à API de dados.
     history = sessions.get(thread_id, [])
-    if history and len(history) >= 2:
+    if history and len(history) >= 2 and not x_user_token:
         last_user_msg = history[-2]
         last_assistant_msg = history[-1]
         if (
@@ -1809,6 +1877,7 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
             agent_notebook_id=agent_notebook_id,
             agent_profile=agent_profile,
             is_first_message=is_first_message,
+            user_token=x_user_token,
         )
     )
 
