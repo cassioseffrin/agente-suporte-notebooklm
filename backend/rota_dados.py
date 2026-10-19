@@ -155,7 +155,8 @@ def _formatar_arquivos(arquivos) -> str:
         if isinstance(a, str):
             url, nome = a, f"Arquivo {i}"
         elif isinstance(a, dict):
-            url = a.get("url") or a.get("link") or a.get("path")
+            url = a.get("url") or a.get("link") or a.get("path") or next(
+                (v for v in a.values() if isinstance(v, str) and v.startswith("http")), None)
             nome = a.get("nome") or a.get("name") or a.get("titulo") or f"Arquivo {i}"
         else:
             continue
@@ -192,6 +193,8 @@ async def responder_dados(thread_id: str, pergunta: str, user_token: str, confir
             dados_conversas[thread_id] = data["conversa_id"]
         tools = [t.get("tool") for t in data.get("tool_calls") or []]
         print(f"[DADOS] Thread {thread_id} conversa_id={data.get('conversa_id')} tools={tools}")
+        if data.get("arquivos"):
+            print(f"[DADOS] Thread {thread_id} arquivos={json.dumps(data['arquivos'], ensure_ascii=False)[:500]}")
         resposta = (data.get("resposta") or "").strip()
         return (resposta or MSG_ERRO_DADOS) + _formatar_arquivos(data.get("arquivos"))
     except Exception as e:
