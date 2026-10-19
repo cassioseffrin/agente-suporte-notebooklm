@@ -26,6 +26,7 @@ from typing import Optional
 from pathlib import Path
 
 import psycopg2
+import psycopg2.errors
 from psycopg2.extras import RealDictCursor, Json
 import httpx
 
@@ -137,6 +138,22 @@ def ensure_tables():
                 END $$;
                 """)
 
+                # Migration: agent.name único (o widget localiza o agente pelo name; o id do notebook é volátil).
+                # Antes de criar o índice, renomeia duplicados mantendo o registro ativo/mais recente com o name original.
+                cur.execute("""
+                UPDATE agent a
+                SET name = a.name || '_OLD_' || LEFT(a.id, 8), modification = NOW()
+                FROM (
+                    SELECT id, ROW_NUMBER() OVER (
+                        PARTITION BY name ORDER BY active DESC, modification DESC NULLS LAST, creation DESC
+                    ) AS rn
+                    FROM agent
+                    WHERE name IS NOT NULL
+                ) d
+                WHERE a.id = d.id AND d.rn > 1;
+                """)
+                cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS agent_name_key ON agent (name);")
+
                 # 2. Tabela auditor
                 cur.execute("""
                 CREATE TABLE IF NOT EXISTS auditor (
@@ -226,19 +243,13 @@ def ensure_tables():
         conn.close()
 
 
-def get_agent_info_by_name(name_or_id: str):
-    """Busca id (notebook_id), system_prompt e notebooklm_profile por id (UUID) ou por nome do agente."""
+def get_agent_info_by_name(name: str):
+    """Busca id (notebook_id), system_prompt e notebooklm_profile pelo nome do agente (name é único)."""
     conn = get_db_connection()
     try:
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # 1. Tenta buscar por ID direto (UUID)
-                cur.execute("SELECT id, title, system_prompt, COALESCE(notebooklm_profile, 'default') as notebooklm_profile FROM agent WHERE id = %s LIMIT 1", (name_or_id,))
-                row = cur.fetchone()
-                if row:
-                    return row
-                # 2. Busca por name priorizando registros ativos
-                cur.execute("SELECT id, title, system_prompt, COALESCE(notebooklm_profile, 'default') as notebooklm_profile FROM agent WHERE name = %s ORDER BY active DESC, modification DESC NULLS LAST LIMIT 1", (name_or_id,))
+                cur.execute("SELECT id, title, system_prompt, COALESCE(notebooklm_profile, 'default') as notebooklm_profile FROM agent WHERE name = %s LIMIT 1", (name,))
                 return cur.fetchone()
     finally:
         conn.close()
@@ -386,7 +397,6 @@ class ChatRequest(BaseModel):
     threadId: str
     message: str
     assistantName: Optional[str] = "SMART"
-    agentId: Optional[str] = None
 
 class AuditorMessageRequest(BaseModel):
     message: str
@@ -806,8 +816,7 @@ async def create_new_thread(
     email: str | None = None,
     name: str | None = None,
     cnpj: str | None = None,
-    agentName: str | None = None,
-    agentId: str | None = None
+    agentName: str | None = None
 ):
     thread_id = str(uuid.uuid4())
     sessions[thread_id] = []
@@ -823,8 +832,7 @@ async def create_new_thread(
         "email": email,
         "name": name,
         "cnpj": cnpj,
-        "agentName": agentName,
-        "agentId": agentId
+        "agentName": agentName
     }
 
     return {"threadId": thread_id, "userId": None}
@@ -1048,21 +1056,32 @@ async def update_notebooks(profile: str = "default"):
 
                     valid_ids.append(nb_id)
 
+                    params = {
+                        "id":           nb_id,
+                        "title":        nb_title,
+                        "name":         nb_name,
+                        "creation":     nb_created,
+                        "modification": now,
+                        "profile":      profile,
+                    }
                     try:
-                        cur.execute(upsert_sql, {
-                            "id":           nb_id,
-                            "title":        nb_title,
-                            "name":         nb_name,
-                            "creation":     nb_created,
-                            "modification": now,
-                            "profile":      profile,
-                        })
+                        # Savepoint: um erro neste notebook não aborta a transação inteira
+                        cur.execute("SAVEPOINT nb_upsert;")
+                        try:
+                            cur.execute(upsert_sql, params)
+                        except psycopg2.errors.UniqueViolation:
+                            # name já usado por outro agente (agent.name é único): sufixa com parte do id
+                            cur.execute("ROLLBACK TO SAVEPOINT nb_upsert;")
+                            params["name"] = f"{nb_name}_{nb_id[:8]}"
+                            cur.execute(upsert_sql, params)
                         row = cur.fetchone()
+                        cur.execute("RELEASE SAVEPOINT nb_upsert;")
                         if row and row["inserted"]:
                             inserted_count += 1
                         else:
                             updated_count += 1
                     except Exception as e:
+                        cur.execute("ROLLBACK TO SAVEPOINT nb_upsert;")
                         errors.append({"id": nb_id, "erro": str(e)})
                 
                 # --- 4. Desativar removidos (soft delete) ---
@@ -1278,7 +1297,6 @@ def _ensure_thread_in_db_and_get_ids(cur, thread_id: str) -> tuple[int | None, i
     name = meta.get("name") or "Usuario Generico"
     cnpj = meta.get("cnpj") or "03.600.477/0001-04"
     agentName = meta.get("agentName") or "SMART"
-    agentId = meta.get("agentId")
 
     # Upsert do usuário
     cur.execute("""
@@ -1292,15 +1310,9 @@ def _ensure_thread_in_db_and_get_ids(cur, thread_id: str) -> tuple[int | None, i
     user_id = row[0]
     needs_enrichment = row[1]  # True se company_data é NULL
 
-    # Localiza o agente pelo agentId ou pelo agentName
-    agent_row = None
-    if agentId:
-        cur.execute("SELECT id, title FROM agent WHERE id = %s LIMIT 1;", (agentId,))
-        agent_row = cur.fetchone()
-
-    if not agent_row:
-        cur.execute("SELECT id, title FROM agent WHERE name = %s ORDER BY active DESC, modification DESC NULLS LAST LIMIT 1;", (agentName,))
-        agent_row = cur.fetchone()
+    # Localiza o agente pelo agentName (único; o id do notebook é volátil)
+    cur.execute("SELECT id, title FROM agent WHERE name = %s;", (agentName,))
+    agent_row = cur.fetchone()
 
     agent_id = None
     subject_title = "indefinido"
@@ -1390,7 +1402,6 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     thread_id    = request.threadId
     user_message = request.message.strip()
     assistant_name = request.assistantName or "SMART"
-    agent_target = request.agentId or assistant_name
 
     if not user_message:
         raise HTTPException(status_code=400, detail="Mensagem vazia")
@@ -1405,9 +1416,9 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         }
 
     # Busca o agente no banco de dados para pegar notebook ID, system prompt e profile.
-    agent_info = get_agent_info_by_name(agent_target)
+    agent_info = get_agent_info_by_name(assistant_name)
     if not agent_info:
-        raise HTTPException(status_code=404, detail=f"Agent '{agent_target}' não encontrado.")
+        raise HTTPException(status_code=404, detail=f"Agent '{assistant_name}' não encontrado.")
     
     agent_notebook_id = agent_info["id"]
     agent_profile = agent_info.get("notebooklm_profile", "default")
@@ -1670,7 +1681,6 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
     thread_id      = request.threadId
     user_message   = request.message.strip()
     assistant_name = request.assistantName or "SMART"
-    agent_target = request.agentId or assistant_name
 
     if not user_message:
         raise HTTPException(status_code=400, detail="Mensagem vazia")
@@ -1700,9 +1710,9 @@ async def chat_stream(request: ChatRequest, authorization: str = Header(None)):
             },
         )
 
-    agent_info = get_agent_info_by_name(agent_target)
+    agent_info = get_agent_info_by_name(assistant_name)
     if not agent_info:
-        raise HTTPException(status_code=404, detail=f"Agent '{agent_target}' não encontrado.")
+        raise HTTPException(status_code=404, detail=f"Agent '{assistant_name}' não encontrado.")
 
     agent_notebook_id    = agent_info["id"]
     agent_profile        = agent_info.get("notebooklm_profile", "default")
@@ -2977,6 +2987,8 @@ async def update_agent(agent_id: str, request: AgentUpdateRequest):
                 }
     except HTTPException:
         raise
+    except psycopg2.errors.UniqueViolation:
+        raise HTTPException(status_code=409, detail=f"Já existe outro agente com o nome '{request.name}'.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar agente: {e}")
     finally:
@@ -3105,7 +3117,6 @@ async def get_history(
     page: int = 1,
     limit: int = 30,
     agentName: Optional[str] = None,
-    agentId: Optional[str] = None,
     authorization: str = Header(None)
 ):
     """
@@ -3128,11 +3139,7 @@ async def get_history(
                 agent_filter = ""
                 params = [user_id]
                 count_params = [user_id]
-                if agentId:
-                    agent_filter = " AND (a.id = %s) "
-                    params.append(agentId)
-                    count_params.append(agentId)
-                elif agentName:
+                if agentName:
                     agent_filter = " AND (a.name = %s) "
                     params.append(agentName)
                     count_params.append(agentName)
